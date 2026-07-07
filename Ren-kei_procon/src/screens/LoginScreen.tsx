@@ -1,6 +1,8 @@
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
+  const navigation = useNavigation();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Ren-Kei</Text>
@@ -17,8 +19,13 @@ export default function LoginScreen() {
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>ログイン</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("Home" as never)}
+>
+        <Text style={styles.buttonText}>
+          ログイン
+        </Text>
       </TouchableOpacity>
 
       <Text style={styles.register}>

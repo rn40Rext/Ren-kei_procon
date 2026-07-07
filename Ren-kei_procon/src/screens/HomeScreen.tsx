@@ -60,7 +60,6 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
->>>>>>> 52bfe7cb52c2663ff02a8b80343a29fad54b3804
   );
 }
 

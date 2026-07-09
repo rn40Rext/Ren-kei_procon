@@ -4,8 +4,7 @@
     "esModuleInterop": true,
     "jsx": "react-native",
     "lib": ["dom", "esnext"],
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
+    "moduleResolution": "bundler",
     "noEmit": true,
     "strict": true,
     "target": "esnext"

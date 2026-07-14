@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
-import { Camera, Users, UserPlus, Flag, User, Home as HomeIcon } from 'lucide-react-native';
+import { Camera, Users, UserPlus, Flag, User, Home as HomeIcon, Settings } from 'lucide-react-native';
 
 export default function HomeScreen() {
   const menuItems = [
@@ -15,6 +15,10 @@ export default function HomeScreen() {
       {/* ヘッダー */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ren-kei</Text>
+
+          <TouchableOpacity style={styles.settingsButton}>
+            <Settings size={24} color="#374151" />
+          </TouchableOpacity>
       </View>
 
       {/* メインコンテンツ */}
@@ -66,6 +70,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
+  },
+  settingsButton: {
+    position: 'absolute',
+    right: 20,
+    top: 14,
+    padding: 8,
   },
   headerTitle: {
     fontSize: 18,

@@ -4,11 +4,10 @@ import { Camera, Users, UserPlus, Flag, User, Home as HomeIcon } from 'lucide-re
 
 export default function HomeScreen() {
   const menuItems = [
-    { title: '踊り解析', icon: <Camera size={28} color="#2563eb" />, bgColor: '#dbeafe' },
-    { title: 'コミュニティ', icon: <Users size={28} color="#16a34a" />, bgColor: '#dcfce7' },
-    { title: '連への参加リクエスト', icon: <UserPlus size={28} color="#ca8a04" />, bgColor: '#fef08a', isWide: true },
-    { title: 'マイ連', icon: <Flag size={28} color="#9333ea" />, bgColor: '#f3e8ff' },
-    { title: 'マイページ', icon: <User size={28} color="#4b5563" />, bgColor: '#f3f4f6' },
+    { title: '踊り解析', icon: <Camera size={36} color="#2563eb" />, bgColor: '#dbeafe' },
+    { title: 'コミュニティ', icon: <Users size={36} color="#16a34a" />, bgColor: '#dcfce7' },
+    { title: '連への参加リクエスト', icon: <UserPlus size={36} color="#ca8a04" />, bgColor: '#fef08a', isWide: true },
+    { title: 'マイページ', icon: <User size={36} color="#4b5563" />, bgColor: '#f3f4f6' },
   ];
 
   return (
@@ -26,10 +25,7 @@ export default function HomeScreen() {
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={[
-                styles.card,
-                item.isWide ? styles.cardWide : styles.cardHalf
-              ]}
+              style={[styles.card, styles.cardHalf]}
             >
               <View style={[styles.iconWrapper, { backgroundColor: item.bgColor }]}>
                 {item.icon}
@@ -49,10 +45,6 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.navItem}>
           <Users size={24} color="#9ca3af" />
           <Text style={styles.navText}>コミュニティ</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Flag size={24} color="#9ca3af" />
-          <Text style={styles.navText}>マイ連</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem}>
           <User size={24} color="#9ca3af" />
@@ -103,7 +95,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -115,14 +107,15 @@ const styles = StyleSheet.create({
   },
   cardHalf: {
     width: '48%', // 2列表示
+    aspectRatio: 1,
   },
   cardWide: {
     width: '100%', // 1列（全幅）表示
   },
   iconWrapper: {
-    padding: 12,
-    borderRadius: 50,
-    marginBottom: 12,
+    padding: 18,
+    borderRadius: 999,
+    marginBottom: 16,
   },
   cardTitle: {
     fontSize: 14,

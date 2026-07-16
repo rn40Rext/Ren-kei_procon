@@ -1,13 +1,19 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { Camera, Users, UserPlus, Flag, User, Home as HomeIcon, Settings } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
 export default function HomeScreen() {
-  const menuItems = [
-    { title: '踊り解析', icon: <Camera size={36} color="#2563eb" />, bgColor: '#dbeafe' },
-    { title: 'コミュニティ', icon: <Users size={36} color="#16a34a" />, bgColor: '#dcfce7' },
-    { title: '連への参加リクエスト', icon: <UserPlus size={36} color="#ca8a04" />, bgColor: '#fef08a', isWide: true },
-    { title: 'マイページ', icon: <User size={36} color="#4b5563" />, bgColor: '#f3f4f6' },
+  type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Home">;
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  type MenuItems = {id: number; title: string; icon: React.ReactNode; bgColor: string; screen: keyof RootStackParamList; };
+  const menuItems: MenuItems[] = [
+    { id: 0, title: '踊り解析', icon: <Camera size={36} color="#2563eb" />, bgColor: '#dbeafe', screen: 'Scoring', },
+    { id: 1, title: 'コミュニティ', icon: <Users size={36} color="#16a34a" />, bgColor: '#dcfce7', screen: 'Community', },
+    { id: 2, title: '連への参加リクエスト', icon: <UserPlus size={36} color="#ca8a04" />, bgColor: '#fef08a', screen: 'Request', },
+    { id: 3, title: 'マイページ', icon: <User size={36} color="#4b5563" />, bgColor: '#f3f4f6' , screen: 'Mypage', },
   ];
 
   return (
@@ -26,10 +32,11 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>メインメニュー</Text>
         
         <View style={styles.grid}>
-          {menuItems.map((item, index) => (
+          {menuItems.map((item) => (
             <TouchableOpacity
-              key={index}
+              key={item.id}
               style={[styles.card, styles.cardHalf]}
+              onPress ={() => navigation.navigate(item.screen)}
             >
               <View style={[styles.iconWrapper, { backgroundColor: item.bgColor }]}>
                 {item.icon}

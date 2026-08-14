@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput } from 'react-native';
 import { Play, Heart, User, Award, MessageSquare, Send, ChevronLeft } from 'lucide-react-native';
+import BottomNav from '../components/BottomNav';
 
 // 💡 タイムラインに表示する複数人の動画データ（モック）
 const MOCK_VIDEOS = [
@@ -99,6 +100,7 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        <BottomNav />
       </SafeAreaView>
     );
   }
@@ -215,6 +217,9 @@ function VideoDetailScreen({ video, onBack }: { video: any, onBack: () => void }
           <Send size={18} color="#ffffff" />
         </TouchableOpacity>
       </View>
+
+      <BottomNav />
+
     </SafeAreaView>
   );
 }

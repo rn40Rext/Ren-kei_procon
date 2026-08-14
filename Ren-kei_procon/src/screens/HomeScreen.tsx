@@ -4,11 +4,12 @@ import { Camera, Users, UserPlus, Flag, User, Home as HomeIcon, Settings } from 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import BottomNav from '../components/BottomNav';
 
 export default function HomeScreen() {
   type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Home">;
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  type MenuItems = {id: number; title: string; icon: React.ReactNode; bgColor: string; screen: keyof RootStackParamList; };
+  type MenuItems = {id: number; title: string; icon: React.ReactNode; bgColor: string; screen: "Scoring" | "Community" | "Request" | "Mypage"; };
   const menuItems: MenuItems[] = [
     { id: 0, title: '踊り解析', icon: <Camera size={36} color="#2563eb" />, bgColor: '#dbeafe', screen: 'Scoring', },
     { id: 1, title: 'コミュニティ', icon: <Users size={36} color="#16a34a" />, bgColor: '#dcfce7', screen: 'Community', },
@@ -47,21 +48,8 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* ボトムナビゲーション (ダミー) */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <HomeIcon size={24} color="#2563eb" />
-          <Text style={[styles.navText, { color: '#2563eb' }]}>ホーム</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Users size={24} color="#9ca3af" />
-          <Text style={styles.navText}>コミュニティ</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <User size={24} color="#9ca3af" />
-          <Text style={styles.navText}>マイページ</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNav />
+
     </SafeAreaView>
   );
 }

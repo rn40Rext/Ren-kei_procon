@@ -7,6 +7,7 @@ import CommunitySscreen from "../screens/CommunityScreen";
 import RequestScreen from "../screens/RequestScreen";
 import MypageScreen from "../screens/MypageScreen";
 import CameraScreen from "../screens/CameraScreen"
+import ResultScreen from "../screens/ResultScreen"
 
 export type RootStackParamList = {
   Login: undefined;
@@ -19,9 +20,10 @@ export type RootStackParamList = {
     danceType: 'male' | 'female';
     scorePart: 'feet' | 'hands' | 'whole';
   };
+  Result: undefined;
 };
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
@@ -63,6 +65,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Camera"
         component={CameraScreen}
+      />
+
+      <Stack.Screen
+        name="Result"
+        component={ResultScreen}
       />
     </Stack.Navigator>
 

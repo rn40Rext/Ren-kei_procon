@@ -1,128 +1,72 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Home as HomeIcon, Camera, Users, User } from 'lucide-react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Home, Users, Sparkles, UserCircle } from 'lucide-react-native';
 
-type BottomNavNavigationProp =
-    NativeStackNavigationProp<RootStackParamList, 'Home'>;
+export default function BottomNav({ activeTab, navigation }: any) {
+  return (
+    <View style={styles.bottomNav}>
+      <TouchableOpacity 
+        style={styles.navItem} 
+        onPress={() => navigation?.navigate?.('Home')}
+      >
+        <Home size={20} color={activeTab === 'home' ? '#2563eb' : '#6b7280'} />
+        <Text style={[styles.navText, activeTab === 'home' && styles.activeNavText]}>ホーム</Text>
+      </TouchableOpacity>
 
-export default function BottomNav() {
-    const navigation = useNavigation<BottomNavNavigationProp>();
-    const route = useRoute();
+      <TouchableOpacity 
+        style={styles.navItem} 
+        onPress={() => navigation?.navigate?.('Community')}
+      >
+        <Users size={20} color={activeTab === 'community' ? '#2563eb' : '#6b7280'} />
+        <Text style={[styles.navText, activeTab === 'community' && styles.activeNavText]}>交流広場</Text>
+      </TouchableOpacity>
 
-    return (
-        <View style={styles.bottomNav}>
-            <TouchableOpacity
-                style={styles.navItem}
-                onPress={() => navigation.navigate('Home')}
-            >
-                <HomeIcon
-                    size={24}
-                    color={route.name === 'Home' ? "#2563eb" : '#9ca3af'} />
-                <Text
-                    style={[
-                        styles.navText,
-                        {
-                            color: route.name === 'Home' ? '#2563eb' : '#9ca3af',
-                        },
-                    ]}
-                >
-                    ホーム
-                </Text>
-            </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.navItem} 
+        onPress={() => navigation?.navigate?.('Practice')}
+      >
+        <Sparkles size={20} color={activeTab === 'practice' ? '#2563eb' : '#6b7280'} />
+        <Text style={[styles.navText, activeTab === 'practice' && styles.activeNavText]}>AI練習</Text>
+      </TouchableOpacity>
 
-            <TouchableOpacity
-                style={styles.navItem}
-                onPress={() => navigation.navigate('Scoring')}
-            >
-                <Camera
-                    size={24}
-                    color={route.name === 'Scoring' ? '#2563eb' : '#9ca3af'}
-                />
-
-                <Text
-                    style={[
-                        styles.navText,
-                        {
-                            color: route.name === 'Scoring'
-                                ? '#2563eb'
-                                : '#9ca3af',
-                        },
-                    ]}
-                >
-                    解析
-                </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.navItem}
-                onPress={() => navigation.navigate('Community')}
-            >
-                <Users
-                    size={24}
-                    color={route.name === 'Community' ? '#16a34a' : '#9ca3af'}
-                />
-
-                <Text
-                    style={[
-                        styles.navText,
-                        {
-                            color: route.name === 'Community' ? '#16a34a' : '#9ca3af',
-                        },
-                    ]}
-                >
-                    コミュニティ
-                </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={styles.navItem}
-                onPress={() => navigation.navigate('Mypage')}
-            >
-                <User
-                    size={24}
-                    color={route.name === 'Mypage' ? '#4b5563' : '#9ca3af'}
-                />
-
-                <Text
-                    style={[
-                        styles.navText,
-                        {
-                            color: route.name === 'Mypage' ? '#4b5563' : '#9ca3af',
-                        },
-                    ]}
-                >
-                    マイページ
-                </Text>
-            </TouchableOpacity>
-        </View>
-    );
+      <TouchableOpacity 
+        style={styles.navItem} 
+        onPress={() => navigation?.navigate?.('Profile')}
+      >
+        <UserCircle size={20} color={activeTab === 'profile' ? '#2563eb' : '#6b7280'} />
+        <Text style={[styles.navText, activeTab === 'profile' && styles.activeNavText]}>マイページ</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    bottomNav: {
-        flexDirection: 'row',
-        backgroundColor: '#ffffff',
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-        paddingVertical: 10,
-        paddingBottom: 24,
-        position: 'absolute',
-        bottom: 0,
-        width: '100%',
-        justifyContent: 'space-around',
-    },
-
-    navItem: {
-        alignItems: 'center',
-    },
-
-    navText: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#9ca3af',
-        marginTop: 4,
-    },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingVertical: 8,
+    paddingBottom: 16,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  navText: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginTop: 3,
+  },
+  activeNavText: {
+    color: '#2563eb',
+    fontWeight: 'bold',
+  },
 });

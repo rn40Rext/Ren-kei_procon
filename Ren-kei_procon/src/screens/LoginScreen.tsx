@@ -28,9 +28,13 @@ export default function LoginScreen() {
         </Text>
       </TouchableOpacity>
 
-      <Text style={styles.register}>
-        アカウントを作成する
-      </Text>
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Register" as never)}
+      >
+        <Text style={styles.register}>
+          アカウントを作成する
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }

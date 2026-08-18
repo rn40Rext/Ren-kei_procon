@@ -1,15 +1,17 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import LoginScreen from "../screens/LoginScreen";
+import RegisterScreen from "../screens/RegisterScreen";
 import HomeScreen from "../screens/HomeScreen";
 import ScoringScreen from "../screens/ScoringScreen";
 import CommunitySscreen from "../screens/CommunityScreen";
 import RequestScreen from "../screens/RequestScreen";
 import MypageScreen from "../screens/MypageScreen";
-import CameraScreen from "../screens/CameraScreen"
+import CameraScreen from "../screens/CameraScreen";
 
 export type RootStackParamList = {
   Login: undefined;
+  Register: undefined;
   Home: undefined;
   Scoring: undefined;
   Community: undefined;
@@ -38,6 +40,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Home"
         component={HomeScreen}
+      />
+
+      <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
       />
 
       <Stack.Screen

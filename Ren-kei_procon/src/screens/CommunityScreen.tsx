@@ -289,7 +289,7 @@ export default function CommunityScreen() {
           </View>
         </Modal>
 
-        <BottomNav activeTab="community" />
+        <BottomNav/>
       </SafeAreaView>
     );
   }
@@ -492,7 +492,7 @@ function VideoDetailScreen({ video, onBack }: { video: any, onBack: () => void }
         </TouchableOpacity>
       </View>
 
-      <BottomNav activeTab="community" />
+      <BottomNav/>
     </SafeAreaView>
   );
 }

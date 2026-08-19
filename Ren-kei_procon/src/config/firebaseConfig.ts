@@ -2,15 +2,14 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-
 const firebaseConfig = {
-  apiKey: "AIzaSyCest7-39T_Mi-Q6RQzHH2LTY4Zljya8_U",
-  authDomain: "ren-kei-936c9.firebaseapp.com",
-  projectId: "ren-kei-936c9",
-  storageBucket: "ren-kei-936c9.firebasestorage.app",
-  messagingSenderId: "332550363788",
-  appId: "1:332550363788:web:067af7b5de2d7bb5c4b9a9",
-  measurementId: "G-KLHCMB4PN3"
+  apiKey: "AIzaSyCmolmCn2LqONYw3g7xOKXcZrhaDqNrOaM",
+  authDomain: "ren-kei.firebaseapp.com",
+  projectId: "ren-kei",
+  storageBucket: "ren-kei.firebasestorage.app",
+  messagingSenderId: "260043722567",
+  appId: "1:260043722567:web:0b873c03b2a2a804570662"
+
 };
 
 // 二重初期化防止

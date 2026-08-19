@@ -23,7 +23,10 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ren-kei</Text>
 
-          <TouchableOpacity style={styles.settingsButton}>
+          <TouchableOpacity 
+            style={styles.settingsButton}
+            onPress={() => navigation.navigate('Setting')}
+            >
             <Settings size={24} color="#374151" />
           </TouchableOpacity>
       </View>

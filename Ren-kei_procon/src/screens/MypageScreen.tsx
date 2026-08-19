@@ -7,15 +7,15 @@ export default function MypageScreen() {
       <ScrollView>
         <View style={styles.profile}>
 
-        <Text style={styles.title}>マイページ</Text>
+          <Text style={styles.title}>マイページ</Text>
 
-        <Text style={styles.normal}>名前：</Text>
-        <Text style={styles.normal}>連：</Text>
-        <Text style={styles.normal}>自己紹介</Text>
+          <Text style={styles.normal}>名前：</Text>
+          <Text style={styles.normal}>連：</Text>
+          <Text style={styles.normal}>自己紹介</Text>
 
-        <TouchableOpacity style={styles.editButton}>
-          <Text style={styles.editButtonText}>プロフィールを編集</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.editButton}>
+            <Text style={styles.editButtonText}>プロフィールを編集</Text>
+          </TouchableOpacity>
 
         </View>
       </ScrollView>
@@ -29,7 +29,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
-    padding: 20,
   },
 
   profile: {

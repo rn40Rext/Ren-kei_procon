@@ -6,8 +6,9 @@ import ScoringScreen from "../screens/ScoringScreen";
 import CommunitySscreen from "../screens/CommunityScreen";
 import RequestScreen from "../screens/RequestScreen";
 import MypageScreen from "../screens/MypageScreen";
-import CameraScreen from "../screens/CameraScreen"
-import ResultScreen from "../screens/ResultScreen"
+import CameraScreen from "../screens/CameraScreen";
+import ResultScreen from "../screens/ResultScreen";
+import SettingScreen from "../screens/SettingScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -21,6 +22,7 @@ export type RootStackParamList = {
     scorePart: 'feet' | 'hands' | 'whole';
   };
   Result: undefined;
+  Setting: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,8 +73,12 @@ export default function AppNavigator() {
         name="Result"
         component={ResultScreen}
       />
-    </Stack.Navigator>
 
+      <Stack.Screen
+        name="Setting"
+        component={SettingScreen}
+      />
+    </Stack.Navigator>
 
   );
 }

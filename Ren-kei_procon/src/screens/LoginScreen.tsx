@@ -1,8 +1,43 @@
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Alert,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
+
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase/firebaseConfig";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      console.log("ログイン成功:", userCredential.user.uid);
+      
+    } catch (error) {
+      console.log("ログインエラー:", error);
+
+      Alert.alert(
+        "ログイン失敗",
+        "メールアドレスまたはパスワードが正しくありません"
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Ren-Kei</Text>
@@ -11,18 +46,23 @@ export default function LoginScreen() {
         style={styles.input}
         placeholder="メールアドレス"
         keyboardType="email-address"
+        autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail}
       />
 
       <TextInput
         style={styles.input}
         placeholder="パスワード"
         secureTextEntry
+        value={password}
+        onChangeText={setPassword}
       />
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("Home" as never)}
->
+        onPress={handleLogin}
+      >
         <Text style={styles.buttonText}>
           ログイン
         </Text>
@@ -38,7 +78,6 @@ export default function LoginScreen() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

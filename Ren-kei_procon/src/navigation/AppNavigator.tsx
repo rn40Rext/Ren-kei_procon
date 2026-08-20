@@ -1,4 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { User } from "firebase/auth";
 
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -18,61 +19,69 @@ export type RootStackParamList = {
   Request: undefined;
   Mypage: undefined;
   Camera: {
-    danceType: 'male' | 'female';
-    scorePart: 'feet' | 'hands' | 'whole';
+    danceType: "male" | "female";
+    scorePart: "feet" | "hands" | "whole";
   };
 };
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function AppNavigator() {
+export default function AppNavigator({
+  user,
+}: {
+  user: User | null;
+}) {
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Stack.Screen
-        name="Login"
-        component={LoginScreen}
-      />
+      {user === null ? (
+        <>
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+          />
 
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-      />
+          <Stack.Screen
+            name="Register"
+            component={RegisterScreen}
+          />
+        </>
+      ) : (
+        <>
+          <Stack.Screen
+            name="Home"
+            component={HomeScreen}
+          />
 
-      <Stack.Screen
-        name="Register"
-        component={RegisterScreen}
-      />
+          <Stack.Screen
+            name="Scoring"
+            component={ScoringScreen}
+          />
 
-      <Stack.Screen
-        name="Scoring"
-        component={ScoringScreen}
-      />
+          <Stack.Screen
+            name="Community"
+            component={CommunitySscreen}
+          />
 
-      <Stack.Screen
-        name="Community"
-        component={CommunitySscreen}
-      />
+          <Stack.Screen
+            name="Request"
+            component={RequestScreen}
+          />
 
-      <Stack.Screen
-        name="Request"
-        component={RequestScreen}
-      />
+          <Stack.Screen
+            name="Mypage"
+            component={MypageScreen}
+          />
 
-      <Stack.Screen
-        name="Mypage"
-        component={MypageScreen}
-      />
-
-      <Stack.Screen
-        name="Camera"
-        component={CameraScreen}
-      />
+          <Stack.Screen
+            name="Camera"
+            component={CameraScreen}
+          />
+        </>
+      )}
     </Stack.Navigator>
-
-
   );
 }

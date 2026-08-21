@@ -20,12 +20,12 @@ export default function BottomNav() {
             >
                 <HomeIcon
                     size={24}
-                    color={route.name === 'Home' ? "#2563eb" : '#9ca3af'} />
+                    color={route.name === 'Home' ? "#eb2553" : '#9ca3af'} />
                 <Text
                     style={[
                         styles.navText,
                         {
-                            color: route.name === 'Home' ? '#2563eb' : '#9ca3af',
+                            color: route.name === 'Home' ? '#eb2553' : '#9ca3af',
                         },
                     ]}
                 >

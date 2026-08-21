@@ -1,333 +1,338 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput } from 'react-native';
-import { Play, Heart, User, Award, MessageSquare, Send, ChevronLeft } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, 
+  ScrollView, TextInput, Modal, ActivityIndicator, Alert, StatusBar, Platform, useWindowDimensions 
+} from 'react-native';
+import { 
+  Play, Heart, Award, Send, ChevronLeft, Plus, X, 
+  Video as VideoIcon, Search, MessageSquare, Calendar 
+} from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
+import { LinearGradient } from 'expo-linear-gradient';
+
+// Firebase設定
+import { db, storage } from '../config/firebaseConfig';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import BottomNav from '../components/BottomNav';
 
-// 💡 タイムラインに表示する複数人の動画データ（モック）
-const MOCK_VIDEOS = [
-  {
-    id: 1,
-    authorName: '阿波 健太',
-    authorTeam: '初心者連 所属',
-    title: '男踊り 基本フォームの練習',
-    date: '2026/07/09',
-    score: 88,
-    tags: ['#男踊り', '#初心者', '#アドバイス求む'],
-    likes: 24,
-    comments: 4,
-  },
-  {
-    id: 2,
-    authorName: '徳島 花子',
-    authorTeam: 'うずしお連 所属',
-    title: '女踊り しなやかな手の動き',
-    date: '2026/07/09',
-    score: 95,
-    tags: ['#女踊り', '#経験者', '#手本動画'],
-    likes: 156,
-    comments: 12,
-  },
-  {
-    id: 3,
-    authorName: '鳴門 次郎',
-    authorTeam: '無所属',
-    title: '初めての阿波踊り、リズムが難しいです',
-    date: '2026/07/08',
-    score: 65,
-    tags: ['#初心者', '#連さがしてます'],
-    likes: 12,
-    comments: 8,
-  }
-];
+const COLORS = {
+  primary: '#2563EB',
+  primaryDark: '#1E3A8A',
+  accent: '#FACC15',
+  bgLight: '#F8FAFC',
+  white: '#FFFFFF',
+  textMain: '#1E293B',
+  textMuted: '#64748B',
+  border: '#E2E8F0',
+};
 
-export default function CommunityScreen() {
-  // null なら「一覧画面」、動画データが入っていれば「詳細画面」を表示するステート
-  const [selectedVideo, setSelectedVideo] = useState<any>(null);
+// 投稿に使用できるタグ一覧
+const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
 
-  // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
-  // 1. 一覧（タイムライン）画面のレンダリング
-  // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
-  if (!selectedVideo) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.headerBar}>
-          <Text style={styles.headerTitle}>阿波踊り交流広場</Text>
-        </View>
-        <ScrollView style={styles.main} contentContainerStyle={styles.feedContainer}>
-          <Text style={styles.feedDescription}>
-            他の踊り子の練習を見て、アドバイスや応援を送ってみましょう！
-          </Text>
-
-          {MOCK_VIDEOS.map((video) => (
-            <TouchableOpacity 
-              key={video.id} 
-              style={styles.feedCard}
-              onPress={() => setSelectedVideo(video)} // 💡 タップで詳細画面へ！
-            >
-              <View style={styles.feedThumbnail}>
-                <Play size={24} color="#ffffff" fill="#ffffff" />
-                <View style={styles.feedScoreBadge}>
-                  <Award size={10} color="#1e3a8a" />
-                  <Text style={styles.feedScoreText}>AI: {video.score}点</Text>
-                </View>
-              </View>
-              
-              <View style={styles.feedInfo}>
-                <Text style={styles.feedTitle} numberOfLines={1}>{video.title}</Text>
-                <View style={styles.feedAuthorRow}>
-                  <User size={12} color="#6b7280" />
-                  <Text style={styles.feedAuthorName}>{video.authorName}</Text>
-                  <Text style={styles.feedAuthorTeam}>{video.authorTeam}</Text>
-                </View>
-                
-                <View style={styles.feedTagRow}>
-                  {video.tags.map((tag, idx) => (
-                    <Text key={idx} style={styles.feedTagText}>{tag}</Text>
-                  ))}
-                </View>
-                
-                <View style={styles.feedActionRow}>
-                  <View style={styles.feedActionItem}>
-                    <Heart size={14} color="#ef4444" />
-                    <Text style={styles.feedActionText}>{video.likes}</Text>
-                  </View>
-                  <View style={styles.feedActionItem}>
-                    <MessageSquare size={14} color="#6b7280" />
-                    <Text style={styles.feedActionText}>{video.comments}件の指導・声援</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <BottomNav />
-      </SafeAreaView>
-    );
-  }
-
-  // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
-  // 2. 詳細（アドバイス・コメント）画面のレンダリング
-  // ＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
-  return <VideoDetailScreen video={selectedVideo} onBack={() => setSelectedVideo(null)} />;
+interface VideoPost {
+  id: string; authorName: string; authorTeam: string; title: string;
+  videoUrl: string; score: number; likes: number; commentsCount: number;
+  tags: string[]; createdAt: any;
 }
 
-// 💡 詳細画面用のコンポーネント（前回作成したものをベースに動的化）
-function VideoDetailScreen({ video, onBack }: { video: any, onBack: () => void }) {
-  const [activeTab, setActiveTab] = useState<'advice' | 'comment'>('advice');
-  const [inputText, setInputText] = useState('');
+export default function CommunityScreen() {
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web' && width > 768;
+  
+  const [videos, setVideos] = useState<VideoPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<VideoPost | null>(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [selectedTagFilter, setSelectedTagFilter] = useState('すべて');
 
-  // モックのアドバイスデータ
-  const adviceList = [
-    { name: '山田 栄二', role: '連長', team: '大鳴門連', time: '10分前', content: '少し重心が浮いてしまっているので、常に腰を柔らかく保ち、低い姿勢をキープするよう意識してみてください。足袋の先まで神経を行き渡らせるとさらに良くなります。', avatarColor: '#ea580c' },
-    { name: '佐藤 美咲', role: '副連長', team: 'あわ踊り連', time: '1時間前', content: '手の振りは非常にしなやかで良いですが、少し肩に力が入っていますね。肩甲骨から大きく動かすイメージを持つと、疲れにくい踊りになりますよ。', avatarColor: '#2563eb' },
-  ];
-  const commentList = [
-    { name: '徳島 太郎', role: '練習仲間', team: 'すだち連', time: '30分前', content: `AIスコア${video.score}点すごいですね！自分も負けないように動画撮って練習がんばります！`, avatarColor: '#6b7280' }
-  ];
+  // --- 投稿用ステート ---
+  const [postTitle, setPostTitle] = useState('');
+  const [postAuthor, setPostAuthor] = useState('');
+  const [postVideoUri, setPostVideoUri] = useState<string | null>(null);
+  const [postTags, setPostTags] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const currentList = activeTab === 'advice' ? adviceList : commentList;
+  useEffect(() => {
+    const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (s) => {
+      setVideos(s.docs.map(d => ({ id: d.id, ...d.data() } as VideoPost)));
+      setLoading(false);
+    });
+  }, []);
+
+  // 動画選択
+  const pickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets) {
+      setPostVideoUri(result.assets[0].uri);
+    }
+  };
+
+  // タグのトグル処理
+  const toggleTag = (tag: string) => {
+    if (postTags.includes(tag)) {
+      setPostTags(postTags.filter(t => t !== tag));
+    } else {
+      setPostTags([...postTags, tag]);
+    }
+  };
+
+  // 投稿実行
+  const handlePost = async () => {
+    if (!postVideoUri || !postTitle || !postAuthor) {
+      Alert.alert("エラー", "動画、タイトル、お名前は必須です。");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      
+      // 1. 動画をFirebase Storageにアップロード
+      const response = await fetch(postVideoUri);
+      const blob = await response.blob();
+      const storageRef = ref(storage, `practice_videos/${Date.now()}.mp4`);
+      await uploadBytes(storageRef, blob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // 2. Firestoreにメタデータを保存
+      await addDoc(collection(db, 'videos'), {
+        title: postTitle,
+        authorName: postAuthor,
+        authorTeam: "阿波踊り連",
+        videoUrl: downloadURL,
+        tags: postTags,
+        score: Math.floor(Math.random() * 20) + 80, // AI採点シミュレーション
+        likes: 0,
+        commentsCount: 0,
+        createdAt: serverTimestamp(),
+      });
+
+      // 3. リセット
+      setIsPostModalOpen(false);
+      setPostTitle('');
+      setPostAuthor('');
+      setPostVideoUri(null);
+      setPostTags([]);
+      Alert.alert("成功", "練習動画を広場に投稿しました！");
+
+    } catch (error) {
+      console.error(error);
+      Alert.alert("エラー", "投稿に失敗しました。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const filteredVideos = selectedTagFilter === 'すべて' 
+    ? videos 
+    : videos.filter(v => v.tags?.includes(selectedTagFilter));
+
+  if (selectedVideo) return <VideoDetailScreen video={selectedVideo} onBack={() => setSelectedVideo(null)} />;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 💡 戻るボタンのヘッダー */}
-      <View style={styles.detailHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ChevronLeft size={24} color="#1f2937" />
-          <Text style={styles.backButtonText}>一覧へ戻る</Text>
-        </TouchableOpacity>
+      <View style={styles.topNav}>
+        <View style={styles.logoContainer}>
+          <View style={styles.logoBox}><Text style={styles.logoText}>連</Text></View>
+          <View style={{marginLeft: 10}}>
+            <Text style={styles.brandName}>ren-kei <View style={styles.badgePink}><Text style={styles.badgePinkText}>阿波踊り交流広場</Text></View></Text>
+            <Text style={styles.brandSub}>練習動画のAI採点・連の絆を深める広場</Text>
+          </View>
+        </View>
       </View>
 
-      <ScrollView style={styles.main}>
-        <View style={styles.videoSection}>
-          <View style={styles.thumbnailWrapper}>
-            <View style={styles.thumbnailPlaceholder}>
-              <Play size={28} color="#ffffff" fill="#ffffff" />
+      <ScrollView>
+        <LinearGradient colors={[COLORS.primaryDark, '#3B82F6']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={styles.heroBanner}>
+          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>✨ リアルタイム共有</Text></View>
+          <View style={styles.heroContentRow}>
+            <View style={{flex: 1}}>
+              <Text style={styles.heroTitle}>阿波踊り 交流広場</Text>
+              <Text style={styles.heroSub}>投稿された練習動画はリアルタイムで公開されます！</Text>
+            </View>
+            <TouchableOpacity style={styles.heroBtn} onPress={() => setIsPostModalOpen(true)}>
+              <Plus color={COLORS.primary} size={20} />
+              <Text style={styles.heroBtnText}>練習動画を投稿</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.searchSection}>
+          <View style={styles.searchBarContainer}>
+            <View style={styles.searchBar}>
+              <Search color={COLORS.textMuted} size={18} />
+              <TextInput placeholder="検索..." style={styles.searchInput} />
             </View>
           </View>
-          <View style={styles.postInfo}>
-            <View style={styles.authorRow}>
-              <Text style={styles.authorName}>{video.authorName}</Text>
-              <Text style={styles.authorTeam}>（{video.authorTeam}）</Text>
-            </View>
-            <View style={styles.titleRow}>
-              <Text style={styles.postTitle}>{video.title}</Text>
-            </View>
-            <View style={styles.metaRow}>
-              <Text style={styles.postDate}>{video.date}</Text>
-              <View style={styles.scoreBadge}>
-                <Award size={12} color="#1e3a8a" />
-                <Text style={styles.scoreText}>AIスコア: {video.score}点</Text>
-              </View>
-            </View>
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tagList}>
+            {['すべて', ...TAG_OPTIONS].map(tag => (
+              <TouchableOpacity key={tag} onPress={() => setSelectedTagFilter(tag)} style={[styles.tagItem, selectedTagFilter === tag && styles.tagItemActive]}>
+                <Text style={[styles.tagText, selectedTagFilter === tag && styles.tagTextActive]}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Heart size={18} color="#ef4444" fill="#ef4444" />
-            <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>応援する ({video.likes})</Text>
-          </TouchableOpacity>
-          <View style={styles.actionDivider} />
-          <View style={styles.actionButton}>
-            <MessageSquare size={18} color="#6b7280" />
-            <Text style={styles.actionButtonText}>指導・コメント ({adviceList.length + commentList.length})</Text>
-          </View>
-        </View>
-
-        <View style={styles.tabContainer}>
-          <TouchableOpacity style={[styles.tab, activeTab === 'advice' && styles.activeTab]} onPress={() => setActiveTab('advice')}>
-            <Text style={[styles.tabText, activeTab === 'advice' && styles.activeTabText]}>熟練者の指導 ({adviceList.length})</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.tab, activeTab === 'comment' && styles.activeTab]} onPress={() => setActiveTab('comment')}>
-            <Text style={[styles.tabText, activeTab === 'comment' && styles.activeTabText]}>一般コメント ({commentList.length})</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.listSection}>
-          {currentList.map((item, index) => (
-             <View key={index} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.userInfo}>
-                  <View style={[styles.avatar, { backgroundColor: item.avatarColor }]}><User size={14} color="#fff" /></View>
-                  <View>
-                    <View style={styles.nameRoleRow}>
-                      <Text style={styles.userName}>{item.name}</Text>
-                      <Text style={styles.userRole}>[{item.role}]</Text>
-                    </View>
-                    <Text style={styles.userTeam}>{item.team}</Text>
+        <View style={[styles.grid, isWeb && styles.webGrid]}>
+          {loading ? <ActivityIndicator style={{marginTop: 50}} /> : 
+            filteredVideos.map((v) => (
+              <TouchableOpacity key={v.id} style={[styles.card, isWeb && styles.webCard]} onPress={() => setSelectedVideo(v)}>
+                <View style={styles.cardMain}>
+                  <View style={styles.thumbWrapper}>
+                    <Video style={StyleSheet.absoluteFill} source={{ uri: v.videoUrl }} resizeMode={ResizeMode.COVER} />
+                    <View style={styles.scoreBadge}><Text style={styles.scoreValue}>AI {v.score}点</Text></View>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <Text style={styles.cardTitle}>{v.title}</Text>
+                    <Text style={styles.authorName}>👤 {v.authorName}</Text>
                   </View>
                 </View>
-                <Text style={styles.timeText}>{item.time}</Text>
-              </View>
-              <Text style={styles.cardContent}>{item.content}</Text>
-            </View>
-          ))}
+                <View style={styles.cardFooter}>
+                  <Heart size={14} color="#F43F5E" />
+                  <Text style={styles.statText}>{v.likes}</Text>
+                  <MessageSquare size={14} color={COLORS.textMuted} style={{marginLeft: 10}} />
+                  <Text style={styles.statText}>{v.commentsCount}</Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          }
         </View>
       </ScrollView>
 
-      <View style={styles.inputBar}>
-        <TextInput
-          style={styles.textInput}
-          placeholder={activeTab === 'advice' ? "指導員としてアドバイスを入力..." : "コメントを入力..."}
-          placeholderTextColor="#9ca3af"
-          value={inputText}
-          onChangeText={setInputText}
-        />
-        <TouchableOpacity style={styles.sendButton}>
-          <Send size={18} color="#ffffff" />
-        </TouchableOpacity>
-      </View>
+      {/* --- 投稿モーダル --- */}
+      <Modal visible={isPostModalOpen} animationType="slide">
+        <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>練習動画を投稿</Text>
+            <TouchableOpacity onPress={() => setIsPostModalOpen(false)}><X color="#000" /></TouchableOpacity>
+          </View>
+          
+          <ScrollView style={{padding: 20}}>
+            <TouchableOpacity style={styles.videoPicker} onPress={pickVideo}>
+              {postVideoUri ? (
+                <Video style={styles.previewVideo} source={{ uri: postVideoUri }} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping />
+              ) : (
+                <View style={{alignItems: 'center'}}>
+                  <VideoIcon size={48} color={COLORS.primary} />
+                  <Text style={{marginTop: 10, color: COLORS.primary, fontWeight: 'bold'}}>動画を選択してください</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.label}>タイトル</Text>
+            <TextInput style={styles.input} placeholder="練習内容など" value={postTitle} onChangeText={setPostTitle} />
+
+            <Text style={styles.label}>踊り子名</Text>
+            <TextInput style={styles.input} placeholder="あなたのお名前" value={postAuthor} onChangeText={setPostAuthor} />
+
+            <Text style={styles.label}>タグを選択 (#複数可)</Text>
+            <View style={styles.tagWrap}>
+              {TAG_OPTIONS.map(tag => (
+                <TouchableOpacity 
+                  key={tag} 
+                  onPress={() => toggleTag(tag)}
+                  style={[styles.postTag, postTags.includes(tag) && styles.postTagActive]}
+                >
+                  <Text style={[styles.postTagText, postTags.includes(tag) && styles.postTagTextActive]}>{tag}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.submitBtn, isUploading && {opacity: 0.7}]} 
+              onPress={handlePost} 
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitBtnText}>広場に披露する</Text>
+              )}
+            </TouchableOpacity>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       <BottomNav />
+    </SafeAreaView>
+  );
+}
 
+// 詳細画面は前回のコードを維持
+function VideoDetailScreen({ video, onBack }: { video: any, onBack: () => void }) {
+  return (
+    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+      <TouchableOpacity onPress={onBack} style={{padding: 20}}><Text>← 戻る</Text></TouchableOpacity>
+      <Video style={{height: 300, backgroundColor: '#000'}} source={{uri: video.videoUrl}} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay />
+      <View style={{padding: 20}}>
+        <Text style={{fontSize: 24, fontWeight: 'bold'}}>{video.title}</Text>
+        <Text>踊り子: {video.authorName}</Text>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  main: { flex: 1 },
-  // --- 一覧（タイムライン）用のスタイル ---
-  headerBar: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1f2937' },
-  feedContainer: { padding: 16 },
-  feedDescription: { fontSize: 13, color: '#6b7280', marginBottom: 16 },
-  feedCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    flexDirection: 'row',
-    padding: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  feedThumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: '#4b5563',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    position: 'relative',
-  },
-  feedScoreBadge: {
-    position: 'absolute',
-    bottom: -6,
-    backgroundColor: '#eff6ff',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
-  },
-  feedScoreText: { fontSize: 9, fontWeight: 'bold', color: '#1e3a8a', marginLeft: 2 },
-  feedInfo: { flex: 1, justifyContent: 'space-between' },
-  feedTitle: { fontSize: 15, fontWeight: 'bold', color: '#1f2937', marginBottom: 4 },
-  feedAuthorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  feedAuthorName: { fontSize: 12, fontWeight: '600', color: '#4b5563', marginLeft: 4 },
-  feedAuthorTeam: { fontSize: 11, color: '#9ca3af', marginLeft: 4 },
-  feedTagRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
-  feedTagText: { fontSize: 10, color: '#2563eb', marginRight: 6 },
-  feedActionRow: { flexDirection: 'row', alignItems: 'center' },
-  feedActionItem: { flexDirection: 'row', alignItems: 'center', marginRight: 16 },
-  feedActionText: { fontSize: 11, color: '#6b7280', marginLeft: 4 },
-  // --- 詳細画面用のスタイル ---
-  detailHeader: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  backButton: { flexDirection: 'row', alignItems: 'center' },
-  backButtonText: { fontSize: 15, color: '#1f2937', marginLeft: 4, fontWeight: '600' },
-  videoSection: { backgroundColor: '#ffffff', padding: 20, flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  thumbnailWrapper: { width: 90, height: 90, borderRadius: 12, backgroundColor: '#e5e7eb', overflow: 'hidden' },
-  thumbnailPlaceholder: { flex: 1, backgroundColor: '#4b5563', justifyContent: 'center', alignItems: 'center' },
-  postInfo: { flex: 1, marginLeft: 16 },
-  authorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  authorName: { fontSize: 14, fontWeight: 'bold', color: '#1f2937' },
-  authorTeam: { fontSize: 12, color: '#6b7280' },
+  container: { flex: 1, backgroundColor: COLORS.bgLight },
+  topNav: { height: 60, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: COLORS.border },
+  logoContainer: { flexDirection: 'row', alignItems: 'center' },
+  logoBox: { width: 34, height: 34, backgroundColor: COLORS.primary, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  logoText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  brandName: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain, flexDirection: 'row', alignItems: 'center' },
+  badgePink: { backgroundColor: '#FCE7F3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 5 },
+  badgePinkText: { color: '#DB2777', fontSize: 9, fontWeight: 'bold' },
+  brandSub: { fontSize: 10, color: COLORS.textMuted },
   
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  postTitle: { fontSize: 16, fontWeight: 'bold', color: '#1f2937' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  postDate: { fontSize: 12, color: '#9ca3af' },
-  scoreBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eff6ff', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 10 },
-  scoreText: { fontSize: 11, fontWeight: 'bold', color: '#1e3a8a', marginLeft: 4 },
-  actionRow: { flexDirection: 'row', backgroundColor: '#ffffff', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#e5e7eb', justifyContent: 'space-around', alignItems: 'center' },
-  actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flex: 1 },
-  actionButtonText: { fontSize: 13, fontWeight: '600', color: '#4b5563', marginLeft: 6 },
-  actionDivider: { width: 1, height: 16, backgroundColor: '#e5e7eb' },
-  tabContainer: { flexDirection: 'row', backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginTop: 10 },
-  tab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
-  activeTab: { borderBottomWidth: 2, borderBottomColor: '#2563eb' },
-  tabText: { fontSize: 13, color: '#9ca3af', fontWeight: 'bold' },
-  activeTabText: { color: '#2563eb' },
-  listSection: { padding: 16, paddingBottom: 80 },
-  card: { backgroundColor: '#ffffff', borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#fde047', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.03, shadowRadius: 3, elevation: 1 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  userInfo: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  nameRoleRow: { flexDirection: 'row', alignItems: 'center' },
-  userName: { fontSize: 14, fontWeight: 'bold', color: '#1f2937' },
-  userRole: { fontSize: 12, color: '#ca8a04', fontWeight: 'bold', marginLeft: 4 },
-  userTeam: { fontSize: 11, color: '#6b7280', marginTop: 1 },
-  timeText: { fontSize: 11, color: '#9ca3af' },
-  cardContent: { fontSize: 14, color: '#374151', lineHeight: 22 },
-  inputBar: { flexDirection: 'row', backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#e5e7eb', position: 'absolute', bottom: 0, width: '100%', alignItems: 'center' },
-  textInput: { flex: 1, backgroundColor: '#f3f4f6', borderRadius: 20, paddingHorizontal: 16, height: 40, fontSize: 14, color: '#1f2937' },
-  sendButton: { backgroundColor: '#2563eb', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
+  heroBanner: { padding: 30 },
+  heroBadge: { backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 10 },
+  heroBadgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  heroContentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroTitle: { fontSize: 28, fontWeight: '900', color: '#fff' },
+  heroSub: { color: 'rgba(255,255,255,0.9)', fontSize: 13, marginTop: 5 },
+  heroBtn: { backgroundColor: '#fff', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  heroBtnText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 5 },
+
+  searchSection: { paddingVertical: 15 },
+  searchBarContainer: { paddingHorizontal: 20, marginBottom: 15 },
+  searchBar: { backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 45, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
+  searchInput: { flex: 1, marginLeft: 10 },
+  tagList: { paddingHorizontal: 15 },
+  tagItem: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', marginRight: 8, borderWidth: 1, borderColor: COLORS.border },
+  tagItemActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tagText: { fontSize: 13, color: COLORS.textMain },
+  tagTextActive: { color: '#fff', fontWeight: 'bold' },
+
+  grid: { padding: 15 },
+  webGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  card: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
+  webCard: { width: '48%', marginHorizontal: '1%' },
+  cardMain: { flexDirection: 'row', padding: 12 },
+  thumbWrapper: { width: 110, height: 110, borderRadius: 10, backgroundColor: '#000', overflow: 'hidden' },
+  scoreBadge: { position: 'absolute', bottom: 5, left: 5, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
+  scoreValue: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  cardBody: { flex: 1, marginLeft: 15, justifyContent: 'center' },
+  cardTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 5 },
+  authorName: { fontSize: 14, color: COLORS.textMuted },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  statText: { fontSize: 12, marginLeft: 5, color: COLORS.textMuted },
+
+  // モーダル用
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderColor: COLORS.border },
+  modalTitle: { fontSize: 18, fontWeight: 'bold' },
+  videoPicker: { height: 200, backgroundColor: '#F1F5F9', borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 20, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed' },
+  previewVideo: { width: '100%', height: '100%' },
+  label: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: COLORS.textMain },
+  input: { backgroundColor: '#F8FAFC', padding: 15, borderRadius: 10, marginBottom: 20, borderWidth: 1, borderColor: COLORS.border },
+  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 },
+  postTag: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F5F9', marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border },
+  postTagActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  postTagText: { fontSize: 12, color: COLORS.textMain },
+  postTagTextActive: { color: '#fff', fontWeight: 'bold' },
+  submitBtn: { backgroundColor: COLORS.primary, padding: 20, borderRadius: 12, alignItems: 'center', marginTop: 10, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });

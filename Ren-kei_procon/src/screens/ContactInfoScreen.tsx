@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import BottomNav from '../components/BottomNav';
 
-export default function SettingScreen() {
+export default function ConatctInfoScreen() {
     return (
         <View style={styles.container}>
 
-            <Text>設定ページ</Text>
+            <Text>連絡先一覧</Text>
 
             <BottomNav />
         </View>

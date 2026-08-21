@@ -35,18 +35,12 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Ren-kei</Text>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
+          <TouchableOpacity 
+            style={styles.settingsButton}
+            onPress={() => navigation.navigate('Setting')}
             >
-              <Text style={styles.logoutText}>ログアウト</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingsButton}>
-              <Settings size={24} color="#374151" />
-            </TouchableOpacity>
-          </View>
+            <Settings size={24} color="#374151" />
+          </TouchableOpacity>
       </View>
 
       {/* メインコンテンツ */}

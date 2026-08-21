@@ -86,36 +86,38 @@ export default function AppNavigator({
             component={MypageScreen}
           />
 
-      <Stack.Screen
-        name="Camera"
-        component={CameraScreen}
-      />
+          <Stack.Screen
+            name="Camera"
+            component={CameraScreen}
+          />
 
-      <Stack.Screen
-        name="Result"
-        component={ResultScreen}
-      />
+          <Stack.Screen
+            name="Result"
+            component={ResultScreen}
+          />
 
-      <Stack.Screen
-        name="Setting"
-        component={SettingScreen}
-      />
+          <Stack.Screen
+            name="Setting"
+            component={SettingScreen}
+          />
 
-      <Stack.Screen
-        name="VideoList"
-        component={VideoListScreen}
-      />
+          <Stack.Screen
+            name="VideoList"
+            component={VideoListScreen}
+          />
 
-      <Stack.Screen
-        name="ContactInfo"
-        component={ConatctInfoScreen}
-      />
+          <Stack.Screen
+            name="ContactInfo"
+            component={ConatctInfoScreen}
+          />
 
-      <Stack.Screen
-        name="Group"
-        component={GroupScreen}
-      />
+          <Stack.Screen
+            name="Group"
+            component={GroupScreen}
+          />
+        </>
+      )}
     </Stack.Navigator>
-
   );
 }
+

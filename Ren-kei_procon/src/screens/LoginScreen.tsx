@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState } from "react";
 import { 
   StyleSheet, Text, TextInput, TouchableOpacity, View, 
@@ -12,8 +13,24 @@ const COLORS = {
   textMain: '#1E293B',
   border: '#E2E8F0',
 };
+=======
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Alert,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+>>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
+
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase/firebaseConfig";
 
 export default function LoginScreen() {
+<<<<<<< HEAD
   // 💡 「ログイン」か「新規登録」かを切り替えるためのステート
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
@@ -56,6 +73,30 @@ export default function LoginScreen() {
       Alert.alert("エラー", message + `\n(${error.code})`);
     } finally {
       setLoading(false);
+=======
+  const navigation = useNavigation();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
+      console.log("ログイン成功:", userCredential.user.uid);
+      
+    } catch (error) {
+      console.log("ログインエラー:", error);
+
+      Alert.alert(
+        "ログイン失敗",
+        "メールアドレスまたはパスワードが正しくありません"
+      );
+>>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
     }
   };
 
@@ -68,6 +109,7 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>阿波踊り 練習支援プラットフォーム</Text>
         </View>
 
+<<<<<<< HEAD
         <View style={styles.form}>
           <Text style={styles.label}>メールアドレス</Text>
           <TextInput 
@@ -106,6 +148,42 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+=======
+      <TextInput
+        style={styles.input}
+        placeholder="メールアドレス"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="パスワード"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+      />
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+      >
+        <Text style={styles.buttonText}>
+          ログイン
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate("Register" as never)}
+      >
+        <Text style={styles.register}>
+          アカウントを作成する
+        </Text>
+      </TouchableOpacity>
+    </View>
+>>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
   );
 }
 

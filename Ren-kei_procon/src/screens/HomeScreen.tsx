@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Users, BarChart2, User, PlayCircle, ClipboardList, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNav from '../components/BottomNav';
+<<<<<<< HEAD
 import { auth } from '../config/firebaseConfig';
 
 const { width } = Dimensions.get('window');
@@ -21,6 +22,31 @@ const COLORS = {
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
+=======
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase/firebaseConfig";
+
+export default function HomeScreen() {
+  type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Home">;
+  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+
+      console.log("ログアウトしました");
+      
+    } catch (error) {
+      console.log("ログアウトエラー:", error);
+    }
+  };
+  type MenuItems = {id: number; title: string; icon: React.ReactNode; bgColor: string; screen: "Scoring" | "Community" | "Request" | "Mypage"; };
+  const menuItems: MenuItems[] = [
+    { id: 0, title: '踊り解析', icon: <Camera size={36} color="#2563eb" />, bgColor: '#dbeafe', screen: 'Scoring', },
+    { id: 1, title: 'コミュニティ', icon: <Users size={36} color="#16a34a" />, bgColor: '#dcfce7', screen: 'Community', },
+    { id: 2, title: '連への参加リクエスト', icon: <UserPlus size={36} color="#ca8a04" />, bgColor: '#fef08a', screen: 'Request', },
+    { id: 3, title: 'マイページ', icon: <User size={36} color="#4b5563" />, bgColor: '#f3f4f6' , screen: 'Mypage', },
+  ];
+>>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,6 +175,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 10
   },
+<<<<<<< HEAD
   badgeText: { color: COLORS.white, fontSize: 10, fontWeight: 'bold' },
   welcomeText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: 'bold' },
   heroTitle: { color: COLORS.white, fontSize: 24, fontWeight: '900', lineHeight: 34, marginTop: 5 },
@@ -164,12 +191,50 @@ const styles = StyleSheet.create({
     borderRadius: 24, 
     marginBottom: 15, 
     elevation: 3,
+=======
+  settingsButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    letterSpacing: 1,
+  },
+  main: {
+    flex: 1,
+  },
+  mainContent: {
+    padding: 20,
+    paddingBottom: 100, // ボトムナビゲーションの分の余白
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 16,
+    marginLeft: 4,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+>>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
     position: 'relative'
   },
+<<<<<<< HEAD
   iconCircle: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   menuLabel: { fontSize: 15, fontWeight: 'bold', color: COLORS.textMain },
   menuSub: { fontSize: 11, color: '#94A3B8', marginTop: 4 },
@@ -189,4 +254,24 @@ const styles = StyleSheet.create({
   newsItem: { backgroundColor: '#fff', padding: 15, borderRadius: 15, flexDirection: 'row', alignItems: 'center' },
   newsDate: { fontSize: 11, color: COLORS.vermilion, fontWeight: 'bold', marginRight: 15 },
   newsText: { flex: 1, fontSize: 12, color: COLORS.textMain, fontWeight: '500' },
+=======
+  headerActions: {
+    position: 'absolute',
+    right: 20,
+    top: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  logoutButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+
+  logoutText: {
+    color: '#dc2626',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+>>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
 });

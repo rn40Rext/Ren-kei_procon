@@ -5,10 +5,22 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import BottomNav from '../components/BottomNav';
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase/firebaseConfig";
 
 export default function HomeScreen() {
   type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, "Home">;
   const navigation = useNavigation<HomeScreenNavigationProp>();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+
+      console.log("ログアウトしました");
+      
+    } catch (error) {
+      console.log("ログアウトエラー:", error);
+    }
+  };
   type MenuItems = {id: number; title: string; icon: React.ReactNode; bgColor: string; screen: "Scoring" | "Community" | "Request" | "Mypage"; };
   const menuItems: MenuItems[] = [
     { id: 0, title: '踊り解析', icon: <Camera size={36} color="#2563eb" />, bgColor: '#dbeafe', screen: 'Scoring', },
@@ -70,9 +82,6 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f3f4f6',
   },
   settingsButton: {
-    position: 'absolute',
-    right: 20,
-    top: 14,
     padding: 8,
   },
   headerTitle: {
@@ -151,5 +160,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#9ca3af',
     marginTop: 4,
+  },
+  headerActions: {
+    position: 'absolute',
+    right: 20,
+    top: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  logoutButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+
+  logoutText: {
+    color: '#dc2626',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

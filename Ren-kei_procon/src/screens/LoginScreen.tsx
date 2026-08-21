@@ -1,10 +1,12 @@
-<<<<<<< HEAD
 import React, { useState } from "react";
 import { 
   StyleSheet, Text, TextInput, TouchableOpacity, View, 
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView 
 } from "react-native";
-// パスは src/config/firebaseConfig に合わせる
+import { useNavigation } from "@react-navigation/native";
+
+// ⚠️ Firebaseのパスが2種類あったため、環境に合わせて適宜修正してください
+// もしエラーが出る場合は "../config/firebaseConfig" か "../../firebase/firebaseConfig" のどちらかに直してください
 import { auth } from "../config/firebaseConfig"; 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
@@ -13,31 +15,17 @@ const COLORS = {
   textMain: '#1E293B',
   border: '#E2E8F0',
 };
-=======
-import { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Alert,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
->>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
-
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebase/firebaseConfig";
 
 export default function LoginScreen() {
-<<<<<<< HEAD
-  // 💡 「ログイン」か「新規登録」かを切り替えるためのステート
+  const navigation = useNavigation();
+
+  // 「ログイン」か「新規登録」かを切り替えるためのステート
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 実行ボタンを押した時の処理
+  // 実行ボタン（ログイン/登録）を押した時の処理
   const handleSubmit = async () => {
     if (!email || !password) return Alert.alert("エラー", "メールとパスを入力してください");
     if (isRegisterMode && password.length < 6) {
@@ -52,56 +40,36 @@ export default function LoginScreen() {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         console.log("新規登録成功:", result.user.email);
         
-        // 💡 登録成功をユーザーに知らせる
         Alert.alert(
           "登録完了", 
-          `${result.user.email} でアカウントを作成しました！\nこのまま広場へ移動します。`,
+          `${result.user.email} でアカウントを作成しました！`,
           [{ text: "OK" }]
         );
       } else {
         // --- 🟢 ログインを実行 ---
         await signInWithEmailAndPassword(auth, email, password);
+        console.log("ログイン成功");
       }
     } catch (error: any) {
-      console.error("エラーコード:", error.code);
+      console.error("エラー:", error.code);
       let message = isRegisterMode ? "登録に失敗しました。" : "ログインに失敗しました。";
       
       if (error.code === 'auth/email-already-in-use') message = "このメールは既に登録されています。";
       if (error.code === 'auth/invalid-email') message = "メールの形式が正しくありません。";
       if (error.code === 'auth/weak-password') message = "パスワードが簡単すぎます。";
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') message = "メールアドレスまたはパスワードが正しくありません。";
 
-      Alert.alert("エラー", message + `\n(${error.code})`);
+      Alert.alert("エラー", message);
     } finally {
       setLoading(false);
-=======
-  const navigation = useNavigation();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = async () => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      console.log("ログイン成功:", userCredential.user.uid);
-      
-    } catch (error) {
-      console.log("ログインエラー:", error);
-
-      Alert.alert(
-        "ログイン失敗",
-        "メールアドレスまたはパスワードが正しくありません"
-      );
->>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"} 
+      style={styles.container}
+    >
       <ScrollView contentContainerStyle={styles.inner}>
         <View style={styles.logoContainer}>
           <View style={styles.logoBox}><Text style={styles.logoText}>連</Text></View>
@@ -109,7 +77,6 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>阿波踊り 練習支援プラットフォーム</Text>
         </View>
 
-<<<<<<< HEAD
         <View style={styles.form}>
           <Text style={styles.label}>メールアドレス</Text>
           <TextInput 
@@ -148,42 +115,6 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-=======
-      <TextInput
-        style={styles.input}
-        placeholder="メールアドレス"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="パスワード"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleLogin}
-      >
-        <Text style={styles.buttonText}>
-          ログイン
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => navigation.navigate("Register" as never)}
-      >
-        <Text style={styles.register}>
-          アカウントを作成する
-        </Text>
-      </TouchableOpacity>
-    </View>
->>>>>>> d32863d1a7e26270f5cb7d6f723fd1ad60900cb2
   );
 }
 

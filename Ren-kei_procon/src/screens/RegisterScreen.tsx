@@ -7,9 +7,14 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase/firebaseConfig";
+import { db } from "../../firebase/firebaseConfig";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");
@@ -17,13 +22,23 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+        const userCredential = await createUserWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
 
       console.log("登録成功:", userCredential.user.uid);
+
+      const uid = userCredential.user.uid;
+
+        await setDoc(doc(db, "Users", uid), {
+            email: email,
+            displayName: "",
+            createdAt: serverTimestamp(),
+            });
+
+        console.log("Firestore Users 作成成功:", uid);
 
       Alert.alert("登録成功", "アカウントを作成しました");
     } catch (error) {

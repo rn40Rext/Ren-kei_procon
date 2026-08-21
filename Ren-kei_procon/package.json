@@ -8,6 +8,7 @@
     "expo-av": "~16.0.8",
     "expo-camera": "~17.0.10",
     "expo-image-picker": "~17.0.11",
+    "expo-linear-gradient": "~15.0.8",
     "firebase": "^12.17.1",
     "lucide-react": "^1.32.0",
     "lucide-react-native": "^1.23.0",

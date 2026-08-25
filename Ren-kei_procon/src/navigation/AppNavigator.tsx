@@ -1,105 +1,65 @@
+import React, { useState, useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "../config/firebaseConfig";
 
+// 画面のインポート
 import LoginScreen from "../screens/LoginScreen";
-import HomeScreen from "../screens/HomeScreen";
-import ScoringScreen from "../screens/ScoringScreen";
-import CommunitySscreen from "../screens/CommunityScreen";
-import RequestScreen from "../screens/RequestScreen";
+import HomeScreen from "../screens/HomeScreen"; // 💡 追加
+import CommunityScreen from "../screens/CommunityScreen";
 import MypageScreen from "../screens/MypageScreen";
-import CameraScreen from "../screens/CameraScreen";
-import ResultScreen from "../screens/ResultScreen";
-import SettingScreen from "../screens/SettingScreen";
-import VideoListScreen from "../screens/VideoListScreen";
-import ConatctInfoScreen from "../screens/ContactInfoScreen";
-import GroupScreen from "../screens/GroupScreen";
+import ScoringScreen from "../screens/ScoringScreen";
 
 export type RootStackParamList = {
   Login: undefined;
-  Home: undefined;
-  Scoring: undefined;
+  Home: undefined; // 💡 ホームを追加
   Community: undefined;
-  Request: undefined;
   Mypage: undefined;
-  Camera: {
-    danceType: 'male' | 'female';
-    scorePart: 'feet' | 'hands' | 'whole';
-  };
-  Result: undefined;
-  Setting: undefined;
+  Scoring: undefined;
   VideoList: undefined;
   ContactInfo: undefined;
+  Setting: undefined;
   Group: undefined;
+   UserProfile: { userId: string; userName: string }; // 💡 追加
+  Chat: { chatId: string; recipientName: string };   // 💡 追加
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  const [user, setUser] = useState<User | null>(null);
+  const [initializing, setInitializing] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setInitializing(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (initializing) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen
-        name="Login"
-        component={LoginScreen}
-      />
-
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-      />
-
-      <Stack.Screen
-        name="Scoring"
-        component={ScoringScreen}
-      />
-
-      <Stack.Screen
-        name="Community"
-        component={CommunitySscreen}
-      />
-
-      <Stack.Screen
-        name="Request"
-        component={RequestScreen}
-      />
-
-      <Stack.Screen
-        name="Mypage"
-        component={MypageScreen}
-      />
-
-      <Stack.Screen
-        name="Camera"
-        component={CameraScreen}
-      />
-
-      <Stack.Screen
-        name="Result"
-        component={ResultScreen}
-      />
-
-      <Stack.Screen
-        name="Setting"
-        component={SettingScreen}
-      />
-
-      <Stack.Screen
-        name="VideoList"
-        component={VideoListScreen}
-      />
-
-      <Stack.Screen
-        name="ContactInfo"
-        component={ConatctInfoScreen}
-      />
-
-      <Stack.Screen
-        name="Group"
-        component={GroupScreen}
-      />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {user ? (
+        // 💡 ログイン後に最初に表示されるのは「Home」になります
+        <>
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Community" component={CommunityScreen} />
+          <Stack.Screen name="Scoring" component={ScoringScreen} />
+          <Stack.Screen name="Mypage" component={MypageScreen} />
+        </>
+      ) : (
+        <Stack.Screen name="Login" component={LoginScreen} />
+      )}
     </Stack.Navigator>
-
   );
 }

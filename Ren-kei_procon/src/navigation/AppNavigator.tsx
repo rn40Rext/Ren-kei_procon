@@ -10,6 +10,10 @@ import HomeScreen from "../screens/HomeScreen"; // 💡 追加
 import CommunityScreen from "../screens/CommunityScreen";
 import MypageScreen from "../screens/MypageScreen";
 import ScoringScreen from "../screens/ScoringScreen";
+import GroupScreen from "../screens/GroupScreen";
+import VideoListScreen from "../screens/VideoListScreen";
+import ConatctInfoScreen from '../screens/ContactInfoScreen';
+import SettingScreen from "../screens/SettingScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -56,6 +60,11 @@ export default function AppNavigator() {
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="Scoring" component={ScoringScreen} />
           <Stack.Screen name="Mypage" component={MypageScreen} />
+
+          <Stack.Screen name="VideoList" component={VideoListScreen} />
+          <Stack.Screen name="Group" component={GroupScreen} />
+          <Stack.Screen name="ContactInfo" component={ConatctInfoScreen} />
+          <Stack.Screen name="Setting" component={SettingScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

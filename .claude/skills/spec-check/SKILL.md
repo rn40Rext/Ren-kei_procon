@@ -78,7 +78,7 @@ grep -rn "as any\|@ts-ignore" Ren-kei_procon/src/           # 型回避
 
 ```bash
 git diff main -- firestore.rules storage.rules              # Rules の変更
-git diff main --stat -- docs/spec/                          # 正典の編集（あってはならない）
+git diff main --stat -- docs/spec/                          # 基準文書の編集（あってはならない）
 git status --short                                           # 意図しないファイル
 ```
 

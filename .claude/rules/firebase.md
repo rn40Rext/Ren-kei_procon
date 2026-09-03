@@ -46,7 +46,7 @@ Emulator が使えるなら Emulator を優先してください。緩めたル�
 
 ## Firestore の命名と構造
 
-正典は [docs/design/data-model.md](../../docs/design/data-model.md)。要点:
+基準は [docs/design/data-model.md](../../docs/design/data-model.md)（**これも提案であり、確定仕様ではありません**）。要点:
 
 - コレクション名: 英語・複数形・小文字始まり（`users`, `videos`, `joinRequests`）
 - フィールド名: lowerCamelCase / 日時は `serverTimestamp()`

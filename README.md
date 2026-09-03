@@ -125,7 +125,7 @@ firebase deploy --only firestore:rules,storage
 | 目的 | 文書 |
 | --- | --- |
 | ドキュメント全体の索引 | [docs/README.md](docs/README.md) |
-| **仕様の正典（v0.3）** | [docs/spec/README.md](docs/spec/README.md) |
+| **仕様（v0.3・位置づけの注記あり）** | [docs/spec/README.md](docs/spec/README.md) |
 | 現在の実装状況と仕様との差分 | [docs/status/gap-analysis.md](docs/status/gap-analysis.md) |
 | 実装ロードマップとイシュー対応 | [docs/status/roadmap.md](docs/status/roadmap.md) |
 | システム構成・技術スタック | [docs/design/architecture.md](docs/design/architecture.md) |
@@ -151,7 +151,9 @@ firebase deploy --only firestore:rules,storage
 3. 実装する。受け入れ条件から外れる必要が出たら**先にイシューを直す**
 4. [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) で検証する
 
-**大原則: 仕様を発明しない。** 作る機能が [docs/spec/](docs/spec/README.md)（正典）のどこに定義されているか確認してから書きます。無ければ止まって確認してください。
+**大原則: 仕様を発明しない。** 作る機能が [docs/spec/](docs/spec/README.md) のどこに定義されているか確認してから書きます。無ければ止まって確認してください。
+
+> ⚠️ ただし仕様書 v0.3 は**チームで合意した確定仕様ではありません。** 既存資料（パンフレット原稿・企画資料・ER図・UIフロー・プロトタイプ動画）からの推測で組み立てた文書で、`docs/design/` はそれをさらに具体化したものです。**内容がおかしいと思ったら指摘してください** → [docs/spec/README.md](docs/spec/README.md)
 
 **決めた TBD は [docs/design/](docs/design/) に記録する。** チャットやイシューのコメントだけに残った決定は次の担当者に届きません。
 

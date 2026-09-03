@@ -10,7 +10,7 @@
 | **開発の進め方を知りたい** | [rules/workflow.md](rules/workflow.md)（既定はイシュー駆動） |
 | **今どこまで実装されているか知りたい** | [status/gap-analysis.md](status/gap-analysis.md) |
 | **次に何を作るか知りたい** | [status/roadmap.md](status/roadmap.md) |
-| 仕様の正典を読みたい | [spec/README.md](spec/README.md) |
+| 仕様を読みたい（位置づけの注記あり） | [spec/README.md](spec/README.md) |
 | エージェント（AI）に作業させたい | [../AGENTS.md](../AGENTS.md) |
 
 ## ディレクトリ構成
@@ -19,7 +19,7 @@
 docs/
 ├── README.md                   ← この索引
 ├── AGENTS.md                   docs/ 編集時のエージェント向けルール
-├── spec/                       仕様書 v0.3（正典・原本の記述は不変・編集禁止）
+├── spec/                       仕様書 v0.3（基準文書・原本の記述は不変・Markdown編集禁止）
 ├── specs/                      機能単位の spec（普段は不要。イシュー駆動が既定）
 ├── design/                     横断的な実装設計
 ├── rules/                      開発ルール（開発フロー・禁止事項・コーディング規約・DoD）
@@ -30,11 +30,13 @@ docs/
 └── sec_image.png               アクセス権限設計の図
 ```
 
-`spec/`（単数）が製品仕様書の正典、`specs/`（複数）が作業単位の spec です。
+`spec/`（単数）が製品仕様書、`specs/`（複数）が作業単位の spec です。
 
-## spec/ — 仕様書 v0.3（正典）
+## spec/ — 仕様書 v0.3（現時点の基準文書）
 
-Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ごとに分割したものです。**原本の記述は改変していません。** 仕様の解釈で迷ったらここが正典です。
+Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ごとに分割したものです。**原本の記述は改変していません。**
+
+> ⚠️ **チームで合意した確定仕様ではありません。** 既存資料（パンフレット原稿・企画資料・ER図・UIフロー・プロトタイプ動画）からの推測で組み立てた文書です。記述の出どころを示すタグ（【資料由来】【合意方針】【設計提案】【要検討】）で信頼度を判断してください。詳しくは [spec/README.md](spec/README.md) の「この文書の位置づけ」。
 
 → [章一覧は spec/README.md](spec/README.md)
 
@@ -49,6 +51,8 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 ## design/ — 実装向け設計
 
 仕様書の方針を、実際のファイル・パス・コードへ落とし込んだ文書です。仕様書 [付録C](spec/92-appendix-c-next-documents.md)「詳細設計へ進む際に追加する文書」に対応します。
+
+> ⚠️ **これらは仕様書 v0.3 をさらに推測で具体化したものです。** Firestore の物理パス、Security Rules の実コード、Rule Engine の閾値などは仕様書に無かった判断を含みます。**仕様書 → design → イシューの三段で推測が重なっており、下の層ほど根拠が弱い**と思ってください。特に AI 判定の閾値は全て暫定値で、根拠はありません（指導者ヒアリング後に確定する前提）。
 
 | 文書 | 内容 | 主な読者 |
 | --- | --- | --- |
@@ -67,7 +71,7 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 | 文書 | 内容 |
 | --- | --- |
 | [rules/workflow.md](rules/workflow.md) | **開発フロー。** 既定はイシュー駆動。spec を切る 3 条件、EARS 記法 |
-| [rules/safety.md](rules/safety.md) | 安全境界・禁止事項。正典の保護、Rules を緩める変更の扱い、権限判定、秘密情報、破壊的操作 |
+| [rules/safety.md](rules/safety.md) | 安全境界・禁止事項。3 段階の使い分け、Rules を緩める変更の扱い、権限判定、秘密情報、破壊的操作 |
 | [rules/coding.md](rules/coding.md) | コーディング規約。TypeScript、ディレクトリ責務、Firestore 命名、Expo の注意点 |
 | [rules/definition-of-done.md](rules/definition-of-done.md) | 完了の定義。フェーズ別 DoD と報告のルール |
 

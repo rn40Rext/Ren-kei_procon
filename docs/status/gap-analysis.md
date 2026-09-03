@@ -115,9 +115,24 @@ score: Math.floor(Math.random() * 20) + 80,
 | B-10 | ルートの `.gitignore` に**マージコンフリクトの残骸がコミットされている**（1 行目 `<<<<<<< HEAD`、3 行目 `=======`、73 行目 `>>>>>>> 52bfe7c`）。`node_modules` が競合ブロック内にあるが偶然パターンとして解釈されるため動いてしまっている | [.gitignore](../../.gitignore) |
 | B-11 | アプリの `package.json` に `scripts` と `main` が無い。`npm start` が使えず、`npx expo start` を直接叩く必要がある（`index.ts` で `registerRootComponent` しているため `"main": "index.ts"` が必要） | [Ren-kei_procon/package.json](../../Ren-kei_procon/package.json) |
 
-> B-1〜B-11 は**今回のイシュー化対象外**（未実装機能に絞ったため）です。着手前に別途イシュー化するか、関連する機能実装のイシュー内で一緒に直す想定です。
->
-> このうち **B-1（ナビゲーション未登録）と B-10（コンフリクト残骸）は影響が明確で修正も小さい**ため、早めの対処を推奨します。
+### イシュー対応
+
+上記のうち影響が明確なものは個別にイシュー化しています。
+
+| # | イシュー | マイルストーン |
+| --- | --- | --- |
+| S-2 | [#50](../../../issues/50) storage.rules の全開放を暫定的に閉じる（**最優先**） | Prototype 1 |
+| B-1 / B-2 | [#51](../../../issues/51) 5画面がナビゲータ未登録で遷移時にクラッシュ | Prototype 1 |
+| B-10 | [#52](../../../issues/52) .gitignore にマージコンフリクトの残骸 | — |
+| B-3 | [#53](../../../issues/53) 認証状態の購読が二重 | Prototype 1 |
+| B-11 | [#54](../../../issues/54) package.json に scripts と main が無い | Prototype 1 |
+| B-5 / B-6 | [#55](../../../issues/55) 依存関係の整理 | Prototype 1 |
+| B-4 | [#56](../../../issues/56) firebaseConfig.ts の重複を統一 | Prototype 1 |
+| 4章 | [#57](../../../issues/57) videos を videos / posts へ分離するデータ移行 | MVP Community |
+| 4章 | [#58](../../../issues/58) AI採点がモックである旨をUIで明示 | Prototype 1 |
+| B-9 | [#59](../../../issues/59) docs/api の旧メモを整理 | — |
+
+B-7（`firestore.indexes.json` が空）と B-8（`RequestScreen` の位置づけ）は、それぞれ関連する機能実装イシューの受け入れ条件に含めています。
 
 ## 7. 仕様書と実装で解釈が分かれている点
 

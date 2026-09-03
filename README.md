@@ -108,13 +108,17 @@ firebase deploy --only firestore:rules,storage
 
 着手前に [docs/status/gap-analysis.md](docs/status/gap-analysis.md) を一読してください。特に次の 2 点は影響が大きいです。
 
-### 1. Storage Rules が全開放されています
+### 1. Storage Rules が全開放されています — [#50](../../issues/50)
 
-`storage.rules` が現在 `allow read, write: if true` になっており、**未認証の第三者が動画をアップロード・上書き・削除できます**。アプリを誰かに触らせる前に対処してください（[#40](../../issues/40)、修正案は [docs/design/security-rules.md](docs/design/security-rules.md)）。
+`storage.rules` が現在 `allow read, write: if true` になっており、**未認証の第三者が動画をアップロード・上書き・削除できます**。アプリを誰かに触らせる前に対処してください（暫定対処は [#50](../../issues/50)、本格実装は [#40](../../issues/40)、修正案は [docs/design/security-rules.md](docs/design/security-rules.md)）。
 
-### 2. 5 つの画面がナビゲータに未登録です
+### 2. 5 つの画面がナビゲータに未登録です — [#51](../../issues/51)
 
 `Camera` / `Result` / `Request` / `UserProfile` / `Chat` の 5 画面は `AppNavigator.tsx` に登録されていないのに `navigate()` されており、**遷移するとアプリが落ちます**。AI 機能の開発では `Camera` / `Result` を使うため、先に修正が必要です。
+
+### 3. AI 採点のスコア表示はモックです — [#58](../../issues/58)
+
+実際には解析していないランダム値を「AI ○○点」と表示しています。デモや発表で実在しない採点結果を提示しないよう注意してください。
 
 ## ドキュメント
 
@@ -136,7 +140,7 @@ firebase deploy --only firestore:rules,storage
 
 ### イシューとマイルストーン
 
-未実装機能はエピック 8 件 + 子イシュー 36 件に分解して管理しています。
+未実装機能はエピック 8 件 + 子イシュー 36 件（#5〜#48）に分解して管理しています。加えて既知の不具合・技術的負債を 10 件（#50〜#59）起票しています。
 
 | マイルストーン | 完了条件 |
 | --- | --- |
@@ -170,7 +174,11 @@ firebase deploy --only firestore:rules,storage
 | `area:security` | 認証・認可・Security Rules |
 | `area:notification` | 通知 |
 | `area:infra` | Cloud Functions・バックエンド基盤 |
+| `area:app` | アプリ基盤・ナビゲーション・ビルド設定 |
 | `type:epic` | 親イシュー |
+| `type:feature` | 新機能の実装 |
+| `type:bug` | 既知の不具合の修正 |
+| `type:debt` | 技術的負債・整合性の修正 |
 | `spec:v0.3` | 仕様書 v0.3 に定義された未実装項目 |
 
 ### 設計判断の記録

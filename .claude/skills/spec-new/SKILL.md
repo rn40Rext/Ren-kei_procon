@@ -1,0 +1,69 @@
+---
+name: spec-new
+description: 機能単位の spec（requirements.md）を新規作成する。スペック駆動開発のフェーズ[1]。「specを作る」「requirementsを書く」「新機能を始める」ときに使う。
+disable-model-invocation: false
+---
+
+# spec-new — requirements の作成
+
+スペック駆動開発のフェーズ [1] です。手順の全体像は `docs/rules/workflow.md` を参照。
+
+## 進め方
+
+### 1. 正典を確認する（フェーズ[0]）
+
+**先にこれをやります。** 引数で渡された機能について、以下を調べてください。
+
+| 調べる先 | 何を確認するか |
+| --- | --- |
+| `docs/spec/04-functions-and-usecases.md` | 機能 ID（AUTH / USER / PRACTICE / STYLE / COMM / REN / HIST / NOTI）に該当するものがあるか |
+| `docs/spec/05-screens-user.md` / `06-screens-ren-admin.md` | 関係する画面 ID（U-xx / R-xx） |
+| `docs/spec/09-data-design.md` | 使う Entity |
+| `docs/status/gap-analysis.md` | 現在の実装状況 |
+| `docs/status/roadmap.md` | 優先順位、依存する他機能、関連 TBD |
+| GitHub イシュー（`gh issue list`） | **既存のイシュー #5〜#59 に該当するものがあるか** |
+
+**正典に無い機能なら、ここで止まってユーザーに確認してください。** 仕様を発明してはいけません。「仕様書には無いようですが、v0.4 で要件化しますか？ それとも既存の U-xx に統合しますか？」と聞きます。
+
+### 2. 番号とスラッグを決める
+
+`docs/specs/` の既存ディレクトリを見て次の連番を取ります（`001`, `002`, ...）。スラッグは英小文字とハイフン（例: `002-ren-join-request`）。
+
+### 3. 粒度を確認する
+
+1 つの spec は**1 つのまとまった価値**を対象にします。イシュー 1 件より大きく、エピック 1 件より小さい粒度が扱いやすいです。
+
+粒度が大きすぎる／小さすぎると感じたら、**ユーザーに分割案を提示して確認**してください。
+
+### 4. requirements.md を書く
+
+`docs/specs/TEMPLATE/requirements.md` を雛形として `docs/specs/<NNN>-<slug>/requirements.md` を作ります。
+
+書く際の必須条件:
+
+- **スコープ外を明示する。** これを書かないとエージェントの探索範囲が広がりすぎます
+- **受け入れ基準は EARS 記法で書く**（`docs/rules/workflow.md` の表を参照）
+  - WHEN 〈条件〉THEN システムは〈応答〉SHALL
+  - WHILE 〈状態〉/ WHERE 〈機能有効〉/ IF 〈異常〉
+- **「適切に」「いい感じに」「必要に応じて」を使わない。** 検証できない基準は受け入れ基準ではありません
+- 製品仕様書の該当章へのリンクを入れる
+- 未確定事項（TBD-xx）を列挙し、いつ誰が決めるか書く
+- 既存イシューがあれば対応付ける
+
+### 5. 対話で埋める
+
+**不明な点は勝手に決めず、ユーザーに聞いてください。** 特に:
+
+- 仕様書に複数の解釈があるとき
+- 未確定事項（TBD）がこの spec の成否に関わるとき
+- スコープの線引きが判断を要するとき
+
+### 6. 承認を得る
+
+書き終えたら要点（目的・スコープ・スコープ外・受け入れ基準の数）を提示し、**承認を求めます**。承認前に design や実装へ進んではいけません。
+
+承認後に「次は `/spec-plan <NNN>` で設計に進めます」と案内してください。
+
+## 完了条件
+
+`docs/rules/definition-of-done.md` の「requirements.md」の項目をすべて満たすこと。

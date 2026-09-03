@@ -7,23 +7,30 @@
 | 目的 | 文書 |
 | --- | --- |
 | プロジェクト全体を知りたい | [../README.md](../README.md) |
+| **開発の進め方を知りたい（SDD）** | [rules/workflow.md](rules/workflow.md) |
 | **今どこまで実装されているか知りたい** | [status/gap-analysis.md](status/gap-analysis.md) |
 | **次に何を作るか知りたい** | [status/roadmap.md](status/roadmap.md) |
 | 仕様の正典を読みたい | [spec/README.md](spec/README.md) |
+| エージェント（AI）に作業させたい | [../AGENTS.md](../AGENTS.md) |
 
 ## ディレクトリ構成
 
 ```
 docs/
 ├── README.md                   ← この索引
-├── spec/                       仕様書 v0.3（正典・原本の記述は不変）
-├── design/                     実装向け設計（仕様書を実装に落とし込んだもの）
+├── AGENTS.md                   docs/ 編集時のエージェント向けルール
+├── spec/                       仕様書 v0.3（正典・原本の記述は不変・編集禁止）
+├── specs/                      機能単位の spec（requirements → design → tasks）
+├── design/                     横断的な実装設計
+├── rules/                      開発ルール（SDD手順・禁止事項・コーディング規約・DoD）
 ├── status/                     実装状況・ロードマップ
 ├── api/                        旧 API メモ（初期の検討記録）
 ├── ER図.drawio                 ER 図（drawio 形式）
 ├── ER図 copy.drawio.png        ER 図（画像）
 └── sec_image.png               アクセス権限設計の図
 ```
+
+`spec/`（単数）が製品仕様書の正典、`specs/`（複数）が作業単位の spec です。
 
 ## spec/ — 仕様書 v0.3（正典）
 
@@ -52,6 +59,27 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 | [ai-style-similarity.md](design/ai-style-similarity.md) | Motion Encoder の選定観点、Embedding 設計、類似度の扱い、検証計画、縮退案 | AI 担当 |
 | [api-functions.md](design/api-functions.md) | FN-01〜FN-07 の request/response 定義、Firestore トリガ、エラーコード対応 | バックエンド担当 |
 | [screens.md](design/screens.md) | U-01〜U-10 / R-01〜R-08 と実装ファイルの対応、ナビゲーション構成、入力制約 | フロントエンド担当 |
+
+## rules/ — 開発ルール
+
+エージェントと人間が共通で守るルールです。ルート [../AGENTS.md](../AGENTS.md) から参照されています。
+
+| 文書 | 内容 |
+| --- | --- |
+| [rules/workflow.md](rules/workflow.md) | **スペック駆動開発（SDD）の手順。** 5 フェーズ、EARS 記法、承認ゲート |
+| [rules/safety.md](rules/safety.md) | 安全境界・禁止事項。正典の保護、Rules を緩める変更の扱い、権限判定、秘密情報、破壊的操作 |
+| [rules/coding.md](rules/coding.md) | コーディング規約。TypeScript、ディレクトリ責務、Firestore 命名、Expo の注意点 |
+| [rules/definition-of-done.md](rules/definition-of-done.md) | 完了の定義。フェーズ別 DoD と報告のルール |
+
+## specs/ — 機能単位の spec
+
+1 つの実装増分について `requirements.md` → `design.md` → `tasks.md` の順に書きます。→ [specs/README.md](specs/README.md)
+
+| spec | 内容 | 状態 |
+| --- | --- | --- |
+| [001-hand-height-realtime](specs/001-hand-height-realtime/requirements.md) | カメラ → 姿勢推定 → RULE-01 手の高さ判定 → リアルタイム表示（Prototype 1） | requirements 作成済み・未承認 |
+
+雛形は [specs/TEMPLATE/](specs/TEMPLATE/) にあります。
 
 ## status/ — 実装状況
 
@@ -85,5 +113,9 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 | --- | --- |
 | `spec/` | **直接編集しない。** 仕様変更は Word 原本を v0.4 として更新し、再分割する |
 | `design/` | 実装で決定した事項（TBD の解決を含む）を随時追記する。イシューの受け入れ条件に「設計文書へ記録」を含めている |
+| `specs/` | SDD のフェーズごとに人間の承認を得てから次へ進む |
+| `rules/` | 人間の承認を得てから変更する。ルート `AGENTS.md` の要約も併せて更新する |
 | `status/gap-analysis.md` | マイルストーン完了時に見直す |
 | `status/roadmap.md` | イシューの追加・完了時に更新する |
+
+詳細は [AGENTS.md](AGENTS.md)（このディレクトリ用）を参照してください。

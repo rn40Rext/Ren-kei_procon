@@ -138,6 +138,37 @@ firebase deploy --only firestore:rules,storage
 
 ## 開発の進め方
 
+### スペック駆動開発（SDD）
+
+**spec なしで実装を始めません。** コードは spec から導かれる成果物です。
+
+```
+[0] 正典確認 → [1] requirements → [2] design → [3] tasks → [4] 実装 → [5] 検証
+                     ↑承認             ↑承認         ↑承認
+```
+
+1. 作る機能が [docs/spec/](docs/spec/README.md)（正典）のどこに定義されているか確認する
+2. `docs/specs/<NNN>-<slug>/requirements.md` に受け入れ基準を EARS 記法で書く
+3. `design.md` に方式を比較して書く
+4. `tasks.md` で分解し、既存イシュー（#5〜#59）と対応付ける
+5. 実装する。spec から外れる必要が出たら**先に spec を直す**
+6. [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) で検証する
+
+手順の詳細は [docs/rules/workflow.md](docs/rules/workflow.md)、実例は [docs/specs/001-hand-height-realtime/](docs/specs/001-hand-height-realtime/requirements.md) を参照してください。
+
+### AI エージェントを使う場合
+
+[AGENTS.md](AGENTS.md) がエージェント向けの契約です。[AGENTS.md 標準](https://agents.md)に従っているため、Codex CLI / GitHub Copilot / Cursor / Windsurf / Zed / Aider などは**そのまま読みます**。Claude Code は [CLAUDE.md](CLAUDE.md)（`@AGENTS.md` を読み込むだけのファイル）経由で同じ内容を読みます。
+
+ディレクトリ固有のルールは、そのディレクトリの `AGENTS.md` にあります（`Ren-kei_procon/`、`functions/`、`docs/`）。編集対象に最も近いものが優先されます。
+
+| ルール | 内容 |
+| --- | --- |
+| [docs/rules/workflow.md](docs/rules/workflow.md) | SDD の手順 |
+| [docs/rules/safety.md](docs/rules/safety.md) | 禁止事項・安全境界 |
+| [docs/rules/coding.md](docs/rules/coding.md) | コーディング規約 |
+| [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) | 完了の定義 |
+
 ### イシューとマイルストーン
 
 未実装機能はエピック 8 件 + 子イシュー 36 件（#5〜#48）に分解して管理しています。加えて既知の不具合・技術的負債を 10 件（#50〜#59）起票しています。

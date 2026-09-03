@@ -138,23 +138,26 @@ firebase deploy --only firestore:rules,storage
 
 ## 開発の進め方
 
-### スペック駆動開発（SDD）
-
-**spec なしで実装を始めません。** コードは spec から導かれる成果物です。
+### イシュー駆動
 
 ```
-[0] 正典確認 → [1] requirements → [2] design → [3] tasks → [4] 実装 → [5] 検証
-                     ↑承認             ↑承認         ↑承認
+イシューを受け取る → 参照を読む → 実装 → 検証（DoD）
 ```
 
-1. 作る機能が [docs/spec/](docs/spec/README.md)（正典）のどこに定義されているか確認する
-2. `docs/specs/<NNN>-<slug>/requirements.md` に受け入れ基準を EARS 記法で書く
-3. `design.md` に方式を比較して書く
-4. `tasks.md` で分解し、既存イシュー（#5〜#59）と対応付ける
-5. 実装する。spec から外れる必要が出たら**先に spec を直す**
-6. [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) で検証する
+**タスクは GitHub イシューで管理されています（#5〜#59）。各イシューに受け入れ条件・仕様書該当箇所・設計文書へのリンクが入っており、それが実質の spec です。**
 
-手順の詳細は [docs/rules/workflow.md](docs/rules/workflow.md)、実例は [docs/specs/001-hand-height-realtime/](docs/specs/001-hand-height-realtime/requirements.md) を参照してください。
+1. `gh issue view <番号>` でイシューを読む。親エピック（#5〜#12）に推奨順序と依存関係がある
+2. **イシューがリンクしている設計文書を実際に読む。** リンクを読まずに書き始めない
+3. 実装する。受け入れ条件から外れる必要が出たら**先にイシューを直す**
+4. [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) で検証する
+
+**大原則: 仕様を発明しない。** 作る機能が [docs/spec/](docs/spec/README.md)（正典）のどこに定義されているか確認してから書きます。無ければ止まって確認してください。
+
+**決めた TBD は [docs/design/](docs/design/) に記録する。** チャットやイシューのコメントだけに残った決定は次の担当者に届きません。
+
+手順の詳細は [docs/rules/workflow.md](docs/rules/workflow.md)。
+
+複数イシューをまたぐ判断が必要なときだけ `docs/specs/` に spec を切ります（3 つの条件は [docs/rules/workflow.md](docs/rules/workflow.md) 3章）。実例: [docs/specs/001-hand-height-realtime/](docs/specs/001-hand-height-realtime/requirements.md)
 
 ### AI エージェントを使う場合
 
@@ -164,7 +167,7 @@ firebase deploy --only firestore:rules,storage
 
 | ルール | 内容 |
 | --- | --- |
-| [docs/rules/workflow.md](docs/rules/workflow.md) | SDD の手順 |
+| [docs/rules/workflow.md](docs/rules/workflow.md) | 開発フロー（既定はイシュー駆動） |
 | [docs/rules/safety.md](docs/rules/safety.md) | 禁止事項・安全境界 |
 | [docs/rules/coding.md](docs/rules/coding.md) | コーディング規約 |
 | [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) | 完了の定義 |

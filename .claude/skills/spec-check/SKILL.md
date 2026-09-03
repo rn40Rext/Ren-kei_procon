@@ -1,12 +1,12 @@
 ---
 name: spec-check
-description: 実装が spec の受け入れ基準と Definition of Done を満たしているか検査する。スペック駆動開発のフェーズ[5]。「specと実装の差分を見る」「DoDを確認する」「完了できるか確認する」ときに使う。
+description: 実装がイシューの受け入れ条件と Definition of Done を満たしているか検査する。「受け入れ条件を確認して」「DoDを確認する」「完了できるか見て」「実装とspecの差分を見る」ときに使う。
 disable-model-invocation: false
 ---
 
-# spec-check — spec と実装の突き合わせ
+# spec-check — 受け入れ条件と実装の突き合わせ
 
-スペック駆動開発のフェーズ [5] です。手順の全体像は `docs/rules/workflow.md` を参照。
+**イシュー番号でも spec 番号でも使えます。** 既定はイシュー駆動なので、通常はイシュー番号を渡してください。手順の全体像は `docs/rules/workflow.md` を参照。
 
 ## この検査の目的
 
@@ -16,11 +16,12 @@ disable-model-invocation: false
 
 ## 進め方
 
-### 1. spec を読む
+### 1. 受け入れ条件を読む
 
-`docs/specs/<NNN>-<slug>/` の `requirements.md`（受け入れ基準）と `tasks.md`（タスク一覧）を読みます。
+- **イシュー番号を渡された場合**: `gh issue view <番号>` の受け入れ条件チェックリストを使います
+- **spec 番号を渡された場合**: `docs/specs/<NNN>-<slug>/requirements.md` の受け入れ基準と `tasks.md` を使います
 
-### 2. 受け入れ基準を 1 つずつ検証する
+### 2. 受け入れ条件を 1 つずつ検証する
 
 **「実装した」という記述を信用せず、実際のコードを読んで確認します。**
 
@@ -60,8 +61,9 @@ cd functions && npm run build                   # Functions を変更した場�
 
 `docs/rules/coding.md` に反する箇所を探します。
 
+リポジトリルートで実行します。
+
 ```bash
-cd /Users/kitayamashuuma/SystemDevelopment/Ren-kei_procon
 grep -rn "useNavigation<any>" Ren-kei_procon/src/          # 型回避
 grep -rn "increment(" Ren-kei_procon/src/                   # カウンタ
 grep -rn "Math.random" Ren-kei_procon/src/                  # モック

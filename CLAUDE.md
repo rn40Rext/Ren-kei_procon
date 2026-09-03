@@ -23,14 +23,17 @@
 
 ### スラッシュコマンド
 
-スペック駆動開発の各フェーズに対応します。手順の本体は [docs/rules/workflow.md](docs/rules/workflow.md) にあり、コマンドはその補助です。
+手順の本体は [docs/rules/workflow.md](docs/rules/workflow.md) にあり、コマンドはその補助です。
 
-| コマンド | フェーズ |
-| --- | --- |
-| `/spec-new <機能名>` | requirements の作成 |
-| `/spec-plan <spec番号>` | design の作成 |
-| `/spec-tasks <spec番号>` | tasks の作成とイシュー対応付け |
-| `/spec-check <spec番号>` | 実装が spec を満たしているかの検査 |
+| コマンド | 用途 | 頻度 |
+| --- | --- | --- |
+| `/impl <イシュー番号>` | **既定の実装フロー。** イシュー・設計文書・ルールを読んで実装し DoD まで検証 | 高 |
+| `/spec-check <番号>` | 受け入れ条件と実装の突き合わせ | 高 |
+| `/spec-new <機能名>` | requirements の作成（仕様書に無い機能・複数イシューをまたぐ判断が必要なときだけ） | 低 |
+| `/spec-plan <spec番号>` | design の作成 | 低 |
+| `/spec-tasks <spec番号>` | tasks の作成とイシュー対応付け | 低 |
+
+**既定はイシュー駆動です。** イシューに受け入れ条件と設計文書へのリンクが入っているので、`docs/specs/` に別途 spec を切る必要はありません（必要な 3 ケースは [docs/rules/workflow.md](docs/rules/workflow.md) 3章）。
 
 ### 導入済みの拡張
 

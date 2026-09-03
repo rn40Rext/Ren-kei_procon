@@ -12,18 +12,20 @@ paths:
 
 **編集前に [docs/rules/safety.md](../../docs/rules/safety.md) と [docs/design/data-model.md](../../docs/design/data-model.md) を読んでください。**
 
-## ⚠️ Security Rules を緩める変更は人間の承認が必要
+## Security Rules を緩めるとき
 
-緩める変更とは: `allow` の条件を削除する、`if false` を `if true` にする、認証チェックや所有者チェックを外す、`match /{allPaths=**}` に広い許可を与える。
+**開発中は緩めて構いません**（プロコン向けの運用方針。[../../docs/rules/safety.md](../../docs/rules/safety.md) の 0 章）。ただし 2 つを守ってください。
 
-**「テストのために一時的に開ける」も禁止です。** Firebase Emulator を使ってください。一時的に開けたルールはそのまま残ります。現に `storage.rules` は `allow read, write: if true` のまま放置されています（[#50](../../../../issues/50)）。
+1. **PR 本文に「何をどう緩めたか」を書く**
+2. **一般公開前に戻す**（[#40](../../../../issues/40)）
 
-変更手順:
+Emulator が使えるなら Emulator を優先してください。緩めたルールは放置されます。現に `storage.rules` は `allow read, write: if true` のまま残っています（[#50](../../../../issues/50)）。
 
-1. [docs/design/security-rules.md](../../docs/design/security-rules.md) の CRUD 権限表と照合する
-2. Emulator で Rules Unit Test を通す
-3. 緩める変更なら人間の承認を取る
-4. `firebase deploy --only firestore:rules,storage`（本番。これも承認を取る）
+### 厳格化するときの手順
+
+1. [../../docs/design/security-rules.md](../../docs/design/security-rules.md) の CRUD 権限表と照合する（実 Rules コードが用意してあります）
+2. Emulator で Rules Unit Test を通す（[#42](../../../../issues/42)）
+3. `firebase deploy --only firestore:rules,storage` — **本番デプロイなので確認を取る**
 
 ## 権限判定の根拠を間違えない
 
@@ -36,9 +38,11 @@ paths:
 
 連管理者の判定を `users.role` だけで済ませると、**連 A の管理者が連 B のデータを改変できます**。Rules・Functions・UI の 3 層すべてで検証してください。
 
-## スコアはクライアントから書けてはいけない
+## スコアは最終的にサーバ算出にする
 
-`analysisResults` / `growthRecords` の write は Rules でクライアント全拒否にし、Cloud Functions（Admin SDK は Rules を経由しない）のみが書きます。クライアントは集計値を送り、`totalScore` はサーバで算出します。
+`analysisResults` / `growthRecords` の write は Rules でクライアント全拒否にし、Cloud Functions（Admin SDK は Rules を経由しない）のみが書く形が目標です。クライアントは集計値を送り、`totalScore` はサーバで算出します。
+
+**Prototype 段階ではクライアント算出でも構いません。** ただし一般公開前には移してください（[#35](../../../../issues/35)）。移さないとユーザーが自分のスコアを書き換えられます。
 
 ## Firestore の命名と構造
 

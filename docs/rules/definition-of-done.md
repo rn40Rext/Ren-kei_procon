@@ -11,7 +11,17 @@
 | テストが失敗した | 失敗した事実と出力を貼る。「一部のテストが通りました」で隠さない |
 | 検証を飛ばした | 飛ばしたことを書く。実機確認ができない場合は「実機未確認」と書く |
 
-## 1. spec フェーズの DoD
+## 0. どれを使うか
+
+| 作業 | 使う節 |
+| --- | --- |
+| **イシューを実装した（既定）** | 2 章「実装の DoD」 |
+| PR を出す | 3 章「PR の DoD」 |
+| spec を切った（[workflow.md](workflow.md) 3章の A/B/C に該当） | 1 章 → 2 章 |
+
+**既定はイシュー駆動です。** spec を切っていないなら 1 章は読み飛ばしてください。
+
+## 1. spec フェーズの DoD（spec を切った場合のみ）
 
 ### requirements.md
 
@@ -46,8 +56,6 @@
 - [ ] `cd Ren-kei_procon && npx tsc --noEmit` が通る
 - [ ] `any` / `as any` / `@ts-ignore` を新たに追加していない（追加した場合は理由をコメントに記載）
 - [ ] 対応するイシューの受け入れ条件をすべて満たした
-- [ ] spec（`docs/specs/<NNN>-*/`）の受け入れ基準をすべて満たした
-- [ ] `tasks.md` のチェックを埋めた
 - [ ] 作業メモコメント（`// 💡 追加` 等）を削除した
 - [ ] `git status` で意図しないファイルが含まれていないことを確認した
 
@@ -55,14 +63,15 @@
 
 | 変更内容 | 追加の条件 |
 | --- | --- |
-| Security Rules を変更した | Rules Unit Test が通る／緩める変更なら人間の承認を得た（[safety.md](safety.md) 2章） |
+| Security Rules を変更した | **緩めた場合は PR 本文に何をどう緩めたか書いた**（開発中は緩めて可。[safety.md](safety.md) 2章）／厳格化した場合は Rules Unit Test が通る |
 | Firestore のスキーマを変更した | `docs/design/data-model.md` を更新した／必要な複合インデックスを `firestore.indexes.json` に追加した |
 | Cloud Functions を追加・変更した | `cd functions && npm run build` が通る／Emulator で動作を確認した |
 | 画面を追加した | `RootStackParamList` に型を追加し `AppNavigator` に登録した／実機または Simulator で遷移を確認した |
 | Rule Engine のルールを追加した | 境界値・ノイズ・欠損のユニットテストを追加した（仕様書 15.1） |
 | 未確定事項（TBD）を決めた | **`docs/design/` の該当文書に決定内容と理由を記録した** |
-| 依存パッケージを追加した | `Ren-kei_procon/package.json` に追加した（ルートではない）／ライセンスを確認した／人間の承認を得た |
+| 依存パッケージを追加した | `Ren-kei_procon/package.json` に追加した（ルートではない）／**何を何のために入れたか報告した**（承認は不要） |
 | 動作を実機で確認した | 確認した端末・OS を報告した |
+| spec を切っていた | `requirements.md` の受け入れ基準をすべて満たした／`tasks.md` のチェックを埋めた |
 
 ### 決定事項の記録を省かない
 

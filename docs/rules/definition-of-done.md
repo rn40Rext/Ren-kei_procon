@@ -1,98 +1,97 @@
-# Definition of Done（完了の定義）
+# Definition of Done
 
-> 「完了」を主張する前に満たすべき条件です。**満たしていない項目があれば、満たしていないと報告してください。**「たぶん大丈夫」「おそらく動く」で閉じないこと。
+> These are the conditions to satisfy before claiming "done". **If any item is not satisfied, report that it is not satisfied.** Do not close with "probably fine" or "it should work".
 
-## 報告のルール
+## Reporting rules
 
-| 状況 | 報告の仕方 |
+| Situation | How to report |
 | --- | --- |
-| 全項目を満たした | 「完了」と明言する。曖昧に濁さない |
-| 一部を満たしていない | **どの項目を満たしていないかを明示する。** 実行できなかった検証があれば、その理由も書く |
-| テストが失敗した | 失敗した事実と出力を貼る。「一部のテストが通りました」で隠さない |
-| 検証を飛ばした | 飛ばしたことを書く。実機確認ができない場合は「実機未確認」と書く |
+| All items satisfied | State "done" explicitly. Do not be vague about it |
+| Some items not satisfied | **State which items are not satisfied.** If there was verification you could not run, write the reason too |
+| A test failed | Paste the fact of the failure and its output. Do not hide it behind "some of the tests passed" |
+| Verification was skipped | Write that you skipped it. If you cannot check on a device, write "not verified on a device" |
 
-## 0. どれを使うか
+## 0. Which one to use
 
-| 作業 | 使う節 |
+| Work | Section to use |
 | --- | --- |
-| **イシューを実装した（既定）** | 2 章「実装の DoD」 |
-| PR を出す | 3 章「PR の DoD」 |
-| spec を切った（[workflow.md](workflow.md) 3章の A/B/C に該当） | 1 章 → 2 章 |
+| **Implemented an issue (default)** | Section 2, "Implementation DoD" |
+| Opening a PR | Section 3, "PR DoD" |
+| Wrote a spec (matches A/B/C in chapter 3 of [workflow.md](workflow.md)) | Section 1 → Section 2 |
 
-**既定はイシュー駆動です。** spec を切っていないなら 1 章は読み飛ばしてください。
+**The default is issue-driven.** If you did not write a spec, skip section 1.
 
-## 1. spec フェーズの DoD（spec を切った場合のみ）
+## 1. DoD for the spec phase (only if you wrote a spec)
 
 ### requirements.md
 
-- [ ] 目的がユーザー価値で書かれている
-- [ ] **スコープ外が明示されている**
-- [ ] 受け入れ基準が EARS 記法で書かれている（[workflow.md](workflow.md) 参照）
-- [ ] 受け入れ基準がすべて**検証可能**（「適切に」「いい感じに」が含まれていない）
-- [ ] 製品仕様書（`docs/spec/`）の該当箇所へのリンクがある
-- [ ] 未確定事項（TBD）が列挙され、いつ誰が決めるか書かれている
-- [ ] 人間の承認を得た
+- [ ] The purpose is written in terms of user value
+- [ ] **Out-of-scope items are stated explicitly**
+- [ ] Acceptance criteria are written in EARS notation (see [workflow.md](workflow.md))
+- [ ] All acceptance criteria are **verifiable** (no "appropriately" or "nicely")
+- [ ] There is a link to the relevant part of the product specification (`docs/spec/`)
+- [ ] Undecided items (TBD) are listed, with who decides them and when
+- [ ] Human approval obtained
 
 ### design.md
 
-- [ ] 方式の選択肢が比較され、選んだ理由が書かれている
-- [ ] 変更するファイルが列挙されている
-- [ ] データ変更が [docs/design/data-model.md](../design/data-model.md) と整合している
-- [ ] 横断設計と重複する内容を書かず、リンクしている
-- [ ] テスト方針が書かれている
-- [ ] 人間の承認を得た
+- [ ] The candidate approaches are compared, with the reason for the chosen one
+- [ ] The files to change are listed
+- [ ] Data changes are consistent with [docs/design/data-model.md](../design/data-model.md)
+- [ ] Content that duplicates the cross-cutting design is linked rather than written out
+- [ ] The testing approach is written
+- [ ] Human approval obtained
 
 ### tasks.md
 
-- [ ] 1 タスクが 1 コミットで完結する大きさ
-- [ ] 依存順に並んでいる
-- [ ] 既存の GitHub イシュー（#5〜#59）と対応付けられている
-- [ ] 人間の承認を得た
+- [ ] Each task is sized to be completed in one commit
+- [ ] They are ordered by dependency
+- [ ] They are mapped to the existing GitHub issues (#5 to #59)
+- [ ] Human approval obtained
 
-## 2. 実装の DoD
+## 2. Implementation DoD
 
-### 必須（毎回）
+### Required (every time)
 
-- [ ] `cd Ren-kei_procon && npx tsc --noEmit` が通る
-- [ ] `any` / `as any` / `@ts-ignore` を新たに追加していない（追加した場合は理由をコメントに記載）
-- [ ] 対応するイシューの受け入れ条件をすべて満たした
-- [ ] 作業メモコメント（`// 💡 追加` 等）を削除した
-- [ ] `git status` で意図しないファイルが含まれていないことを確認した
+- [ ] `cd Ren-kei_procon && npx tsc --noEmit` passes
+- [ ] No newly added `any` / `as any` / `@ts-ignore` (if you added one, write the reason in a comment)
+- [ ] All acceptance criteria of the corresponding issue are satisfied
+- [ ] Working-note comments (`// 💡 追加` and the like) are deleted
+- [ ] Checked with `git status` that no unintended files are included
 
-### 該当する場合
+### When applicable
 
-| 変更内容 | 追加の条件 |
+| Change | Additional conditions |
 | --- | --- |
-| Security Rules を変更した | **緩めた場合は PR 本文に何をどう緩めたか書いた**（開発中は緩めて可。[safety.md](safety.md) 2章）／厳格化した場合は Rules Unit Test が通る |
-| Firestore のスキーマを変更した | `docs/design/data-model.md` を更新した／必要な複合インデックスを `firestore.indexes.json` に追加した |
-| Cloud Functions を追加・変更した | `cd functions && npm run build` が通る／Emulator で動作を確認した |
-| 画面を追加した | `RootStackParamList` に型を追加し `AppNavigator` に登録した／実機または Simulator で遷移を確認した |
-| Rule Engine のルールを追加した | 境界値・ノイズ・欠損のユニットテストを追加した（仕様書 15.1） |
-| 未確定事項（TBD）を決めた | **`docs/design/` の該当文書に決定内容と理由を記録した** |
-| 依存パッケージを追加した | `Ren-kei_procon/package.json` に追加した（ルートではない）／**何を何のために入れたか報告した**（承認は不要） |
-| 動作を実機で確認した | 確認した端末・OS を報告した |
-| spec を切っていた | `requirements.md` の受け入れ基準をすべて満たした／`tasks.md` のチェックを埋めた |
+| Changed the Security Rules | **If you relaxed them, wrote in the PR body what you relaxed and how** (relaxing them during development is allowed; [safety.md](safety.md) chapter 2) / if you tightened them, the Rules Unit Test passes |
+| Changed the Firestore schema | Updated `docs/design/data-model.md` / added the required composite indexes to `firestore.indexes.json` |
+| Added or changed a Cloud Function | `cd functions && npm run build` passes / verified the behavior in the Emulator |
+| Added a screen | Added its type to `RootStackParamList` and registered it in `AppNavigator` / verified the navigation on a device or the Simulator |
+| Added a rule to the Rule Engine | Added boundary-value, noise, and missing-data unit tests (specification 15.1) |
+| Decided an undecided item (TBD) | **Recorded the decision and its rationale in the relevant document under `docs/design/`** |
+| Verified the behavior on a device | Reported the device and OS you used |
+| Had written a spec | Satisfied all acceptance criteria in `requirements.md` / filled in the checks in `tasks.md` |
 
-### 決定事項の記録を省かない
+### Do not skip recording decisions
 
-TBD を決めたら**必ず文書に残します**。イシューのコメントやチャットの中だけに残った決定は、次の担当者に届きません。記録先は [docs/status/roadmap.md](../status/roadmap.md) の 4 章に整理してあります。
+Once you decide a TBD, **always leave it in a document**. A decision left only in an issue comment or a chat will not reach the next person. Where to record it is organized in chapter 4 of [docs/status/roadmap.md](../status/roadmap.md).
 
-## 3. PR の DoD
+## 3. PR DoD
 
-- [ ] タイトルが変更内容を表している
-- [ ] 本文に `Closes #<issue>` がある（該当する場合）
-- [ ] 本文に**実行した検証と結果**が書かれている（「型検査を通した」「Emulator で確認した」等）
-- [ ] 満たせなかった DoD 項目があれば本文に明記されている
-- [ ] レビューしてほしい観点が書かれている
-- [ ] 秘密情報が含まれていない（`git diff` を確認した）
+- [ ] The title describes the change
+- [ ] The body contains `Closes #<issue>` (when applicable)
+- [ ] The body states **the verification you ran and its results** (e.g. "type checking passed", "verified in the Emulator")
+- [ ] Any DoD items you could not satisfy are stated explicitly in the body
+- [ ] The aspects you want reviewed are written
+- [ ] No secrets are included (checked `git diff`)
 
-## 4. やってはいけない「完了」報告
+## 4. "Done" reports you must not make
 
-| ✗ | 何が問題か |
+| ✗ | What is wrong with it |
 | --- | --- |
-| 「実装しました」（型検査未実施） | 動く保証がない |
-| 「テストが通りました」（一部失敗を伏せた） | 事実と異なる |
-| 「AI 採点を実装しました」（モックのまま） | モックを本物として提示している（[safety.md](safety.md) 5章） |
-| 「Security Rules を設定しました」（`if true` のまま） | 保護になっていない |
-| 「TBD を決めました」（文書に未記録） | 決定が失われる |
-| 「動くはずです」 | 検証していないなら、していないと書く |
+| "Implemented it" (type checking not run) | There is no guarantee it works |
+| "The tests passed" (concealing some failures) | It is not true |
+| "Implemented AI scoring" (still a mock) | Presenting a mock as the real thing ([safety.md](safety.md) chapter 1) |
+| "Configured the Security Rules" (still `if true`) | It provides no protection |
+| "Decided the TBD" (not recorded in a document) | The decision is lost |
+| "It should work" | If you did not verify it, write that you did not |

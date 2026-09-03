@@ -1,48 +1,50 @@
 ---
 name: spec-tasks
-description: 承認済みの design から tasks.md を作成し、GitHub イシューと対応付ける。スペック駆動開発のフェーズ[3]。「タスク分解する」「イシューに落とす」ときに使う。
+description: Create tasks.md from an approved design and map it to GitHub issues. Phase [3] of spec-driven development. Use when the user says "break this into tasks", "turn this into issues", or "do the task breakdown".
 disable-model-invocation: false
 ---
 
-# spec-tasks — タスク分解とイシュー対応付け
+# spec-tasks — Task breakdown and issue mapping
 
-スペック駆動開発のフェーズ [3] です。手順の全体像は `docs/rules/workflow.md` を参照。
+This is phase [3] of spec-driven development. For the overall procedure, see `docs/rules/workflow.md`.
 
-## 前提の確認
+## Checking the prerequisites
 
-**`requirements.md` と `design.md` が存在し、承認済みであることを確認してください。** design を飛ばしてタスク分解してはいけません。
+**Confirm that `requirements.md` and `design.md` exist and have been approved.** Do not break work into tasks while skipping the design.
 
-## 進め方
+## Procedure
 
-### 1. 既存イシューを必ず先に検索する
+Note: documents you create under `docs/specs/` are **written in Japanese**, following the Japanese templates in `docs/specs/TEMPLATE/` (they are human-facing).
 
-**このリポジトリには既に #5〜#59 のイシューがあります。** 新規に立てる前に検索してください。
+### 1. Always search the existing issues first
+
+**This repository already has issues #5〜#59.** Search before opening a new one.
 
 ```bash
 gh issue list --limit 100 --json number,title,labels,milestone --jq '.[] | "#\(.number) \(.title)"'
-gh issue list --search "キーワード" --limit 20
+gh issue list --search "keyword" --limit 20
 ```
 
-エピック（`type:epic` ラベル、#5〜#12）には子イシューのチェックリストがあります。該当するエピックがあれば、その配下のイシューに対応付けます。
+Epics (the `type:epic` label, #5〜#12) have a checklist of child issues. If a matching epic exists, map to the issues under it.
 
-**重複したイシューを作らないこと。** 既存イシューの受け入れ条件に不足があれば、新規作成ではなく既存イシューの更新を提案してください。
+**Do not create duplicate issues.** If an existing issue's acceptance criteria are incomplete, propose updating that issue instead of creating a new one.
 
-### 2. タスクに分解する
+### 2. Break the work into tasks
 
-分解の基準:
+Criteria for the breakdown:
 
-- **1 タスク = 1 コミットで完結する大きさ**
-- 依存順に並べる（先に必要なものを上に）
-- 各タスクに「変更するファイル」と「完了条件」を書く
-- requirements の受け入れ基準が**すべてどこかのタスクでカバーされている**ことを確認する
+- **1 task = a size that completes in 1 commit**
+- Order them by dependency (whatever is needed first goes on top)
+- Write "files to change" and "completion criteria" for each task
+- Confirm that **every acceptance criterion in requirements is covered by some task**
 
-カバーされていない受け入れ基準があれば、それは分解漏れです。
+An acceptance criterion that is not covered means the breakdown is incomplete.
 
-### 3. tasks.md を書く
+### 3. Write tasks.md
 
-`docs/specs/TEMPLATE/tasks.md` を雛形として `docs/specs/<NNN>-<slug>/tasks.md` を作ります。
+Use `docs/specs/TEMPLATE/tasks.md` as the template to create `docs/specs/<NNN>-<slug>/tasks.md`.
 
-各タスクの形式:
+The format of each task:
 
 ```markdown
 - [ ] **T1** タスク名 — 対応イシュー: #13
@@ -51,27 +53,27 @@ gh issue list --search "キーワード" --limit 20
   - 依存: なし
 ```
 
-末尾に「受け入れ基準とタスクの対応表」を入れて、漏れがないことを示してください。
+Put a "mapping table of acceptance criteria to tasks" at the end to show nothing is missing.
 
-### 4. 新規イシューが必要な場合
+### 4. When a new issue is needed
 
-**起票は人間の承認後です。** エージェントが勝手にイシューを作ってはいけません（`docs/rules/safety.md` 9章）。
+Creating issues is in the "allowed, but report it" list (`docs/rules/safety.md` chapter 2), so you do not need to wait for approval — but **report what you are about to create**. Get explicit approval when you would open more than 10 issues at once, or close someone else's issue.
 
-`tasks.md` に「新規イシュー案」として、タイトル・ラベル・マイルストーン・本文の要点を書いて提示します。承認を得てから `gh issue create` を実行してください。
+Write the proposal in `tasks.md` as "新規イシュー案" with the title, labels, milestone, and the key points of the body, and present it. Run `gh issue create` only after you have approval.
 
-ラベルとマイルストーンの体系:
+The label and milestone system:
 
-| 種類 | 値 |
+| Kind | Values |
 | --- | --- |
 | area | `area:ai` `area:style` `area:ren` `area:admin` `area:growth` `area:security` `area:notification` `area:infra` `area:app` |
 | type | `type:epic` `type:feature` `type:bug` `type:debt` |
-| その他 | `spec:v0.3` `documentation` |
-| マイルストーン | `Prototype 1`〜`Prototype 4`, `MVP Community`, `MVP Ren` |
+| Other | `spec:v0.3` `documentation` |
+| Milestone | `Prototype 1`〜`Prototype 4`, `MVP Community`, `MVP Ren` |
 
-### 5. 承認を得る
+### 5. Get approval
 
-タスク数・依存順・イシュー対応の要約を提示し、**承認を求めます**。承認後に「実装を始めます。T1 から進めますか？」と確認してください。
+Present a summary of the task count, the dependency order, and the issue mapping, and **ask for approval**. After approval, confirm with the user: "Starting implementation. Shall I proceed from T1?"
 
-## 完了条件
+## Completion criteria
 
-`docs/rules/definition-of-done.md` の「tasks.md」の項目をすべて満たすこと。
+Satisfy every item under "tasks.md" in `docs/rules/definition-of-done.md`.

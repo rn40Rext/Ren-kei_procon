@@ -1,82 +1,82 @@
-# AGENTS.md — Expo アプリ本体
+# AGENTS.md — Expo app
 
-> ルートの [../AGENTS.md](../AGENTS.md) に加えて、このディレクトリ固有のルールです。
+> These rules are specific to this directory, in addition to the root [../AGENTS.md](../AGENTS.md).
 
-## ⚠️ Expo は変わる
+## ⚠️ Expo changes
 
-**コードを書く前に、対象バージョンの公式ドキュメントを読んでください。** 記憶やネット上のサンプルは古いバージョンのものです。
+**Read the official docs for the target version before writing code.** Your memory and the samples on the web are for older versions.
 
 <https://docs.expo.dev/versions/>
 
-### バージョンが未確定です
+### The version is not settled
 
-| 出どころ | バージョン |
+| Source | Version |
 | --- | --- |
-| `package.json` の実体 | `expo ^54.0.36` |
-| この文書の以前の記述 | v57 前提（`https://docs.expo.dev/versions/v57.0.0/` を読むよう指示していた） |
+| Actual value in `package.json` | `expo ^54.0.36` |
+| Previous statement in this document | Assumed v57 (instructed reading `https://docs.expo.dev/versions/v57.0.0/`) |
 
-**どちらが正か決まっていません**（[#55](../../issues/55)）。`package.json` を確認してから、そのバージョンのドキュメントを参照してください。バージョンを上げる場合は人間の承認を取ってください。
+**Which one is correct has not been decided** ([#55](../../issues/55)). Check `package.json`, then refer to the docs for that version. Get human approval before raising the version.
 
-特に破壊的変更が起きやすい領域:
+Areas especially prone to breaking changes:
 
-- `expo-camera`（`Camera` → `CameraView` への変更など）
-- `expo-av` → `expo-video` / `expo-audio` への分離
-- `expo-image-picker`（`MediaTypeOptions` の非推奨化）
-- `expo-file-system` の API 再編
+- `expo-camera` (e.g. `Camera` → `CameraView`)
+- `expo-av` split into `expo-video` / `expo-audio`
+- `expo-image-picker` (deprecation of `MediaTypeOptions`)
+- `expo-file-system` API reorganization
 
-## コマンド
+## Commands
 
 ```bash
 npm install
-npx expo start          # ⚠ package.json に scripts が無い（#54）
-npx tsc --noEmit        # 型検査。コミット前に必須
+npx expo start          # ⚠ package.json has no scripts (#54)
+npx tsc --noEmit        # Type check. Required before committing
 ```
 
-`i` で iOS Simulator、`a` で Android Emulator、`w` で Web。
+`i` for iOS Simulator, `a` for Android Emulator, `w` for Web.
 
-## ディレクトリ責務
+## Directory responsibilities
 
 ```
 src/
-├── screens/          画面。UI とユーザー操作のみ
-├── components/       再利用する UI 部品
-├── navigation/       React Navigation の定義
-├── config/           Firebase 初期化 ★ここが正
-├── features/         ドメインロジック（pose / rules / scoring / style）
-├── repositories/     Firestore / Storage アクセスを集約
-├── types/            Firestore Entity の型
-├── hooks/            useAuth など
+├── screens/          Screens. UI and user interaction only
+├── components/       Reusable UI parts
+├── navigation/       React Navigation definitions
+├── config/           Firebase initialization ★this one is correct
+├── features/         Domain logic (pose / rules / scoring / style)
+├── repositories/     Consolidated Firestore / Storage access
+├── types/            Firestore entity types
+├── hooks/            useAuth and others
 └── theme/            colors.ts
 ```
 
-`features/` `repositories/` `types/` `hooks/` `theme/` は**まだ存在しません**。作成する設計になっています（[../docs/design/architecture.md](../docs/design/architecture.md) 4章）。
+`features/` `repositories/` `types/` `hooks/` `theme/` **do not exist yet**. The design calls for creating them ([../docs/design/architecture.md](../docs/design/architecture.md) ch. 4).
 
-## このディレクトリで特に守ること
+## Rules to follow especially in this directory
 
-全文は [../docs/rules/coding.md](../docs/rules/coding.md)。要点:
+Full text: [../docs/rules/coding.md](../docs/rules/coding.md). Key points:
 
-- **`useNavigation<any>()` を使わない。** 型回避のせいで未登録画面への遷移がコンパイル時に検出できず、実行時クラッシュしていました（[#51](../../issues/51)）
-- **画面から `firebase/firestore` を直接呼ばない。** `src/repositories/` を経由する
-- **`auth.currentUser` を画面から直参照しない。** `useAuth()` を使う
-- **色を画面ごとに定義しない。** `src/theme/colors.ts` に集約する（現在 3 ファイルに散在）
-- **`lucide-react` を import しない。** `lucide-react-native` を使う
-- 画面を追加したら `RootStackParamList` と `AppNavigator` の両方を更新する
+- **Do not use `useNavigation<any>()`.** Because of that type escape, navigation to unregistered screens could not be detected at compile time and crashed at runtime ([#51](../../issues/51))
+- **Do not call `firebase/firestore` directly from screens.** Go through `src/repositories/`
+- **Do not reference `auth.currentUser` directly from screens.** Use `useAuth()`
+- **Do not define colors per screen.** Consolidate them in `src/theme/colors.ts` (currently scattered across 3 files)
+- **Do not import `lucide-react`.** Use `lucide-react-native`
+- When you add a screen, update both `RootStackParamList` and `AppNavigator`
 
-## 既知の不具合
+## Known defects
 
-このディレクトリに関するもの。触る範囲に含まれるなら併せて直すか、別イシューに委ねる判断をしてください。
+These concern this directory. If they fall within the scope you are touching, either fix them as well or decide to delegate them to a separate issue.
 
-| # | 内容 |
+| # | Description |
 | --- | --- |
-| [#51](../../issues/51) | `Camera` / `Result` / `Request` / `UserProfile` / `Chat` がナビゲータ未登録なのに `navigate()` されている。**遷移するとクラッシュ** |
-| [#53](../../issues/53) | `App.tsx` と `AppNavigator.tsx` で `onAuthStateChanged` の購読が二重 |
-| [#54](../../issues/54) | `package.json` に `scripts` と `main` が無い |
-| [#55](../../issues/55) | ルート `package.json` の不正依存、Expo バージョン不一致、`lucide-react` 併存 |
-| [#56](../../issues/56) | `firebase/firebaseConfig.ts` と `src/config/firebaseConfig.ts` の重複 |
-| [#58](../../issues/58) | AI 採点が `Math.random()` のモックなのに「AI 87点」と表示される |
+| [#51](../../issues/51) | `Camera` / `Result` / `Request` / `UserProfile` / `Chat` are `navigate()`-ed to even though they are not registered in the navigator. **Navigating crashes** |
+| [#53](../../issues/53) | `onAuthStateChanged` is subscribed twice, in `App.tsx` and `AppNavigator.tsx` |
+| [#54](../../issues/54) | `package.json` has no `scripts` and no `main` |
+| [#55](../../issues/55) | Invalid dependencies in the root `package.json`, Expo version mismatch, `lucide-react` present alongside |
+| [#56](../../issues/56) | `firebase/firebaseConfig.ts` and `src/config/firebaseConfig.ts` are duplicated |
+| [#58](../../issues/58) | AI scoring is a `Math.random()` mock, yet "AI 87 points" is displayed |
 
-## 画面 ID との対応
+## Mapping to screen IDs
 
-各画面は仕様書の U-xx / R-xx に対応します。対応表とあるべきナビゲーション構成は [../docs/design/screens.md](../docs/design/screens.md) にあります。
+Each screen corresponds to a U-xx / R-xx in the specification. The mapping table and the intended navigation structure are in [../docs/design/screens.md](../docs/design/screens.md).
 
-**仕様書に無い画面を追加する場合は人間に確認してください。** 既に `ChatScreen` / `UserProfileScreen`（1対1チャット）が仕様書外の実装として存在し、扱いが未決定です。
+**Ask a human before adding a screen that is not in the specification.** `ChatScreen` / `UserProfileScreen` (one-on-one chat) already exist as implementations outside the specification, and how to handle them has not been decided.

@@ -3,39 +3,39 @@
 @AGENTS.md
 
 <!--
-このファイルは Claude Code 用のブリッジです。
-実質の内容はすべて AGENTS.md にあります（他のエージェントもそれを読みます）。
-プロジェクトのルールを追記するときは AGENTS.md または docs/rules/ を編集してください。
-ここに書くのは Claude Code 固有の機能に関する記述だけにしてください。
+This file is a bridge for Claude Code.
+All of the substantive content lives in AGENTS.md (other agents read that too).
+To add project rules, edit AGENTS.md or docs/rules/.
+Keep what you write here limited to Claude Code specific features.
 -->
 
-## Claude Code 固有
+## Claude Code specifics
 
-### パス限定ルール
+### Path-scoped rules
 
-`.claude/rules/` に `paths:` 付きのルールがあり、該当ファイルを読むと自動でロードされます。
+`.claude/rules/` holds rules with a `paths:` field; they load automatically when you read a matching file.
 
-| ルール | 適用パス |
+| Rule | Applied paths |
 | --- | --- |
 | `.claude/rules/screens.md` | `Ren-kei_procon/src/screens/**`, `components/**`, `navigation/**` |
 | `.claude/rules/firebase.md` | `firestore.rules`, `storage.rules`, `functions/**`, `src/repositories/**` |
 | `.claude/rules/docs.md` | `docs/**` |
 
-### スラッシュコマンド
+### Slash commands
 
-手順の本体は [docs/rules/workflow.md](docs/rules/workflow.md) にあり、コマンドはその補助です。
+The body of the procedure is in [docs/rules/workflow.md](docs/rules/workflow.md); the commands are an aid to it.
 
-| コマンド | 用途 | 頻度 |
+| Command | Purpose | Frequency |
 | --- | --- | --- |
-| `/impl <イシュー番号>` | **既定の実装フロー。** イシュー・設計文書・ルールを読んで実装し DoD まで検証 | 高 |
-| `/spec-check <番号>` | 受け入れ条件と実装の突き合わせ | 高 |
-| `/spec-new <機能名>` | requirements の作成（仕様書に無い機能・複数イシューをまたぐ判断が必要なときだけ） | 低 |
-| `/spec-plan <spec番号>` | design の作成 | 低 |
-| `/spec-tasks <spec番号>` | tasks の作成とイシュー対応付け | 低 |
+| `/impl <issue number>` | **The default implementation flow.** Read the issue, design documents, and rules, implement, and verify through DoD | High |
+| `/spec-check <number>` | Check the implementation against the acceptance criteria | High |
+| `/spec-new <feature name>` | Create requirements (only for a feature not in the specification, or when a decision spanning multiple issues is needed) | Low |
+| `/spec-plan <spec number>` | Create design | Low |
+| `/spec-tasks <spec number>` | Create tasks and map them to issues | Low |
 
-**既定はイシュー駆動です。** イシューに受け入れ条件と設計文書へのリンクが入っているので、`docs/specs/` に別途 spec を切る必要はありません（必要な 3 ケースは [docs/rules/workflow.md](docs/rules/workflow.md) 3章）。
+**The default is issue-driven.** Because the issues carry acceptance criteria and links to design documents, there is no need to cut a separate spec under `docs/specs/` (the 3 cases where it is needed are in chapter 3 of [docs/rules/workflow.md](docs/rules/workflow.md)).
 
-### 導入済みの拡張
+### Installed extensions
 
-- **Firebase 公式スキル**（`skills-lock.json`）— Auth / Firestore / Storage / App Hosting 等の最新の使い方。Firebase を触るときは活用してください
-- **Expo 公式プラグイン**（`Ren-kei_procon/.claude/settings.json`）
+- **The official Firebase skill** (`skills-lock.json`) — up-to-date usage for Auth / Firestore / Storage / App Hosting and more. Make use of it when you touch Firebase
+- **The official Expo plugin** (`Ren-kei_procon/.claude/settings.json`)

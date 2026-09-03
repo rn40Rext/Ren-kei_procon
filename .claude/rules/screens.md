@@ -6,50 +6,50 @@ paths:
   - "Ren-kei_procon/App.tsx"
 ---
 
-# 画面・ナビゲーションを編集するときのルール
+# Rules for editing screens and navigation
 
-**編集前に [docs/rules/coding.md](../../docs/rules/coding.md) を読んでください。** 以下はその抜粋です。
+**Read [docs/rules/coding.md](../../docs/rules/coding.md) before editing.** The following is an excerpt from it.
 
-## 型を `any` で回避しない
+## Do not use `any` to bypass types
 
 ```ts
-// ✗ 禁止
+// ✗ Prohibited
 const navigation = useNavigation<any>();
 
 // ✓
 const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
 ```
 
-`any` で型検査を回避したために、未登録画面への遷移がコンパイル時に検出されず実行時クラッシュしていました（[#51](../../../../issues/51)）。
+Because `any` bypassed type checking, navigation to an unregistered screen was not caught at compile time and crashed at runtime ([#51](../../../../issues/51)).
 
-## 画面を追加したら 3 箇所を必ず更新する
+## When you add a screen, always update 3 places
 
-1. `RootStackParamList` に型を追加（パラメータ付き）
-2. `AppNavigator` に `Stack.Screen` として登録
-3. 遷移元の `navigate()` の型が通ることを確認
+1. Add the type to `RootStackParamList` (with parameters)
+2. Register it in `AppNavigator` as a `Stack.Screen`
+3. Confirm the type checks at the `navigate()` call site
 
-**現在 `Camera` / `Result` / `Request` / `UserProfile` / `Chat` が未登録なのに `navigate()` されています。** 触るときは併せて直してください。
+**Currently `Camera` / `Result` / `Request` / `UserProfile` / `Chat` are called via `navigate()` even though they are not registered.** Fix them as well when you touch them.
 
-## Firestore を直接呼ばない
+## Do not call Firestore directly
 
 ```ts
-// ✗ 画面から SDK を直接叩く（既存コードはこうなっているが規約違反）
+// ✗ Calling the SDK directly from a screen (existing code does this, but it violates the convention)
 import { collection, addDoc } from 'firebase/firestore';
 
-// ✓ repositories 層を経由する
+// ✓ Go through the repositories layer
 import { createPost } from '../repositories/posts';
 ```
 
-`auth.currentUser` の直参照も同様に避け、`useAuth()` を使ってください。
+Likewise avoid referencing `auth.currentUser` directly; use `useAuth()`.
 
-## 色を画面ごとに定義しない
+## Do not define colors per screen
 
-`src/theme/colors.ts` に集約します。阿波踊りの伝統色（藍 `#001E43` / 朱 `#E60012` / 金茶 `#D4AF37`）が基準です。
+Consolidate them in `src/theme/colors.ts`. The traditional Awa Odori colors (indigo `#001E43` / vermilion `#E60012` / gold `#D4AF37`) are the reference.
 
-## 画面 ID との対応を確認する
+## Check the mapping to screen IDs
 
-各画面は仕様書の U-xx / R-xx に対応します。実装ファイルとの対応表は [docs/design/screens.md](../../docs/design/screens.md) にあります。**仕様書に無い画面を追加する場合は人間に確認してください。**
+Each screen corresponds to a U-xx / R-xx in the specification. The mapping table to implementation files is in [docs/design/screens.md](../../docs/design/screens.md). **If you add a screen that is not in the specification, check with a human.**
 
-## Expo の API はバージョンで変わる
+## Expo APIs change between versions
 
-現在の実体は `expo ^54`。`Ren-kei_procon/AGENTS.md` は v57 前提の記述で未確定です（[#55](../../../../issues/55)）。カメラ・動画・画像選択の API を書く前に <https://docs.expo.dev/versions/> で対象バージョンを確認してください。
+The actual current version is `expo ^54`. `Ren-kei_procon/AGENTS.md` is written assuming v57 and is unsettled ([#55](../../../../issues/55)). Before writing camera, video, or image-picker APIs, check the target version at <https://docs.expo.dev/versions/>.

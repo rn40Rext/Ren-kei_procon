@@ -1,113 +1,113 @@
 ---
 name: spec-check
-description: 実装がイシューの受け入れ条件と Definition of Done を満たしているか検査する。「受け入れ条件を確認して」「DoDを確認する」「完了できるか見て」「実装とspecの差分を見る」ときに使う。
+description: Inspect whether the implementation satisfies an issue's acceptance criteria and the Definition of Done. Use when the user says "check the acceptance criteria", "verify the DoD", "can this be closed?", or "show the gap between the implementation and the spec".
 disable-model-invocation: false
 ---
 
-# spec-check — 受け入れ条件と実装の突き合わせ
+# spec-check — Matching acceptance criteria against the implementation
 
-**イシュー番号でも spec 番号でも使えます。** 既定はイシュー駆動なので、通常はイシュー番号を渡してください。手順の全体像は `docs/rules/workflow.md` を参照。
+**Works with either an issue number or a spec number.** The default is issue-driven, so normally pass an issue number. For the overall procedure, see `docs/rules/workflow.md`.
 
-## この検査の目的
+## Purpose of this inspection
 
-「実装したつもり」と「実際に spec を満たしている」の差を見つけます。
+Find the gap between "believed to be implemented" and "actually satisfies the spec".
 
-このリポジトリでは、仕様書に詳細な AI 判定ルールがあったのに実装は `Math.random()` のモックのまま「AI 87点」と表示され続けていました。**画面が動いていることは、spec を満たしている証拠になりません。**
+In this repository, the specification had detailed AI judgment rules, yet the implementation stayed a `Math.random()` mock while continuing to display "AI 87 points". **A screen that works is not evidence that the spec is satisfied.**
 
-## 進め方
+## Procedure
 
-### 1. 受け入れ条件を読む
+### 1. Read the acceptance criteria
 
-- **イシュー番号を渡された場合**: `gh issue view <番号>` の受け入れ条件チェックリストを使います
-- **spec 番号を渡された場合**: `docs/specs/<NNN>-<slug>/requirements.md` の受け入れ基準と `tasks.md` を使います
+- **If given an issue number**: use the acceptance criteria checklist from `gh issue view <issue-number>`
+- **If given a spec number**: use the acceptance criteria in `docs/specs/<NNN>-<slug>/requirements.md` together with `tasks.md`
 
-### 2. 受け入れ条件を 1 つずつ検証する
+### 2. Verify the acceptance criteria one by one
 
-**「実装した」という記述を信用せず、実際のコードを読んで確認します。**
+**Do not trust the claim that it was implemented — read the actual code and confirm.**
 
-各受け入れ基準について、次のいずれかで判定してください。
+For each acceptance criterion, judge it as one of the following.
 
-| 判定 | 条件 |
+| Judgment | Condition |
 | --- | --- |
-| ✅ 満たしている | 該当コードを特定でき、動作を確認した（テスト実行 / 実機 / Emulator） |
-| ⚠️ コードはあるが未検証 | 実装はあるが実行して確かめていない |
-| ❌ 満たしていない | 該当コードが無い、モックのまま、条件を満たさない |
-| ➖ 検証不能 | 実機が必要など、この場では確かめられない（**理由を書く**） |
+| ✅ Satisfied | You located the code and confirmed the behavior (test run / physical device / Emulator) |
+| ⚠️ Code exists but unverified | The implementation is there but you have not run it to confirm |
+| ❌ Not satisfied | No corresponding code, still a mock, or does not meet the condition |
+| ➖ Cannot verify | Needs a physical device etc., so it cannot be confirmed here (**write the reason**) |
 
-「たぶん満たしている」は ⚠️ か ❌ です。✅ にしないでください。
+"Probably satisfied" is ⚠️ or ❌. Do not make it ✅.
 
-### 3. モックと本実装を区別する
+### 3. Distinguish mocks from real implementations
 
-以下は特に注意して確認します。
+Check the following with particular care.
 
-- ランダム値・固定値を返していないか（`Math.random()`, ハードコードされた戻り値）
-- TODO / FIXME コメントが残っていないか
-- 空実装の関数が呼ばれていないか
-- スタブ画面（`<Text>` 1行のみ）のままでないか
-- `console.log` でのデバッグ出力が残っていないか
+- Does it return random or fixed values (`Math.random()`, hardcoded return values)?
+- Are TODO / FIXME comments left behind?
+- Are empty-implementation functions being called?
+- Is a stub screen (only a single `<Text>`) still in place?
+- Is `console.log` debug output left behind?
 
-### 4. Definition of Done を検査する
+### 4. Inspect the Definition of Done
 
-`docs/rules/definition-of-done.md` の「実装の DoD」を実行して確認します。
-
-```bash
-cd Ren-kei_procon && npx tsc --noEmit          # 必須
-cd functions && npm run build                   # Functions を変更した場合
-```
-
-該当する場合の追加条件（Rules テスト、インデックス追加、設計文書の更新など）も表と照合してください。
-
-### 5. 規約違反を検出する
-
-`docs/rules/coding.md` に反する箇所を探します。
-
-リポジトリルートで実行します。
+Run and confirm the "Implementation DoD" items in `docs/rules/definition-of-done.md`.
 
 ```bash
-grep -rn "useNavigation<any>" Ren-kei_procon/src/          # 型回避
-grep -rn "increment(" Ren-kei_procon/src/                   # カウンタ
-grep -rn "Math.random" Ren-kei_procon/src/                  # モック
-grep -rn "from 'firebase/firestore'" Ren-kei_procon/src/screens/   # 画面から直呼び
-grep -rn "collection(db, 'Users'" Ren-kei_procon/src/       # 大文字コレクション
-grep -rn "as any\|@ts-ignore" Ren-kei_procon/src/           # 型回避
+cd Ren-kei_procon && npx tsc --noEmit          # Required
+cd functions && npm run build                   # If you changed Functions
 ```
 
-### 6. 安全境界の確認
+Also check the additional conditions that apply (Rules tests, index additions, design document updates, etc.) against the table.
 
-`docs/rules/safety.md` に触れる変更が入っていないか確認します。特に:
+### 5. Detect convention violations
+
+Look for places that violate `docs/rules/coding.md`.
+
+Run these at the repository root.
 
 ```bash
-git diff main -- firestore.rules storage.rules              # Rules の変更
-git diff main --stat -- docs/spec/                          # 基準文書の編集（あってはならない）
-git status --short                                           # 意図しないファイル
+grep -rn "useNavigation<any>" Ren-kei_procon/src/          # Type evasion
+grep -rn "increment(" Ren-kei_procon/src/                   # Counters
+grep -rn "Math.random" Ren-kei_procon/src/                  # Mocks
+grep -rn "from 'firebase/firestore'" Ren-kei_procon/src/screens/   # Direct SDK calls from screens
+grep -rn "collection(db, 'Users'" Ren-kei_procon/src/       # Capitalized collection
+grep -rn "as any\|@ts-ignore" Ren-kei_procon/src/           # Type evasion
 ```
 
-`docs/spec/` に変更があれば**それ自体が違反**です。報告してください。
+### 6. Check the safety boundary
 
-### 7. 報告する
+Confirm that no change touching `docs/rules/safety.md` has been introduced. In particular:
 
-次の形式で報告します。**満たしていない項目を隠さないこと。**
+```bash
+git diff main -- firestore.rules storage.rules              # Rules changes
+git diff main --stat -- docs/spec/                          # Edits to the reference document (must not happen)
+git status --short                                           # Unintended files
+```
+
+If there is any change under `docs/spec/`, **that is itself a violation**. Report it.
+
+### 7. Report
+
+Report in the following format. **Do not hide items that are not satisfied.**
 
 ```markdown
 ## spec-check: 001-hand-height-realtime
 
-### 受け入れ基準（7件）
-- ✅ AC-1: WHEN 手首が... → src/features/rules/handHeight.ts:42 で実装。ユニットテスト通過
-- ⚠️ AC-2: WHILE 全身が... → 実装はあるが実機未確認
-- ❌ AC-3: WHEN 200ms継続... → holdDurationMs が未実装（常に即時発火）
-- ➖ AC-4: 10fps以上 → 実機が必要なため未計測
+### Acceptance criteria (7 items)
+- ✅ AC-1: WHEN the wrist... → implemented at src/features/rules/handHeight.ts:42. Unit test passes
+- ⚠️ AC-2: WHILE the whole body... → implementation exists but unverified on a device
+- ❌ AC-3: WHEN held for 200ms... → holdDurationMs is not implemented (always fires immediately)
+- ➖ AC-4: 10fps or more → not measured, needs a physical device
 
 ### Definition of Done
-- ✅ npx tsc --noEmit 通過
-- ❌ Rule Engine のユニットテスト未作成
-- ❌ TBD-01 の結論を docs/design/ai-basic-motion.md に未記録
+- ✅ npx tsc --noEmit passes
+- ❌ Rule Engine unit tests not written
+- ❌ The conclusion of TBD-01 not recorded in docs/design/ai-basic-motion.md
 
-### 規約違反
-- src/screens/CameraScreen.tsx:17 で useNavigation<any>() を使用
+### Convention violations
+- src/screens/CameraScreen.tsx:17 uses useNavigation<any>()
 
-### 結論
-**完了の条件を満たしていません。** AC-3 の holdDurationMs 実装と、
-Rule Engine のユニットテスト、TBD-01 の記録が必要です。
+### Conclusion
+**The completion criteria are not satisfied.** The holdDurationMs implementation for AC-3,
+the Rule Engine unit tests, and the record of TBD-01 are required.
 ```
 
-**結論を明示してください。** 満たしていないなら「満たしていません」と書きます。未達項目があるのに「概ね完了」と書いてはいけません。
+**State the conclusion explicitly.** If it is not satisfied, write "not satisfied". Do not write "mostly done" when there are unmet items.

@@ -1,166 +1,168 @@
-# 開発フロー
+# Development Flow
 
-> **既定はイシュー駆動です。** イシューを 1 件渡せば実装まで進みます。
-> spec（`docs/specs/`）を切るのは**限られた場合だけ**です（下記 3 章）。
+> **Issue-driven is the default.** Hand over a single issue and the work proceeds through implementation.
+> Cutting a spec (`docs/specs/`) is for **a limited set of cases only** (see section 3).
 
-## 0. 大原則
+## 0. Core Principle
 
-**仕様を発明しない。** 実装しようとしている機能が、製品仕様書（[../spec/](../spec/README.md)）と設計文書（[../design/](../design/)）のどこに定義されているかを必ず確認してから書きます。
+**Do not invent requirements.** Before writing anything, always confirm where the feature you are about to implement is defined in the product specification ([../spec/](../spec/README.md)) and the design documents ([../design/](../design/)).
 
-> ⚠️ ただし仕様書 v0.3 は**チームで合意した確定仕様ではありません。** 既存資料からの推測で組み立てた文書で、`docs/design/` はそれをさらに推測で具体化したものです。**仕様書 → design → イシューの三段で推測が重なっており、下の層ほど根拠が弱い**と思ってください（[../spec/README.md](../spec/README.md) の「この文書の位置づけ」）。
+> ⚠️ Note, however, that specification v0.3 is **not a final specification agreed on by the team.** It is a document assembled by inference from existing materials, and `docs/design/` specifies it further by inference. **Inference is layered across three levels — specification → design → issues — and the lower the layer, the weaker its grounding** (see "この文書の位置づけ" in [../spec/README.md](../spec/README.md)).
 >
-> 「参照してから書く」のは、根拠が確実だからではなく、**参照先が 1 つもないと勝手な解釈で埋まる**からです。おかしいと思ったら指摘してください。
+> "Reference before writing" is required not because the sources are certain, but because **with no reference at all, the gaps get filled by arbitrary interpretation.** If something looks wrong, say so.
 
-「とりあえず動くものを書いて仕様を後付けする」を禁じる理由は、このリポジトリの経緯そのものです。AI 採点が `Math.random()` のモックのまま「AI 87点」と表示され続けたのは、仕様書には詳細な判定ルールがあったのに、実装がそこを参照せずに進んだためです。
+The reason "just write something that works and back-fill the spec later" is banned is the history of this repository itself. AI scoring kept displaying "AI 87 points" while it was still a `Math.random()` mock, because the specification had detailed scoring rules but the implementation proceeded without referencing them.
 
-**これは「ドキュメントを 3 つ書くこと」ではなく「参照してから書くこと」です。** イシュー駆動でも成立します。
+**This is not about "writing three documents" — it is about "referencing before writing."** It holds for issue-driven work too.
 
 ---
 
-## 1. 既定: イシュー駆動
+## 1. Default: Issue-Driven
 
 ```
-イシューを受け取る → 参照を読む → 実装 → 検証（DoD）
+Receive an issue → read the references → implement → verify (DoD)
 ```
 
-未実装機能はエピック 8 件 + 子イシュー 36 件（#5〜#48）、既知の不具合・技術的負債 10 件（#50〜#59）として起票済みです。**各イシューに受け入れ条件・仕様書該当箇所・設計文書へのリンクが入っています。** これが実質の spec です。
+Unimplemented features are already filed as 8 epics + 36 child issues (#5–#48), and known defects and technical debt as 10 issues (#50–#59). **Each issue carries acceptance criteria, the relevant specification section, and links to the design documents.** These act as the spec in practice.
 
-### 手順
+### Steps
 
-**1. イシューを読む**
+**1. Read the issue**
 
 ```bash
-gh issue view <番号>
+gh issue view <issue-number>
 ```
 
-親エピック（`type:epic`、#5〜#12）に子イシューの推奨順序と依存関係があります。
+The parent epics (`type:epic`, #5–#12) list the recommended order of child issues and their dependencies.
 
-**2. 参照を読む**
+**2. Read the references**
 
-イシュー本文がリンクしている文書を実際に読みます。**リンクを読まずに書き始めない。**
+Actually read the documents the issue body links to. **Do not start writing without reading the links.**
 
-| 領域 | 読む文書 |
+| Area | Document to read |
 | --- | --- |
-| データを扱う | [../design/data-model.md](../design/data-model.md) |
-| 権限・Rules | [../design/security-rules.md](../design/security-rules.md) |
-| AI 採点（基本動作） | [../design/ai-basic-motion.md](../design/ai-basic-motion.md) |
-| スタイル類似度 | [../design/ai-style-similarity.md](../design/ai-style-similarity.md) |
+| Handling data | [../design/data-model.md](../design/data-model.md) |
+| Permissions / Rules | [../design/security-rules.md](../design/security-rules.md) |
+| AI scoring (basic motion) | [../design/ai-basic-motion.md](../design/ai-basic-motion.md) |
+| Style similarity | [../design/ai-style-similarity.md](../design/ai-style-similarity.md) |
 | Cloud Functions | [../design/api-functions.md](../design/api-functions.md) |
-| 画面・遷移 | [../design/screens.md](../design/screens.md) |
-| 現状の不具合 | [../status/gap-analysis.md](../status/gap-analysis.md) |
+| Screens / navigation | [../design/screens.md](../design/screens.md) |
+| Current defects | [../status/gap-analysis.md](../status/gap-analysis.md) |
 
-**3. 実装する**
+**3. Implement**
 
-- コーディング規約は [coding.md](coding.md)
-- 禁止事項は [safety.md](safety.md)（プロコン向けに絞ってあります）
-- **イシューの受け入れ条件から外れる必要が出たら、実装を進める前にイシューを直します**
+- Coding conventions: [coding.md](coding.md)
+- Prohibitions: [safety.md](safety.md) (narrowed down for the programming contest (procon))
+- **If you find you need to deviate from the issue's acceptance criteria, fix the issue before proceeding with the implementation**
 
-**4. 検証する**
+**4. Verify**
 
-[definition-of-done.md](definition-of-done.md) の項目を確認します。満たしていない項目があれば**満たしていないと報告**します。
+Check the items in [definition-of-done.md](definition-of-done.md). If any item is not met, **report that it is not met**.
 
-Claude Code なら `/spec-check <イシュー番号>` で受け入れ条件と実装を突き合わせられます。
+With Claude Code, `/spec-check <issue-number>` cross-checks acceptance criteria against the implementation.
 
-### Claude Code なら
+### With Claude Code
 
 ```
 /impl 15
 ```
 
-または「#15 を実装して」でも同じです。イシュー・設計文書・ルールを読んでから実装し、DoD まで検証します。
+Or simply "implement #15" — same thing. It reads the issue, the design documents, and the rules before implementing, and verifies through DoD.
 
 ---
 
-## 2. 決めたことは必ず記録する
+## 2. Always Record What Was Decided
 
-未確定事項（TBD）を決めたら、**[../design/](../design/) の該当文書に決定内容と理由を書きます**。
+Once you settle a TBD, **write the decision and its rationale into the relevant document under [../design/](../design/)**.
 
-イシューのコメントやチャットの中だけに残った決定は、次の担当者に届きません。TBD の一覧とどのイシューで決めるかは [../status/roadmap.md](../status/roadmap.md) の 4 章にあります。決めたらそこの状態も更新してください。
+A decision left only in an issue comment or a chat never reaches the next person. The list of TBDs and which issue decides each one is in section 4 of [../status/roadmap.md](../status/roadmap.md). Once decided, update the state there as well.
 
-**これだけは省かないでください。** ドキュメントを 3 つ作るより、この 1 行の追記のほうが価値があります。
+**Never skip this step.** This one added line is worth more than creating three documents.
 
 ---
 
-## 3. spec を切るのはこの 3 つの場合だけ
+## 3. Cut a Spec Only in These 3 Cases
 
-`docs/specs/<NNN>-<slug>/` に requirements → design → tasks を作るのは、**イシューだけでは足りないとき**です。
+Creating requirements → design → tasks under `docs/specs/<NNN>-<slug>/` is for **when issues alone are not enough**.
 
-| ケース | 例 |
+| Case | Example |
 | --- | --- |
-| **A. 仕様書に無い機能を作る** | 「指導リクエスト」「1対1チャット」のように製品仕様書 v0.3 に定義が無いもの。何を作るかの合意が先に必要 |
-| **B. 複数イシューをまたぐ判断が必要** | Prototype 1（#13〜#16）のように、TBD-01（姿勢推定の方式）を一度決めれば 4 イシューすべてが決まる場合。判断を 1 箇所に置きたい |
-| **C. スコープの線引きに合意が必要** | 「どこまでやってどこからやらないか」が曖昧で、決めずに始めると手戻りする場合 |
+| **A. Building a feature absent from the specification** | Things with no definition in product specification v0.3, such as "coaching requests" or "1-on-1 chat". Agreement on what to build must come first |
+| **B. A decision spanning multiple issues is needed** | Cases like Prototype 1 (#13–#16), where deciding TBD-01 (the pose estimation approach) once settles all 4 issues. The decision should live in one place |
+| **C. Agreement on the scope boundary is needed** | Cases where "how far to go and where to stop" is vague, and starting without deciding causes rework |
 
-**それ以外はイシューで足ります。** イシュー 1 件で完結する作業に spec は不要です。
+**Everything else is covered by an issue.** Work that fits in a single issue does not need a spec.
 
-### 既存の spec
+### Existing Specs
 
-| spec | 該当ケース | 対応イシュー |
+| spec | Case | Related issues |
 | --- | --- | --- |
-| [001-hand-height-realtime](../specs/001-hand-height-realtime/requirements.md) | B（TBD-01 の判断が #13〜#16 を決める）+ C | #13 #14 #15 #16 |
+| [001-hand-height-realtime](../specs/001-hand-height-realtime/requirements.md) | B (the TBD-01 decision settles #13–#16) + C | #13 #14 #15 #16 |
 
-**この 1 件以外に spec はありません。** 今のイシュー粒度では大半のケースでイシューだけで足ります。
+**There are no specs other than this one.** At the current issue granularity, issues alone suffice in most cases.
 
-### spec を切るときの手順
+### Steps When Cutting a Spec
 
-3 フェーズで進め、各移行で人間の承認を取ります。
+Proceed in 3 phases, obtaining human approval at each transition.
 
 ```
-[1] requirements ──▶ [2] design ──▶ [3] tasks ──▶ 実装（1章の手順へ）
-       ↑承認             ↑承認          ↑承認
+[1] requirements ──▶ [2] design ──▶ [3] tasks ──▶ implementation (to section 1's steps)
+       ↑approval          ↑approval      ↑approval
 ```
 
-| フェーズ | 書くこと | Claude Code |
+| Phase | What to write | Claude Code |
 | --- | --- | --- |
-| [1] requirements | 目的、スコープ、**スコープ外**、受け入れ基準（EARS 記法）、前提、未確定事項 | `/spec-new` |
-| [2] design | 方式の比較と選定理由、変更ファイル、データ変更、型、テスト方針、リスク | `/spec-plan` |
-| [3] tasks | 1 コミット単位への分解、依存順、**既存イシュー（#5〜#59）との対応付け** | `/spec-tasks` |
+| [1] requirements | Purpose, scope, **out of scope**, acceptance criteria (EARS notation), assumptions, TBDs | `/spec-new` |
+| [2] design | Comparison of approaches and rationale for the choice, files to change, data changes, types, test strategy, risks | `/spec-plan` |
+| [3] tasks | Breakdown into single-commit units, dependency order, **mapping to existing issues (#5–#59)** | `/spec-tasks` |
 
-雛形は [../specs/TEMPLATE/](../specs/TEMPLATE/) にあります。
+Templates are in [../specs/TEMPLATE/](../specs/TEMPLATE/).
 
-**横断設計（[../design/](../design/)）と重複する内容は書かず、リンクします。** 例: Rule Engine の状態機械は `docs/design/ai-basic-motion.md` にあるので、そこを参照して差分だけ書きます。
+**Spec files under `docs/specs/` are written in Japanese** (they are human-facing).
+
+**Do not duplicate content that belongs to the cross-cutting design ([../design/](../design/)) — link to it.** Example: the Rule Engine state machine is in `docs/design/ai-basic-motion.md`, so reference it there and write only the differences.
 
 ---
 
-## 4. 受け入れ基準の書き方（EARS 記法）
+## 4. How to Write Acceptance Criteria (EARS Notation)
 
-イシューでも spec でも、受け入れ条件はこの型で書きます。曖昧な基準はエージェントに都合よく解釈されます。
+In issues and in specs alike, write acceptance criteria in these forms. Vague criteria get interpreted by agents in whatever way suits them.
 
-| 型 | 書式 | 例 |
+| Form | Format | Example |
 | --- | --- | --- |
-| イベント駆動 | **WHEN** 〈条件〉**THEN** システムは〈応答〉**SHALL** | WHEN 手首が頭部基準より 0.05 以上上にある状態が 200ms 継続した THEN システムは GOOD イベントを発火する |
-| 状態駆動 | **WHILE** 〈状態〉**THEN** システムは〈応答〉**SHALL** | WHILE 全身が検出できていない THEN システムは NOT_READY を表示し加点しない |
-| 任意機能 | **WHERE** 〈機能が有効〉**THEN** システムは〈応答〉**SHALL** | WHERE コンボ機能が有効 THEN システムは連続成功数に応じてボーナスを加算する |
-| 望ましくない事象 | **IF** 〈異常〉**THEN** システムは〈応答〉**SHALL** | IF カメラ権限が無い THEN システムは設定画面への案内を表示する |
-| 常時 | システムは常に〈応答〉**SHALL** | システムは常に練習動画を visibility=private で作成する |
+| Event-driven | **WHEN** 〈condition〉 **THEN** the system **SHALL** 〈response〉 | WHEN the wrist stays 0.05 or more above the head reference for 200ms THEN the system fires a GOOD event |
+| State-driven | **WHILE** 〈state〉 **THEN** the system **SHALL** 〈response〉 | WHILE the full body is not detected THEN the system displays NOT_READY and adds no points |
+| Optional feature | **WHERE** 〈feature is enabled〉 **THEN** the system **SHALL** 〈response〉 | WHERE the combo feature is enabled THEN the system adds a bonus according to the number of consecutive successes |
+| Unwanted event | **IF** 〈anomaly〉 **THEN** the system **SHALL** 〈response〉 | IF camera permission is absent THEN the system displays guidance to the settings screen |
+| Ubiquitous | The system **SHALL** always 〈response〉 | The system always creates practice videos with visibility=private |
 
-日本語で構いません。**「適切に」「いい感じに」「必要に応じて」は使わない。** 検証できない基準は受け入れ基準ではありません。
+Japanese is fine. **Do not use vague, unverifiable wording such as "appropriately", "nicely", or "as needed".** A criterion that cannot be verified is not an acceptance criterion.
 
 ---
 
-## 5. Claude Code のコマンド
+## 5. Claude Code Commands
 
-| コマンド | 用途 | 使う頻度 |
+| Command | Purpose | Frequency of use |
 | --- | --- | --- |
-| `/impl <イシュー番号>` | **既定の実装フロー。** イシュー・設計文書・ルールを読んで実装し DoD まで検証 | 高 |
-| `/spec-check <イシュー番号 or spec番号>` | 受け入れ条件と実装の突き合わせ | 高 |
-| `/spec-new <機能名>` | requirements の作成（3章の A/B/C に該当するときだけ） | 低 |
-| `/spec-plan <spec番号>` | design の作成 | 低 |
-| `/spec-tasks <spec番号>` | tasks の作成とイシュー対応付け | 低 |
+| `/impl <issue-number>` | **The default implementation flow.** Reads the issue, design documents, and rules, implements, and verifies through DoD | High |
+| `/spec-check <issue-number or spec-number>` | Cross-check acceptance criteria against the implementation | High |
+| `/spec-new <feature-name>` | Create requirements (only when case A/B/C in section 3 applies) | Low |
+| `/spec-plan <spec-number>` | Create design | Low |
+| `/spec-tasks <spec-number>` | Create tasks and map them to issues | Low |
 
-**コマンドは補助です。** 他のエージェントを使う場合は、この文書の該当章を読ませてください。手順は同じです。
+**The commands are only aids.** If you use another agent, have it read the relevant section of this document. The steps are the same.
 
 ---
 
-## 6. ディレクトリ構成
+## 6. Directory Layout
 
 ```
 docs/
-├── spec/                        製品仕様書 v0.3（基準文書・Markdown編集禁止）
-├── design/                      横断的な実装設計 ← 実装時に読む・決定事項を記録する
-├── status/                      実装状況・ロードマップ
-├── rules/                       開発ルール（この文書を含む）
-└── specs/                       機能単位の spec ← 3章の A/B/C のときだけ作る
+├── spec/                        Product specification v0.3 (reference document; Markdown edits prohibited)
+├── design/                      Cross-cutting implementation design ← read when implementing; record decisions here
+├── status/                      Implementation status and roadmap
+├── rules/                       Development rules (including this document)
+└── specs/                       Feature-level specs ← create only for case A/B/C in section 3
     ├── TEMPLATE/
     └── 001-hand-height-realtime/
 ```

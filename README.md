@@ -174,6 +174,21 @@ firebase deploy --only firestore:rules,storage
 | [docs/rules/coding.md](docs/rules/coding.md) | コーディング規約 |
 | [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) | 完了の定義 |
 
+### ドキュメントの言語
+
+**AIへの指示ファイルは英語、人間が読むドキュメントは日本語**にしています。
+
+| 対象 | 言語 |
+| --- | --- |
+| `AGENTS.md` / `CLAUDE.md` / `.claude/rules/**` / `.claude/skills/**` / `docs/rules/**` | 英語 |
+| `README.md` / `docs/README.md` / `docs/spec/**` / `docs/design/**` / `docs/status/**` / `docs/specs/**` | 日本語 |
+| ソースコードのコメント | 日本語（既存コードに合わせる） |
+| 識別子（変数・関数・型） | 英語 |
+| ユーザーに見える文言 | 日本語 |
+| コミットメッセージ・PR・イシュー | 日本語 |
+
+**新しくドキュメントを追加するときもこの表に従ってください。** 判断に迷ったら「AIにどう振る舞ってほしいかを書くもの（英語）か、システムが何でありなぜそうなっているかを記録するもの（日本語）か」で分けます。完全な定義は [AGENTS.md](AGENTS.md) の "Language policy" にあります。
+
 ### イシューとマイルストーン
 
 未実装機能はエピック 8 件 + 子イシュー 36 件（#5〜#48）に分解して管理しています。加えて既知の不具合・技術的負債を 10 件（#50〜#59）起票しています。

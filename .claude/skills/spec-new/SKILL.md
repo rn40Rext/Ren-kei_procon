@@ -1,84 +1,86 @@
 ---
 name: spec-new
-description: 機能単位の spec（requirements.md）を新規作成する。スペック駆動開発のフェーズ[1]。「specを作る」「requirementsを書く」「新機能を始める」ときに使う。
+description: Create a new feature-level spec (requirements.md). Phase [1] of spec-driven development. Use when the user says "create a spec", "write requirements", or "start a new feature".
 disable-model-invocation: false
 ---
 
-# spec-new — requirements の作成
+# spec-new — Writing requirements
 
-> ⚠️ **既定はイシュー駆動です。まず `/impl <イシュー番号>` を検討してください。**
-> イシュー #5〜#59 には受け入れ条件と設計文書へのリンクが入っており、それが実質の spec です。
+> ⚠️ **The default is issue-driven. Consider `/impl <issue-number>` first.**
+> Issues #5〜#59 already contain acceptance criteria and links to design documents, and those are the de facto spec.
 
-## このコマンドを使うのは 3 つの場合だけ
+## Use this command in only 3 cases
 
-| ケース | 例 |
+| Case | Example |
 | --- | --- |
-| A. 仕様書に無い機能を作る | 「指導リクエスト」「1対1チャット」など v0.3 に定義が無いもの |
-| B. 複数イシューをまたぐ判断が必要 | Prototype 1（#13〜#16）— TBD-01 を一度決めれば 4 イシューが決まる |
-| C. スコープの線引きに合意が必要 | 決めずに始めると手戻りする場合 |
+| A. Building a feature absent from the specification | Things with no definition in v0.3, such as "coaching request" or "1-on-1 chat" |
+| B. A decision spanning multiple issues is needed | Prototype 1 (#13〜#16) — deciding TBD-01 once settles 4 issues |
+| C. The scope boundary needs agreement | When starting without deciding would cause rework |
 
-**どれにも該当しないなら、このコマンドを使わず `/impl` でイシューを実装してください。** 該当するか判断できない場合はユーザーに確認します。
+**If none of these apply, do not use this command — implement the issue with `/impl`.** If you cannot judge whether one applies, confirm with the user.
 
-手順の全体像は `docs/rules/workflow.md` を参照。
+For the overall procedure, see `docs/rules/workflow.md`.
 
-## 進め方
+## Procedure
 
-### 1. 既存の仕様・設計を確認する
+Note: documents you create under `docs/specs/` are **written in Japanese**, following the Japanese templates in `docs/specs/TEMPLATE/` (they are human-facing).
 
-**先にこれをやります。** 引数で渡された機能について、以下を調べてください。
+### 1. Check the existing specification and design
 
-| 調べる先 | 何を確認するか |
+**Do this first.** For the feature passed as the argument, investigate the following.
+
+| Where to look | What to check |
 | --- | --- |
-| `docs/spec/04-functions-and-usecases.md` | 機能 ID（AUTH / USER / PRACTICE / STYLE / COMM / REN / HIST / NOTI）に該当するものがあるか |
-| `docs/spec/05-screens-user.md` / `06-screens-ren-admin.md` | 関係する画面 ID（U-xx / R-xx） |
-| `docs/spec/09-data-design.md` | 使う Entity |
-| `docs/status/gap-analysis.md` | 現在の実装状況 |
-| `docs/status/roadmap.md` | 優先順位、依存する他機能、関連 TBD |
-| GitHub イシュー（`gh issue list`） | **既存のイシュー #5〜#59 に該当するものがあるか** |
+| `docs/spec/04-functions-and-usecases.md` | Whether a matching feature ID exists (AUTH / USER / PRACTICE / STYLE / COMM / REN / HIST / NOTI) |
+| `docs/spec/05-screens-user.md` / `06-screens-ren-admin.md` | The related screen IDs (U-xx / R-xx) |
+| `docs/spec/09-data-design.md` | The entities used |
+| `docs/status/gap-analysis.md` | The current implementation status |
+| `docs/status/roadmap.md` | Priority, other features it depends on, related TBDs |
+| GitHub issues (`gh issue list`) | **Whether any of the existing issues #5〜#59 already covers it** |
 
-**仕様書に無い機能なら、ここで止まってユーザーに確認してください。** 仕様を発明してはいけません。「仕様書には無いようですが、v0.4 で要件化しますか？ それとも既存の U-xx に統合しますか？」と聞きます。
+**If the feature is absent from the specification, stop here and confirm with the user.** Do not invent requirements. Ask something like: "This does not appear to be in the specification — should we turn it into a requirement in v0.4, or fold it into an existing U-xx?"
 
-なお仕様書 v0.3 自体が既存資料からの推測であり、確定仕様ではありません（`docs/spec/README.md` の「この文書の位置づけ」）。**仕様書の記述に矛盾や不足を見つけた場合も報告してください。**
+Also note that specification v0.3 itself was inferred from existing materials and is not an agreed final specification (see "この文書の位置づけ" in `docs/spec/README.md`). **If you find contradictions or gaps in the specification's text, report those too.**
 
-### 2. 番号とスラッグを決める
+### 2. Decide the number and slug
 
-`docs/specs/` の既存ディレクトリを見て次の連番を取ります（`001`, `002`, ...）。スラッグは英小文字とハイフン（例: `002-ren-join-request`）。
+Look at the existing directories under `docs/specs/` and take the next sequential number (`001`, `002`, ...). The slug uses lowercase letters and hyphens (e.g. `002-ren-join-request`).
 
-### 3. 粒度を確認する
+### 3. Check the granularity
 
-1 つの spec は**1 つのまとまった価値**を対象にします。イシュー 1 件より大きく、エピック 1 件より小さい粒度が扱いやすいです。
+One spec covers **one coherent piece of value**. A granularity larger than a single issue and smaller than a single epic is the easiest to work with.
 
-粒度が大きすぎる／小さすぎると感じたら、**ユーザーに分割案を提示して確認**してください。
+If the granularity feels too large or too small, **present a split proposal to the user and confirm**.
 
-### 4. requirements.md を書く
+### 4. Write requirements.md
 
-`docs/specs/TEMPLATE/requirements.md` を雛形として `docs/specs/<NNN>-<slug>/requirements.md` を作ります。
+Use `docs/specs/TEMPLATE/requirements.md` as the template to create `docs/specs/<NNN>-<slug>/requirements.md`.
 
-書く際の必須条件:
+Mandatory conditions when writing:
 
-- **スコープ外を明示する。** これを書かないとエージェントの探索範囲が広がりすぎます
-- **受け入れ基準は EARS 記法で書く**（`docs/rules/workflow.md` の表を参照）
-  - WHEN 〈条件〉THEN システムは〈応答〉SHALL
-  - WHILE 〈状態〉/ WHERE 〈機能有効〉/ IF 〈異常〉
-- **「適切に」「いい感じに」「必要に応じて」を使わない。** 検証できない基準は受け入れ基準ではありません
-- 製品仕様書の該当章へのリンクを入れる
-- 未確定事項（TBD-xx）を列挙し、いつ誰が決めるか書く
-- 既存イシューがあれば対応付ける
+- **State what is out of scope explicitly.** Without this, the agent's search area grows too wide
+- **Write acceptance criteria in EARS notation** (see the table in `docs/rules/workflow.md`)
+  - WHEN 〈condition〉THEN the system SHALL 〈response〉
+  - WHILE 〈state〉/ WHERE 〈feature enabled〉/ IF 〈error〉
+- **Do not use "appropriately", "nicely", or "as needed".** A criterion that cannot be verified is not an acceptance criterion
+- Include links to the relevant chapter of the product specification
+- List the open items (TBD-xx) and write when and by whom each will be decided
+- Map to existing issues where they exist
 
-### 5. 対話で埋める
+### 5. Fill in the gaps through dialogue
 
-**不明な点は勝手に決めず、ユーザーに聞いてください。** 特に:
+**Do not decide unclear points on your own — ask the user.** In particular:
 
-- 仕様書に複数の解釈があるとき
-- 未確定事項（TBD）がこの spec の成否に関わるとき
-- スコープの線引きが判断を要するとき
+- When the specification allows multiple interpretations
+- When an open item (TBD) determines whether this spec succeeds or fails
+- When the scope boundary requires a judgment call
 
-### 6. 承認を得る
+### 6. Get approval
 
-書き終えたら要点（目的・スコープ・スコープ外・受け入れ基準の数）を提示し、**承認を求めます**。承認前に design や実装へ進んではいけません。
+Once written, present the key points (purpose, scope, out of scope, number of acceptance criteria) and **ask for approval**. Do not proceed to design or implementation before approval.
 
-承認後に「次は `/spec-plan <NNN>` で設計に進めます」と案内してください。
+After approval, tell the user "next, proceed to design with `/spec-plan <NNN>`".
 
-## 完了条件
+## Completion criteria
 
-`docs/rules/definition-of-done.md` の「requirements.md」の項目をすべて満たすこと。
+Satisfy every item under "requirements.md" in `docs/rules/definition-of-done.md`.

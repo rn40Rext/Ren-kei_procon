@@ -1,99 +1,101 @@
 # AGENTS.md — Cloud Functions
 
-> ルートの [../AGENTS.md](../AGENTS.md) に加えて、このディレクトリ固有のルールです。
+> These rules are specific to this directory, in addition to the root [../AGENTS.md](../AGENTS.md).
 
-## 現状
+## Current state
 
-**まだ何も実装されていません。** `src/index.ts` は Firebase のテンプレートコメントのみで、関数が 1 つも定義されていません。
+**Nothing is implemented yet.** `src/index.ts` contains only Firebase's template comments, and not a single function is defined.
 
-設計は [../docs/design/api-functions.md](../docs/design/api-functions.md) にあります（FN-01〜FN-07）。基盤整備は [#46](../../issues/46)。
+The design is in [../docs/design/api-functions.md](../docs/design/api-functions.md) (FN-01 to FN-07). Groundwork is [#46](../../issues/46).
 
-## コマンド
+## Commands
 
 ```bash
 npm install
 npm run build           # tsc
 npm run lint            # eslint
 npm run serve           # build + Emulator
-npm run deploy          # ⚠ 本番。承認を取ってから
+npm run deploy          # ⚠ Production. Get approval first
 npm run logs
 ```
 
-`firebase.json` の `predeploy` で `lint` と `build` が走ります。**ビルドが通らないとデプロイできません。**
+`predeploy` in `firebase.json` runs `lint` and `build`. **You cannot deploy unless the build passes.**
 
-Node のバージョンは `package.json` の `engines` で **24** を指定しています。
+The Node version is specified as **24** in `engines` in `package.json`.
 
-## このディレクトリで守ること
+## Rules to follow in this directory
 
-### v2 Callable（`onCall`）を使う
+### Use v2 Callable (`onCall`)
 
-`onRequest`（HTTP）ではなく `onCall` を使います。認証情報が `request.auth` として自動で渡り、CORS と認証の自前実装が不要になるためです。
+Use `onCall`, not `onRequest` (HTTP). Credentials are passed automatically as `request.auth`, and you do not have to implement CORS and authentication yourself.
 
-### 共通ガードを通す
+### Go through the shared guards
 
 ```ts
 import { requireAuth, requireRenAdmin } from './lib/guards';
 
 const uid = requireAuth(request);
-await requireRenAdmin(uid, renId);   // 連管理者権限が必要な関数
+await requireRenAdmin(uid, renId);   // Functions that require ren admin permission
 ```
 
-**連管理者の判定を `users.role` だけで済ませないこと。** `ren/{renId}/members/{uid}.role == 'admin'` を検証します。これを省くと連 A の管理者が連 B のデータを改変できます。
+**Do not determine ren (連) admin status from `users.role` alone.** Verify `ren/{renId}/members/{uid}.role == 'admin'`. Omitting this lets the admin of ren A modify the data of ren B.
 
-### スコアはサーバで算出する
+### Compute scores on the server
 
-クライアントから `totalScore` を受け取ってはいけません。集計値（ルール別の成功回数・保持率・実測値）を受け取り、**サーバ側で算出**します（[../docs/rules/safety.md](../docs/rules/safety.md) 4章）。
+The target shape: accept aggregate values from the client (per-rule success counts, hold ratios, measured values) and **compute `totalScore` on the server side**. Never accept `totalScore` itself from the client.
 
-`analysisResults` / `growthRecords` への write は Security Rules でクライアント全拒否にします。Admin SDK は Rules を経由しないため、Functions からは書けます。
+Writes to `analysisResults` / `growthRecords` are fully denied to clients in the Security Rules. The Admin SDK does not go through the Rules, so Functions can write to them.
 
-### 権限遷移はトランザクションで
+**Client-side computation is acceptable at the Prototype stage** ([../docs/rules/safety.md](../docs/rules/safety.md) ch. 3), but move it before public release ([#35](../../issues/35)). If you do not, users can rewrite their own scores.
 
-`joinRequests.status` の更新と `members` の作成のように、**片方だけ成功する状態を作ってはいけない**処理はトランザクションにします。
+### Do permission transitions in transactions
 
-状態遷移は遷移元と遷移先の組み合わせを検証します（`pending` 以外からの承認は `INVALID_STATUS_TRANSITION`）。
+Processes that **must not end up in a state where only one half succeeded** — such as updating `joinRequests.status` and creating `members` — must be transactions.
 
-### カウンタは集約クエリで再集計する
+For state transitions, verify the combination of source and destination state (approval from anything other than `pending` is `INVALID_STATUS_TRANSITION`).
 
-`increment()` を使わないでください。**トリガは at-least-once 配信なので重複実行でずれ、しかもずれたことに気づけません。** `count()` で毎回数え直します。
+### Recount counters with aggregation queries
 
-### エラーはコードで返す
+Do not use `increment()`. **Triggers are delivered at-least-once, so duplicate executions make counters drift, and you cannot notice that they have drifted.** Recount every time with `count()`.
+
+### Return errors as codes
 
 ```ts
 throw new HttpsError('permission-denied', 'FORBIDDEN');
 ```
 
-仕様書 13 章のコード（`UNAUTHORIZED` / `FORBIDDEN` / `ANALYSIS_FAILED` / `JOIN_REQUEST_ALREADY_PENDING` / `INVALID_STATUS_TRANSITION` / `POST_VIDEO_NOT_PUBLICABLE` 等）を `message` に載せます。
+Put the codes from ch. 13 of the specification (`UNAUTHORIZED` / `FORBIDDEN` / `ANALYSIS_FAILED` / `JOIN_REQUEST_ALREADY_PENDING` / `INVALID_STATUS_TRANSITION` / `POST_VIDEO_NOT_PUBLICABLE`, etc.) in `message`.
 
-**表示文言はクライアント側の辞書で解決します。** サーバに文言を持たせると、文言を変えるたびにデプロイが必要になります。
+**Display wording is resolved by a dictionary on the client side.** If the server holds the wording, every wording change requires a deploy.
 
-### 冪等性
+### Idempotency
 
-クライアントの再試行で重複ドキュメントが作られないよう、`clientRequestId` を受け取って処理済みを判定します。
+To keep client retries from creating duplicate documents, accept a `clientRequestId` and use it to determine whether the request was already processed.
 
-## ディレクトリ構成（予定）
+## Directory structure (planned)
 
 ```
 src/
-├── index.ts                    各関数の export のみ
+├── index.ts                    Exports of each function only
 ├── analysis/                   FN-01 finalizeBasicAnalysis, FN-02 analyzeStyle
 ├── community/                  FN-03 publishPost
-├── ren/                        FN-04〜FN-06
+├── ren/                        FN-04 to FN-06
 ├── style/                      FN-07 rebuildRenStyleProfile
-├── triggers/                   カウンタ同期・通知生成・Storage 実体削除
+├── triggers/                   Counter sync, notification generation, Storage object deletion
 └── lib/                        errors.ts / guards.ts / types.ts
 ```
 
-## 未確定事項
+## Open questions
 
-| ID | 内容 |
+| ID | Description |
 | --- | --- |
-| TBD-12 | Firebase Functions と Cloud Run の役割分担（Motion Encoder の推論をどこに置くか） |
-| N-4 | リージョン。Firestore は `nam5`（米国）、ユーザーは日本国内。`asia-northeast1` に置くと Functions ↔ Firestore の往復が増える |
+| TBD-12 | Division of roles between Firebase Functions and Cloud Run (where to put Motion Encoder inference) |
+| N-4 | Region. Firestore is in `nam5` (US), users are in Japan. Placing it in `asia-northeast1` increases Functions ↔ Firestore round trips |
 
-決めたら [../docs/design/api-functions.md](../docs/design/api-functions.md) と [../docs/status/roadmap.md](../docs/status/roadmap.md) に記録してください。
+Once decided, record it in [../docs/design/api-functions.md](../docs/design/api-functions.md) and [../docs/status/roadmap.md](../docs/status/roadmap.md).
 
-## 秘密情報
+## Secrets
 
-- サービスアカウント鍵を**このディレクトリに置かない・コミットしない**
-- 秘密情報は Firebase Secret Manager を使う
-- `setGlobalOptions({ maxInstances: 10 })` はコスト制御のため維持する
+- **Do not place or commit** service account keys **in this directory**
+- Use Firebase Secret Manager for secrets
+- Keep `setGlobalOptions({ maxInstances: 10 })` for cost control

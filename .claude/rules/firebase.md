@@ -8,71 +8,71 @@ paths:
   - "Ren-kei_procon/src/config/**"
 ---
 
-# Firebase を触るときのルール
+# Rules for working with Firebase
 
-**編集前に [docs/rules/safety.md](../../docs/rules/safety.md) と [docs/design/data-model.md](../../docs/design/data-model.md) を読んでください。**
+**Read [docs/rules/safety.md](../../docs/rules/safety.md) and [docs/design/data-model.md](../../docs/design/data-model.md) before editing.**
 
-## Security Rules を緩めるとき
+## When you relax Security Rules
 
-**開発中は緩めて構いません**（プロコン向けの運用方針。[../../docs/rules/safety.md](../../docs/rules/safety.md) の 0 章）。ただし 2 つを守ってください。
+**Relaxing them during development is fine** (operating policy for the procon project; see chapter 0 of [../../docs/rules/safety.md](../../docs/rules/safety.md)). But observe these two points.
 
-1. **PR 本文に「何をどう緩めたか」を書く**
-2. **一般公開前に戻す**（[#40](../../../../issues/40)）
+1. **Write "what you relaxed and how" in the PR body**
+2. **Restore it before public release** ([#40](../../../../issues/40))
 
-Emulator が使えるなら Emulator を優先してください。緩めたルールは放置されます。現に `storage.rules` は `allow read, write: if true` のまま残っています（[#50](../../../../issues/50)）。
+If the Emulator is available, prefer the Emulator. Relaxed rules get left behind. In fact, `storage.rules` is still `allow read, write: if true` ([#50](../../../../issues/50)).
 
-### 厳格化するときの手順
+### Procedure for tightening rules
 
-1. [../../docs/design/security-rules.md](../../docs/design/security-rules.md) の CRUD 権限表と照合する（実 Rules コードが用意してあります）
-2. Emulator で Rules Unit Test を通す（[#42](../../../../issues/42)）
-3. `firebase deploy --only firestore:rules,storage` — **本番デプロイなので確認を取る**
+1. Cross-check against the CRUD permission table in [../../docs/design/security-rules.md](../../docs/design/security-rules.md) (actual Rules code is provided there)
+2. Make Rules Unit Tests pass on the Emulator ([#42](../../../../issues/42))
+3. `firebase deploy --only firestore:rules,storage` — **this is a production deploy, so get confirmation**
 
-## 権限判定の根拠を間違えない
+## Do not get the basis for permission checks wrong
 
-| 判定 | 正しい根拠 | やってはいけない |
+| Check | Correct basis | Do not do this |
 | --- | --- | --- |
-| 所有者 | `request.auth.uid` | クライアントが送った `userId` を信じる |
-| 連管理者 | `ren/{renId}/members/{uid}.role == 'admin'` | `users.role == 'ren_admin'` だけで判定 |
-| コメント編集・削除 | コメント自身の `userId` | 投稿の `userId` |
-| 状態遷移 | 遷移元と遷移先の組み合わせ | 遷移先だけを見る |
+| Owner | `request.auth.uid` | Trust the `userId` sent by the client |
+| ren (連) admin | `ren/{renId}/members/{uid}.role == 'admin'` | Check only `users.role == 'ren_admin'` |
+| Editing/deleting a comment | The comment's own `userId` | The post's `userId` |
+| State transition | The combination of source and destination state | Look only at the destination state |
 
-連管理者の判定を `users.role` だけで済ませると、**連 A の管理者が連 B のデータを改変できます**。Rules・Functions・UI の 3 層すべてで検証してください。
+If you check for ren admin using only `users.role`, **an admin of ren A can modify ren B's data**. Verify at all 3 layers: Rules, Functions, and UI.
 
-## スコアは最終的にサーバ算出にする
+## Scores must eventually be computed on the server
 
-`analysisResults` / `growthRecords` の write は Rules でクライアント全拒否にし、Cloud Functions（Admin SDK は Rules を経由しない）のみが書く形が目標です。クライアントは集計値を送り、`totalScore` はサーバで算出します。
+The goal is for writes to `analysisResults` / `growthRecords` to be denied to all clients in Rules, with only Cloud Functions (the Admin SDK does not go through Rules) writing them. The client sends aggregate values, and `totalScore` is computed on the server.
 
-**Prototype 段階ではクライアント算出でも構いません。** ただし一般公開前には移してください（[#35](../../../../issues/35)）。移さないとユーザーが自分のスコアを書き換えられます。
+**At the Prototype stage, client-side computation is acceptable.** But move it before public release ([#35](../../../../issues/35)). If you do not move it, users can rewrite their own scores.
 
-## Firestore の命名と構造
+## Firestore naming and structure
 
-基準は [docs/design/data-model.md](../../docs/design/data-model.md)（**これも提案であり、確定仕様ではありません**）。要点:
+The reference is [docs/design/data-model.md](../../docs/design/data-model.md) (**this too is a proposal, not a settled specification**). Key points:
 
-- コレクション名: 英語・複数形・小文字始まり（`users`, `videos`, `joinRequests`）
-- フィールド名: lowerCamelCase / 日時は `serverTimestamp()`
-- 列挙値: 小文字スネーク（`pending`, `ren_admin`）
-- **既存の `Users/{uid}`（大文字）は規約違反。新規コードで使わない**
+- Collection names: English, plural, starting lowercase (`users`, `videos`, `joinRequests`)
+- Field names: lowerCamelCase / use `serverTimestamp()` for timestamps
+- Enum values: lower snake case (`pending`, `ren_admin`)
+- **The existing `Users/{uid}` (capitalized) violates the convention. Do not use it in new code**
 
-## カウンタに increment() を使わない
+## Do not use increment() for counters
 
-Cloud Functions のトリガは at-least-once 配信なので、`increment()` は重複実行でずれます。**しかもずれたことに気づけません。** 集約クエリ（`count()`）で毎回数え直してください。
+Cloud Functions triggers are delivered at-least-once, so `increment()` drifts on duplicate execution. **And you cannot tell that it has drifted.** Recount every time with an aggregation query (`count()`).
 
-いいねは `posts/{postId}/likes/{uid}` のようにドキュメント ID を uid にして、1 人 1 回を Rules で保証します。
+For likes, use the uid as the document ID, like `posts/{postId}/likes/{uid}`, and guarantee one per person in Rules.
 
 ## Cloud Functions
 
-- v2 Callable（`onCall`）を使う。認証情報が自動で渡り、CORS の自前実装が不要
-- エラーは `HttpsError` に仕様書 13 章のコードを載せる。**表示文言はクライアント側の辞書で解決する**
-- `requireAuth()` / `requireRenAdmin()` の共通ガードを通す
-- 権限遷移とスコア確定はトランザクションで行う
-- 定義は [docs/design/api-functions.md](../../docs/design/api-functions.md)（FN-01〜FN-07）
+- Use v2 Callable (`onCall`). Auth information is passed automatically and you do not need to implement CORS yourself
+- Put the codes from chapter 13 of the specification in `HttpsError`. **Resolve display text with a dictionary on the client side**
+- Go through the shared `requireAuth()` / `requireRenAdmin()` guards
+- Do permission transitions and score finalization in a transaction
+- Definitions are in [docs/design/api-functions.md](../../docs/design/api-functions.md) (FN-01 to FN-07)
 
-## インデックス
+## Indexes
 
-`firestore.indexes.json` は現在空です。新しいクエリを書いたら必要な複合インデックスを追加してください。必要な一覧は [docs/design/data-model.md](../../docs/design/data-model.md) の 4 章にあります。
+`firestore.indexes.json` is currently empty. When you write a new query, add the composite indexes it needs. The required list is in chapter 4 of [docs/design/data-model.md](../../docs/design/data-model.md).
 
-## 秘密情報
+## Secrets
 
-- `firebaseConfig` の apiKey 等は**公開識別子**。ソースにあっても脆弱性ではない（保護は Rules の責務）
-- サービスアカウント鍵（`*-firebase-adminsdk-*.json`）は**絶対にコミットしない**
-- Functions の秘密情報は Firebase Secret Manager を使う
+- The apiKey and similar values in `firebaseConfig` are **public identifiers**. Having them in the source is not a vulnerability (protection is the responsibility of Rules)
+- **Never commit** service account keys (`*-firebase-adminsdk-*.json`)
+- Use Firebase Secret Manager for Functions secrets

@@ -1,71 +1,73 @@
 ---
 name: spec-plan
-description: 承認済みの requirements から design.md を作成する。スペック駆動開発のフェーズ[2]。「設計する」「planを書く」「どう実装するか決める」ときに使う。
+description: Create design.md from approved requirements. Phase [2] of spec-driven development. Use when the user says "design this", "write the plan", or "decide how to implement it".
 disable-model-invocation: false
 ---
 
-# spec-plan — design の作成
+# spec-plan — Writing the design
 
-スペック駆動開発のフェーズ [2] です。手順の全体像は `docs/rules/workflow.md` を参照。
+This is phase [2] of spec-driven development. For the overall procedure, see `docs/rules/workflow.md`.
 
-## 前提の確認
+## Checking the prerequisites
 
-**`requirements.md` が存在し、承認済みであることを確認してください。** 無い場合は `/spec-new` へ案内します。requirements を飛ばして design を書いてはいけません。
+**Confirm that `requirements.md` exists and has been approved.** If it does not, point the user to `/spec-new`. Do not write a design while skipping requirements.
 
-## 進め方
+## Procedure
 
-### 1. 横断設計を読む
+Note: documents you create under `docs/specs/` are **written in Japanese**, following the Japanese templates in `docs/specs/TEMPLATE/` (they are human-facing).
 
-**この spec に関係する既存の設計文書を先に読みます。** 重複した設計を書かないためです。
+### 1. Read the cross-cutting design
 
-| 領域 | 読む文書 |
+**Read the existing design documents related to this spec first.** This is so you do not write a duplicate design.
+
+| Area | Document to read |
 | --- | --- |
-| データを扱う | `docs/design/data-model.md`（Firestore パス・フィールド定義・インデックス） |
-| 権限・Rules に触る | `docs/design/security-rules.md` |
-| AI 採点（基本動作） | `docs/design/ai-basic-motion.md`（正規化式・状態機械・閾値） |
-| スタイル類似度 | `docs/design/ai-style-similarity.md` |
-| Cloud Functions | `docs/design/api-functions.md`（FN-01〜07） |
-| 画面・遷移 | `docs/design/screens.md` |
-| 全体構成 | `docs/design/architecture.md` |
+| Handling data | `docs/design/data-model.md` (Firestore paths, field definitions, indexes) |
+| Touching permissions / Rules | `docs/design/security-rules.md` |
+| AI scoring (basic motion) | `docs/design/ai-basic-motion.md` (normalization formulas, state machine, thresholds) |
+| Style similarity | `docs/design/ai-style-similarity.md` |
+| Cloud Functions | `docs/design/api-functions.md` (FN-01〜07) |
+| Screens / navigation | `docs/design/screens.md` |
+| Overall structure | `docs/design/architecture.md` |
 
-### 2. 現状のコードを読む
+### 2. Read the current code
 
-変更対象のファイルを実際に読んでください。`docs/status/gap-analysis.md` に既知の不具合（B-1〜B-11）があります。**触る範囲に既知の不具合が含まれるなら、design に対処方針を書きます。**
+Actually read the files you are going to change. `docs/status/gap-analysis.md` lists known defects (B-1〜B-11). **If a known defect falls inside the area you touch, write how you will handle it in the design.**
 
-### 3. design.md を書く
+### 3. Write design.md
 
-`docs/specs/TEMPLATE/design.md` を雛形として `docs/specs/<NNN>-<slug>/design.md` を作ります。
+Use `docs/specs/TEMPLATE/design.md` as the template to create `docs/specs/<NNN>-<slug>/design.md`.
 
-必須条件:
+Mandatory conditions:
 
-- **方式の選択肢を比較し、選んだ理由を書く。** 単一案だけ書かない。「なぜ他を選ばなかったか」が後から効きます
-- **変更するファイルを列挙する**（新規 / 変更 / 削除）
-- **横断設計と重複させない。リンクする。** 例: Rule Engine の状態機械は `docs/design/ai-basic-motion.md` にあるので参照し、差分だけ書く
-- データ変更は `docs/design/data-model.md` と整合させる。矛盾するなら**先に横断設計を直す**
-- 型・関数シグネチャを書く（実装時の迷いを減らす）
-- テスト方針を書く
-- リスク（失敗しうる点と対処）を書く
+- **Compare the candidate approaches and write why you chose the one you chose.** Do not write only a single option. "Why the others were not chosen" pays off later
+- **List the files you will change** (new / modified / deleted)
+- **Do not duplicate the cross-cutting design. Link to it.** Example: the Rule Engine state machine is in `docs/design/ai-basic-motion.md`, so reference it and write only the differences
+- Keep data changes consistent with `docs/design/data-model.md`. If they contradict it, **fix the cross-cutting design first**
+- Write the types and function signatures (this reduces hesitation during implementation)
+- Write the test approach
+- Write the risks (what could fail and how you will handle it)
 
-### 4. 規約との整合を確認する
+### 4. Check consistency with the conventions
 
-`docs/rules/coding.md` に反する設計になっていないか確認してください。特に:
+Check that the design does not violate `docs/rules/coding.md`. In particular:
 
-- 画面から Firestore を直接呼んでいないか（`repositories/` 経由か）
-- `useNavigation<any>()` を使う設計になっていないか
-- コレクション名が小文字始まりの複数形か
-- カウンタに `increment()` を使っていないか
-- スコアをクライアントから書く設計になっていないか（**禁止**）
+- Does a screen call Firestore directly (rather than going through `repositories/`)?
+- Does the design use `useNavigation<any>()`?
+- Are collection names lowercase-initial plurals?
+- Does it use `increment()` for counters?
+- Does it have the client writing scores (**prohibited**)?
 
-### 5. 横断設計を更新する
+### 5. Update the cross-cutting design
 
-この spec で TBD を決めた場合、**`docs/design/` 側にも決定内容と理由を記録します**。`docs/status/roadmap.md` の 4 章の状態も更新してください。
+If you decided a TBD in this spec, **record the decision and the reasoning on the `docs/design/` side as well**. Also update the status in chapter 4 of `docs/status/roadmap.md`.
 
-これを省くと、決定が spec ディレクトリに埋もれて次の担当者に届きません。
+Skip this and the decision stays buried in the spec directory and never reaches the next person.
 
-### 6. 承認を得る
+### 6. Get approval
 
-方式・変更ファイル・リスクを要約して提示し、**承認を求めます**。承認後に「次は `/spec-tasks <NNN>` でタスク分解に進めます」と案内してください。
+Summarize the approach, the changed files, and the risks, and **ask for approval**. After approval, tell the user "next, proceed to task breakdown with `/spec-tasks <NNN>`".
 
-## 完了条件
+## Completion criteria
 
-`docs/rules/definition-of-done.md` の「design.md」の項目をすべて満たすこと。
+Satisfy every item under "design.md" in `docs/rules/definition-of-done.md`.

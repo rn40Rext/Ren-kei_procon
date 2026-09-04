@@ -33,6 +33,12 @@
 | R-07 | お知らせ管理 | 未作成 | ❌ | FN-06 |
 | R-08 | 活動情報管理 | 未作成 | ❌ | `ren/{renId}/activities` |
 
+### 仕様書 8 章に対応する画面（画面 ID なし）
+
+| 画面 | 実装ファイル | 扱い |
+| --- | --- | --- |
+| 動きの類似度（連スタイル類似度ランキング） | [StyleResultScreen.tsx](../../Ren-kei_procon/src/screens/StyleResultScreen.tsx) | 仕様書 8.2 の「上位連を UI に表示し、連詳細・参加リクエストへ接続する」に対応。**U-xx の画面 ID は割り当てられていない**（5 章の画面一覧に無いため）。イシュー [#25](../../../issues/25) の実装。**検証（仕様書 8.6）が通るまでフラグで非公開**（`src/features/style/featureFlags.ts`）。v0.4 で画面 ID を採番するか要判断 |
+
 ### 仕様書に無い実装
 
 | 画面 | 実装ファイル | 扱い |
@@ -49,7 +55,7 @@
 
 ### 登録済み（ログイン後）
 
-`Home` / `Community` / `Scoring` / `Mypage` / `VideoList` / `Group` / `ContactInfo` / `Setting`
+`Home` / `Community` / `Scoring` / `Mypage` / `VideoList` / `Group` / `ContactInfo` / `Setting` / `StyleResult`
 
 ### 未登録なのに `navigate()` されている ⚠️
 

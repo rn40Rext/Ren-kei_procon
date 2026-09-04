@@ -171,9 +171,9 @@
 | TBD-05 | Analysis Score の項目重み | [#20](../../../issues/20) | 未決定（初期は単純平均） |
 | TBD-06 | ゲームスコア/コンボの点数設計 | [#16](../../../issues/16) | 暫定値あり |
 | TBD-07 | 練習動画を常に保存するか任意保存か | [#41](../../../issues/41) | 未決定 |
-| TBD-08 | Motion Encoder の最終モデル選定 | [#22](../../../issues/22) | 未決定 |
-| TBD-09 | Embedding の保存形式・ベクトル検索基盤 | [#23](../../../issues/23) | Firestore 直接保存で暫定決定 |
-| TBD-10 | 類似度の % 表示スケーリング | [#25](../../../issues/25) | 未決定（min-max 再スケーリング推奨） |
+| TBD-08 | Motion Encoder の最終モデル選定 | [#22](../../../issues/22) | ✅ **ベースライン特徴量エンコーダ `style-baseline-v1`（32 次元）**（[ai-style-similarity.md 3章](../design/ai-style-similarity.md) で決定。実データで検証要件を満たせなければ MotionBERT へ移行） |
+| TBD-09 | Embedding の保存形式・ベクトル検索基盤 | [#23](../../../issues/23) | ✅ **Firestore へ inline 保存**（32 次元。[ai-style-similarity.md 6章](../design/ai-style-similarity.md) で決定。姿勢系列は Storage に JSON で保持） |
+| TBD-10 | 類似度の % 表示スケーリング | [#25](../../../issues/25) | 🔶 **未決定**。実データの分布が無いため暫定の線形変換（cos 0.5〜1.0 → 0〜100）を実装。分布が得られ次第 min-max で再推定（[ai-style-similarity.md 5章](../design/ai-style-similarity.md)） |
 | TBD-11 | `Users.ren` を廃止して RenMembers へ一本化するか | — | ✅ **一本化する**（[data-model.md](../design/data-model.md) で決定） |
 | TBD-12 | Firebase Functions と Cloud Run の役割分担 | [#46](../../../issues/46) | 未決定 |
 | TBD-13 | サービス管理者・通報/モデレーション機能 | — | MVP 後または公開前。イシュー未作成 |

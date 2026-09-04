@@ -1,4 +1,4 @@
-# Cloud Functions / API 設計（FN-01〜FN-07）
+# Cloud Functions / API 設計（FN-01〜FN-09）
 
 > 出典: [仕様書 11章 バックエンド／論理API設計](../spec/11-backend-api.md) / [13章 エラー・例外設計](../spec/13-error-handling.md)
 > 付録C「Cloud Functions/Cloud Run の request/response JSON Schema」に対応する文書です。
@@ -38,7 +38,15 @@ functions/src/
 │   ├── updateJoinRequestStatus.ts FN-05
 │   └── createAnnouncement.ts      FN-06
 ├── style/
-│   └── rebuildRenStyleProfile.ts  FN-07
+│   ├── rebuildRenStyleProfile.ts  FN-07
+│   ├── registerStyleReference.ts  FN-08
+│   ├── deleteStyleReference.ts    FN-09
+│   ├── onStyleReferenceWritten.ts 参照変更時の代表 Embedding 再計算
+│   ├── encoder.ts                 Motion Encoder（ベースライン）
+│   ├── pose.ts / signal.ts        姿勢系列と統計
+│   ├── poseSeriesStore.ts         姿勢系列の Storage 読み書き
+│   ├── profile.ts                 代表 Embedding の再構築
+│   └── vector.ts                  L2 正規化 / cosine / 平均
 ├── triggers/
 │   ├── onLikeWrite.ts             likeCount 同期
 │   ├── onCommentWrite.ts          commentCount 同期
@@ -91,6 +99,19 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 | `INVALID_STATUS_TRANSITION` | `failed-precondition` | FN-05 |
 | `POST_VIDEO_NOT_PUBLICABLE` | `failed-precondition` | FN-03 |
 | `PERSON_NOT_DETECTED` 等 | — | クライアント側（Rule Engine）で処理 |
+
+#### 仕様書 13章にない追加コード
+
+連スタイル類似度の実装で、13 章のコードだけでは区別できない失敗が出たため追加したものです。定義は `functions/src/lib/errors.ts`。表示文言は `Ren-kei_procon/src/features/style/errorMessages.ts` で解決します。
+
+| コード | `HttpsError` code | 意味 | 発生元 |
+| --- | --- | --- | --- |
+| `POSE_SERIES_NOT_FOUND` | `failed-precondition` | 動画に対応する姿勢系列 JSON が Storage に無い | FN-02, FN-08 |
+| `STYLE_REFERENCE_NOT_FOUND` | `failed-precondition` / `not-found` | 承認済みの参照が 0 件、または対象の参照が無い | FN-07, FN-09 |
+| `STYLE_PROFILE_NOT_READY` | `failed-precondition` | 比較できる連の代表 Embedding が 1 件も無い | FN-02 |
+| `INVALID_ARGUMENT:<引数名>` | `invalid-argument` | 引数が不正（どの引数かを `:` の後に付ける） | 全関数 |
+
+`STYLE_MODEL_UNAVAILABLE` と `STYLE_PROFILE_NOT_READY` を分けているのは、**前者はモデル側の問題（時間をおけば直る）、後者はデータが足りないだけ（連が参照動画を登録すれば直る）**で、ユーザーへの案内が変わるためです。
 
 ### 冪等性
 
@@ -189,9 +210,17 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 { status: 'queued'; jobId: string; }
 ```
 
-**副作用**: `styleAnalysisResults/{id}` を作成。非同期時はクライアントが同ドキュメントを `onSnapshot` で購読して完了を待ちます。
+**副作用**: `styleAnalysisResults/{id}` を作成。まず `status: 'processing'` で作り、完了時に `'completed'`、失敗時に `'failed'` + `errorCode` へ更新します。クライアントは同ドキュメントを `onSnapshot` で購読して完了を待ちます（同期完了でも購読で検知できます）。
 
 **検証**: `videos.userId == uid`、`renStyleProfiles` の `embeddingVersion` 一致（[ai-style-similarity.md 6章](ai-style-similarity.md#6-データモデル)）。モデル未配備なら `unavailable` / `STYLE_MODEL_UNAVAILABLE` を返し、**AI① の結果は保持したまま**スタイル診断のみ再試行可能にします（仕様書 13 章）。
+
+**実装（2026-09-04）**: `functions/src/analysis/analyzeStyle.ts`
+
+- ベースラインエンコーダは軽く、現状は同期で完了します（`status: 'completed'` を返す）。重いモデルへ移行したら `'queued'` を返す経路を足しますが、**クライアント側は最初から購読で待つ**ため変更は不要です。
+- `videos.poseSeriesPath` の姿勢系列から Embedding を作ります。パスが無い / ファイルが無い場合は `POSE_SERIES_NOT_FOUND`。
+- 代表 Embedding の版が現行と違う連は、**その場で FN-07 相当の再計算を行ってから**比較します。版の違うベクトル同士の cosine は値としては正常に見えるため、除外ではなく再計算で揃えます。
+- モデル利用不可のときは **結果ドキュメントを作りません**（AI① 側の状態にも触れません）。
+- 比較できる代表 Embedding が 1 件も無ければ `STYLE_PROFILE_NOT_READY`。
 
 ---
 
@@ -318,7 +347,60 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 
 **検証**: `requireRenAdmin(uid, renId)` またはサービス管理者。`approved == true` の参照が 0 件なら `failed-precondition`。
 
-**呼び出し契機**: 参照動画の承認・削除時。将来は Firestore トリガでの自動実行も検討します。
+**呼び出し契機**: 参照動画の承認・削除時。**`onStyleReferenceWritten` トリガで自動実行されます**（承認・承認取り消し・削除・同意撤回のいずれでも発火）。手動の再計算用に Callable も残しています。
+
+**実装（2026-09-04）**: `functions/src/style/rebuildRenStyleProfile.ts` / `functions/src/style/profile.ts`
+
+- 各サンプルを L2 正規化 → 平均 → もう一度 L2 正規化（正規化を忘れるとノルムの大きいサンプルが代表を支配します）。
+- 版が古い参照は姿勢系列から再エンコードし、参照ドキュメント側も更新します。
+- `consent.obtained == false` の参照は採用しません（仕様書 14.3）。
+- トリガ経由で承認済みが 0 件になった場合は、例外ではなく **代表 Embedding を削除**します（古い代表が残り続けるほうが危険なため）。Callable 経由では `failed-precondition` / `STYLE_REFERENCE_NOT_FOUND` を返します。
+
+---
+
+### FN-08 `registerStyleReference`
+
+連の参照動画から Embedding を生成し `renStyleReferences` へ保存します。仕様書 11 章の FN 一覧には無く、[#23](../../../issues/23)「Embedding 生成・保存基盤」の実装として追加したものです。
+
+**Request**
+
+```ts
+{
+  renId: string;
+  videoId: string;
+  poseSeriesPath: string;        // ren/{renId}/styleReferences/{id}.pose.json
+  userId?: string;               // 熟練者本人の uid（任意）
+  consentObtained: true;         // 提供者の同意（仕様書 14.3）
+  consentScope: string;          // 利用範囲の記述
+  approved?: boolean;            // 既定 false
+}
+```
+
+**Response**
+
+```ts
+{ referenceId: string; embeddingVersion: string; dim: number; approved: boolean; }
+```
+
+**副作用**: `renStyleReferences/{referenceId}` を作成。`approved: true` ならトリガが代表 Embedding を再計算します。
+
+**検証**: `requireRenAdmin(uid, renId)` / `poseSeriesPath` が `ren/{renId}/styleReferences/` 配下であること（**他連のパスを指定して混入させられないようにするため**）/ `consentObtained !== true` なら拒否。
+
+---
+
+### FN-09 `deleteStyleReference`
+
+参照動画の提供者が利用の撤回を求めた場合に使います（仕様書 14.3）。
+
+**Request**
+
+```ts
+{ referenceId: string; }
+```
+
+**副作用**: 姿勢系列ファイル（Storage）と `renStyleReferences/{referenceId}` を削除。トリガが代表 Embedding を再計算します。**削除と再計算をセットで行う**のが要件です。
+
+**検証**: `requireRenAdmin(uid, 対象参照の renId)`。
 
 ---
 
@@ -331,6 +413,7 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 | `onDocumentWritten('ren/{renId}/members/{uid}')` | メンバー | `ren.memberCount` を再集計 |
 | `onDocumentCreated('posts/{postId}/comments/{id}')` | コメント | 投稿者へ通知（`type: 'comment'`） |
 | `onDocumentDeleted('videos/{videoId}')` | 動画削除 | Storage の実体も削除（仕様書 14.3） |
+| `onDocumentWritten('renStyleReferences/{id}')` | 参照 Embedding | `renStyleProfiles` の代表 Embedding を再計算（**実装済み**） |
 
 `increment()` ではなく **`count()` 集約クエリで再集計**します。トリガの重複実行（at-least-once 配信）でカウンタがずれるのを防ぐためです。
 

@@ -26,6 +26,7 @@ import ManageAnnouncementsScreen from "../screens/ManageAnnouncementsScreen";
 import ManageActivitiesScreen from "../screens/ManageActivitiesScreen";
 import ManagePostsScreen from "../screens/ManagePostsScreen";
 import AdviceComposeScreen from "../screens/AdviceComposeScreen";
+import StyleResultScreen from "../screens/StyleResultScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -41,6 +42,9 @@ export type RootStackParamList = {
   Result: undefined;
   Request: undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
+  // 連スタイル類似度の結果（AI機能②）。表示可否は
+  // src/features/style/featureFlags.ts で制御する
+  StyleResult: { videoId: string };
   Chat: { chatId: string; recipientName: string };   // 💡 追加
   AdminHome: undefined;
   ManageJoinRequests: { renId: string };
@@ -99,6 +103,7 @@ export default function AppNavigator() {
           <Stack.Screen name="ManageActivities" component={ManageActivitiesScreen} />
           <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
           <Stack.Screen name="AdviceCompose" component={AdviceComposeScreen} />
+          <Stack.Screen name="StyleResult" component={StyleResultScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

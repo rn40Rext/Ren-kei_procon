@@ -32,5 +32,46 @@ service cloud.firestore {
                       && request.resource.data.userId == request.auth.uid;
       }
     }
+
+    // ============================================================
+    // 連スタイル類似度（AI機能②）
+    // docs/design/security-rules.md 3章の権限表に対応する。
+    // 他コレクションのルールは #41 / #42 で整備する。
+    // ============================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    // 対象連の管理者か。users.role では判定しない（連 A の管理者が
+    // 連 B のデータを触れてしまうため）。
+    function isRenAdmin(renId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/ren/$(renId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/ren/$(renId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // 参照動画とその Embedding。連管理者のみが扱える。
+    // Embedding は元動画の代替的な個人情報になり得る（仕様書 14.3）。
+    match /renStyleReferences/{referenceId} {
+      allow read, update, delete: if isRenAdmin(resource.data.renId);
+      allow create: if isRenAdmin(request.resource.data.renId);
+    }
+
+    // 代表 Embedding。読み取りは認証済みユーザー、書き込みは
+    // FN-07（Admin SDK は Rules を経由しない）のみ。
+    match /renStyleProfiles/{renId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // スタイル診断結果。本人のみ。作成・更新は FN-02 のみ。
+    match /styleAnalysisResults/{styleAnalysisId} {
+      allow read: if isSelf(resource.data.userId);
+      allow create, update: if false;
+      allow delete: if isSelf(resource.data.userId);
+    }
   }
 }

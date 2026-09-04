@@ -21,13 +21,13 @@
 | 交流広場（COMM-01〜05） | 投稿・詳細・コメント・いいね | ✅ 動作（データモデルは簡略版） | ■■■■□ 80% |
 | プロフィール（USER-01） | name/icon/profile/danceStyle/role | 🔶 `userName` のみ | ■■□□□ 30% |
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ❌ カメラプレビューのみ。採点は乱数 | ■□□□□ 10% |
-| スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ❌ 未着手 | □□□□□ 0% |
+| スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | 🔶 バックエンドと UI は実装済み。**姿勢系列の入力（AI①）と実データ検証が未了のため非公開** | ■■■□□ 60% |
 | 連機能（REN-01〜03） | 検索・申請・マイ連 | ❌ スタブのみ | □□□□□ 0% |
 | 連管理者（REN-04〜07 / R-01〜08） | 8 画面 | ❌ 画面が存在しない | □□□□□ 0% |
 | 成長記録（HIST-01） | GrowthRecords + 成長曲線 | ❌ 未着手 | □□□□□ 0% |
 | 通知（NOTI-01） | Notifications | ❌ 未着手 | □□□□□ 0% |
 | Security Rules（10章） | コレクション別 CRUD 制御 | ❌ サンプルのまま / Storage 全開放 | □□□□□ 0% |
-| Cloud Functions（FN-01〜07） | 7 関数 | ❌ テンプレートのまま | □□□□□ 0% |
+| Cloud Functions（FN-01〜07） | 7 関数 | 🔶 FN-02 / FN-07 と追加の FN-08 / FN-09・トリガ 1 本を実装。FN-01 / FN-03〜06 は未着手 | ■■□□□ 35% |
 
 ## 2. 機能 ID 別の詳細
 
@@ -41,7 +41,7 @@
 | PRACTICE-03 | ゲームスコア | ❌ | — |
 | PRACTICE-04 | 解析結果 | ❌ | `ResultScreen.tsx` は「ここに採点結果が表示されます」のみ |
 | PRACTICE-05 | 保存 | ❌ | `analysisResults` / `growthRecords` コレクションが無い |
-| STYLE-01/02 | 連スタイル類似度 | ❌ | 該当コードが存在しない |
+| STYLE-01/02 | 連スタイル類似度 | 🔶 | エンコーダ（`functions/src/style/`）・FN-02/07/08/09・ランキング画面（`StyleResultScreen.tsx`）を実装。**依存する姿勢系列の生成（AI① [#13](../../../issues/13)/[#14](../../../issues/14)）が未実装**で実データを流せず、仕様書 8.6 の検証 1・6・7 が未実施。UI はフラグで非公開 |
 | COMM-01 | 投稿一覧 | ✅ | `CommunityScreen.tsx`（`videos` を `onSnapshot` で購読） |
 | COMM-02 | 投稿作成 | 🔶 | 動作するが、クライアントから Storage/Firestore へ直接書き込み。FN-03 未経由 |
 | COMM-03 | 投稿詳細 | ✅ | `VideoDetailScreen`（同ファイル内） |

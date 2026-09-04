@@ -32,9 +32,9 @@
 | 11 | `ren/{renId}/activities/{activityId}` | RenActivities | 自動 ID | ❌ 未実装 |
 | 12 | `joinRequests/{requestId}` | JoinRequests | 自動 ID | ❌ 未実装 |
 | 13 | `users/{uid}/notifications/{notificationId}` | Notifications | 自動 ID | ❌ 未実装 |
-| 14 | `renStyleReferences/{referenceId}` | RenStyleReferences | 自動 ID | ❌ 未実装 |
-| 15 | `renStyleProfiles/{renId}` | RenStyleProfiles | renId | ❌ 未実装 |
-| 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ❌ 未実装 |
+| 14 | `renStyleReferences/{referenceId}` | RenStyleReferences | 自動 ID | ✅ 実装済み（FN-08） |
+| 15 | `renStyleProfiles/{renId}` | RenStyleProfiles | renId | ✅ 実装済み（FN-07） |
+| 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ✅ 実装済み（FN-02） |
 | 17 | `analysisRules/{ruleId}` | 判定ルール定義（仕様書 7.9） | ルール ID | ❌ 未実装 |
 | — | `chats/{chatId}/messages/{messageId}` | **仕様書に無い独自実装** | 自動 ID | ⚠️ 実装済み（扱いは 7 章） |
 
@@ -81,6 +81,7 @@
 | `visibility` | `'private' \| 'public'` | ✓ | 既定 `private`（仕様書 14.3） |
 | `analysisStatus` | `'uploaded' \| 'analyzing' \| 'completed' \| 'failed'` | ✓ | 既定 `uploaded` |
 | `latestAnalysisId` | string | — | 最新の `analysisResults` ドキュメント ID |
+| `poseSeriesPath` | string | — | 姿勢系列 JSON の Storage パス。スタイル診断（FN-02）が読む |
 | `createdAt` | Timestamp | ✓ | |
 
 > 旧 `score` フィールドは持ちません。スコアは `analysisResults.totalScore` を正とします（仕様書 9.2 の「将来は AnalysisResults.totalScore を正とする」を採用）。
@@ -196,9 +197,52 @@
 
 同一ユーザー・同一連で `pending` を重複させないため、`{renId}_{userId}` を ID にする案もありますが、却下後の再申請を新規ドキュメントで扱う仕様書 9.4 の方針と衝突するため、**自動 ID + Functions 側の重複チェック**（`JOIN_REQUEST_ALREADY_PENDING`）とします。
 
-### 3.11 その他
+### 3.11 `renStyleReferences/{referenceId}`
 
-`announcements` / `activities` / `notifications` / `renStyleReferences` / `renStyleProfiles` / `styleAnalysisResults` / `analysisRules` のフィールドは仕様書 9.3 および 7.9 の定義をそのまま採用します。パスのみ本書 2 章で確定しています。
+連の参照動画とその Embedding。**書き込みは連管理者と Functions のみ**（Embedding は元動画の代替的な個人情報になり得るため。仕様書 14.3）。
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `renId` | string | ✓ | 対象の連 |
+| `userId` | string \| null | ✓ | 熟練者本人の uid。不明なら null |
+| `videoId` | string | ✓ | 参照動画 |
+| `poseSeriesPath` | string | ✓ | 姿勢系列 JSON の Storage パス（5 章） |
+| `embeddingVersion` | string | ✓ | 例 `style-baseline-v1`。**版が違う Embedding を比較しない** |
+| `embeddingRef` | `{ kind: 'inline', vector: number[] }` | ✓ | Embedding 本体。次元が大きくなったら `kind: 'storage'` を追加する |
+| `approved` | boolean | ✓ | 代表計算に採用してよいか。既定 false |
+| `consent` | `{ obtained: boolean, scope: string, obtainedAt: Timestamp }` | ✓ | 提供者の同意と利用範囲。`obtained == false` は代表計算に使わない |
+| `createdAt` / `updatedAt` | Timestamp | ✓ | |
+
+### 3.12 `renStyleProfiles/{renId}`
+
+連の代表 Embedding。**クライアントからは write 不可**（FN-07 のみが書く）。
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `renId` | string | ✓ | ドキュメント ID と同一 |
+| `embeddingVersion` | string | ✓ | |
+| `embeddingRef` | `{ kind: 'inline', vector: number[] }` | ✓ | L2 正規化済みの代表ベクトル |
+| `sampleCount` | number | ✓ | 採用した参照の件数。少ない連は UI で注記する |
+| `updatedAt` | Timestamp | ✓ | |
+
+承認済み参照が 0 件になったときは、**このドキュメントを削除**します（古い代表が残り続けるほうが危険なため）。
+
+### 3.13 `styleAnalysisResults/{styleAnalysisId}`
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `userId` | string | ✓ | 診断したユーザー |
+| `videoId` | string | ✓ | 対象動画 |
+| `modelVersion` | string | ✓ | 使用した Embedding 版 |
+| `status` | `'processing' \| 'completed' \| 'failed'` | ✓ | クライアントは `onSnapshot` で完了を待つ |
+| `results` | `{ renId, renName, similarity, sampleCount }[]` | ✓ | 上位 N 件。`similarity` は**生のコサイン類似度**（表示値への変換はクライアント側） |
+| `errorCode` | string \| null | ✓ | `failed` のときのコード（仕様書 13章） |
+| `createdAt` | Timestamp | ✓ | |
+| `completedAt` | Timestamp \| null | ✓ | |
+
+### 3.14 その他
+
+`announcements` / `activities` / `notifications` / `analysisRules` のフィールドは仕様書 9.3 および 7.9 の定義をそのまま採用します。パスのみ本書 2 章で確定しています。
 
 ## 4. 必要な複合インデックス
 
@@ -213,7 +257,8 @@
 | `joinRequests` | `renId` asc + `status` asc + `createdAt` desc | R-05 参加リクエスト管理 |
 | `joinRequests` | `userId` asc + `createdAt` desc | 自分の申請履歴 |
 | `analysisResults` | `userId` asc + `createdAt` desc | 履歴一覧 |
-| `styleAnalysisResults` | `userId` asc + `createdAt` desc | スタイル診断履歴 |
+| `styleAnalysisResults` | `userId` asc + `createdAt` desc | スタイル診断履歴（**定義済み**） |
+| `renStyleReferences` | `renId` asc + `approved` asc | 代表 Embedding の再計算（FN-07。**定義済み**） |
 
 ## 5. Cloud Storage パス命名規則
 
@@ -224,6 +269,8 @@
 | ユーザーアイコン | `users/{uid}/icon/{fileName}` | 認証ユーザーは read 可 |
 | 連アイコン | `ren/{renId}/icon/{fileName}` | 認証ユーザーは read 可 |
 | 連スタイル参照動画 | `ren/{renId}/styleReferences/{referenceId}.mp4` | 連管理者と system のみ |
+| 姿勢系列（ユーザー動画） | `users/{uid}/videos/{videoId}.pose.json` | 所有者と system |
+| 姿勢系列（連の参照動画） | `ren/{renId}/styleReferences/{referenceId}.pose.json` | 連管理者と system のみ |
 
 **方針**:
 - パスに `uid` を含めることで、Storage Rules で所有者判定ができます。

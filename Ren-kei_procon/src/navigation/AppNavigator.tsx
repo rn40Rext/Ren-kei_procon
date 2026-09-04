@@ -14,6 +14,7 @@ import GroupScreen from "../screens/GroupScreen";
 import VideoListScreen from "../screens/VideoListScreen";
 import ConatctInfoScreen from '../screens/ContactInfoScreen';
 import SettingScreen from "../screens/SettingScreen";
+import StyleResultScreen from "../screens/StyleResultScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -25,6 +26,9 @@ export type RootStackParamList = {
   ContactInfo: undefined;
   Setting: undefined;
   Group: undefined;
+  // 連スタイル類似度の結果（AI機能②）。表示可否は
+  // src/features/style/featureFlags.ts で制御する
+  StyleResult: { videoId: string };
    UserProfile: { userId: string; userName: string }; // 💡 追加
   Chat: { chatId: string; recipientName: string };   // 💡 追加
 };
@@ -65,6 +69,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Group" component={GroupScreen} />
           <Stack.Screen name="ContactInfo" component={ConatctInfoScreen} />
           <Stack.Screen name="Setting" component={SettingScreen} />
+          <Stack.Screen name="StyleResult" component={StyleResultScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

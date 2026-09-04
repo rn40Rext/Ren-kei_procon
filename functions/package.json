@@ -8,7 +8,9 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "test": "npm run build && node --test \"lib/test/*.test.js\"",
+    "verify:emulator": "npm run build && npx -y firebase-tools@latest emulators:exec --project demo-renkei --only firestore,storage,functions \"node lib/test/emulatorCheck.js\""
   },
   "engines": {
     "node": "24"

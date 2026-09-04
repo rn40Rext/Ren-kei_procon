@@ -1,4 +1,21 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "renStyleReferences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "renId", "order": "ASCENDING"},
+        {"fieldPath": "approved", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "styleAnalysisResults",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "userId", "order": "ASCENDING"},
+        {"fieldPath": "createdAt", "order": "DESCENDING"}
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

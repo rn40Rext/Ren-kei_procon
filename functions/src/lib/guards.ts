@@ -1,4 +1,4 @@
-import {CallableRequest} from "firebase-functions/v2/https";
+import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {ErrorCode, httpsErrorFor} from "./errors";
 
@@ -32,4 +32,20 @@ export async function requireRenAdmin(
   if (!snap.exists || snap.data()?.role !== "admin") {
     throw httpsErrorFor(ErrorCode.FORBIDDEN);
   }
+}
+
+/**
+ * 必須の文字列引数を取り出す。空文字・非文字列はINVALID_ARGUMENT。
+ * @param {unknown} value 検証対象。
+ * @param {string} name 引数名(クライアントがどの引数か分かるようコードに付ける)。
+ * @return {string} 検証済みの文字列。
+ */
+export function requireString(value: unknown, name: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new HttpsError(
+      "invalid-argument",
+      `${ErrorCode.INVALID_ARGUMENT}:${name}`
+    );
+  }
+  return value;
 }

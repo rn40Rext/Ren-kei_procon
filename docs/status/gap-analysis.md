@@ -27,7 +27,7 @@
 | Security Rules（10章） | コレクション別 CRUD 制御 | ✅ 包括版を実装、Rules Unit Test 46 件が通る | ■■■■□ 85% |
 | Cloud Functions（FN-01〜07） | 7 関数 | 🔶 FN-03（縮小版）/04/05/06 と連系の追加関数・トリガ 4 本 | ■■■□□ 50% |
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ❌ **カメラプレビューのみ。採点は乱数** | ■□□□□ 5% |
-| スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ❌ 未着手 | □□□□□ 0% |
+| スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | 🔶 バックエンド（FN-02/07/08/09・ベースラインエンコーダ）と UI は実装済み。**姿勢系列の入力（AI①）と実データ検証が未了のため非公開** | ■■■□□ 60% |
 | 成長記録（HIST-01） | GrowthRecords + 成長曲線 | ❌ 未着手。`VideoListScreen` はスタブのまま | □□□□□ 0% |
 | 通知（NOTI-01） | Notifications | ❌ 未着手（Rules に受け皿があるだけ） | □□□□□ 0% |
 
@@ -43,7 +43,7 @@
 | PRACTICE-03 | ゲームスコア | ❌ | — |
 | PRACTICE-04 | 解析結果 | ❌ | `ResultScreen.tsx` は「ここに採点結果が表示されます」の固定文言 |
 | PRACTICE-05 | 保存 | ❌ | `analysisResults` / `growthRecords` にドキュメントを書く実装が無い（Rules と型の受け皿のみ） |
-| STYLE-01/02 | 連スタイル類似度 | ❌ | 該当コードが存在しない |
+| STYLE-01/02 | 連スタイル類似度 | 🔶 | エンコーダ（`functions/src/style/`）・FN-02/07/08/09・ランキング画面（`StyleResultScreen.tsx`）を実装。**依存する姿勢系列の生成（AI① [#13](../../../issues/13)/[#14](../../../issues/14)）が未実装**で実データを流せず、仕様書 8.6 の検証 1・6・7 が未実施。UI はフラグで非公開 |
 | COMM-01 | 投稿一覧 | ✅ | `CommunityScreen.tsx`（`posts` を購読） |
 | COMM-02 | 投稿作成 | 🔶 | `publishPost`（Cloud Functions）経由。ただし**練習動画 `videos` を作らずに直接 `posts` を作る縮小版**（[#47](../../../issues/47)） |
 | COMM-03 | 投稿詳細 | ✅ | `CommunityScreen.tsx` 内の `PostDetailScreen` |

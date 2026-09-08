@@ -26,7 +26,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <AppNavigator user={user}/>
+      <AppNavigator />
     </NavigationContainer>
   );
 }

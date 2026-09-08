@@ -19,7 +19,7 @@ const { width } = Dimensions.get('window');
 const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
 
 interface Post {
-  id: string; authorName: string; authorId: string; title: string; videoUrl: string;
+  id: string; authorName: string; userId: string; title: string; videoUrl: string;
   score: number; likeCount: number; commentCount: number; tags: string[]; createdAt: any;
 }
 
@@ -62,15 +62,15 @@ export default function CommunityScreen() {
       await uploadBytes(storageRef, blob);
       const url = await getDownloadURL(storageRef);
 
-      // 💡 目標3: ログイン中のユーザーID (authorId) を一緒に保存する
+      // 💡 目標3: ログイン中のユーザーID (userId) を一緒に保存する
       const currentUser = auth.currentUser;
       const authorName = currentUser?.email?.split('@')[0] || "匿名踊り子";
-      const authorId = currentUser?.uid || "";
+      const userId = currentUser?.uid || "";
 
       await addDoc(collection(db, 'posts'), {
         title: postTitle,
         authorName: authorName,
-        authorId: authorId, // 💡 これにより連絡が可能になる
+        userId: userId, // 💡 これにより連絡が可能になる
         videoUrl: url,
         tags: postTags,
         score: Math.floor(Math.random() * 20) + 80,
@@ -218,7 +218,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
       await runTransaction(db, async (transaction) => {
         const likeSnap = await transaction.get(likeRef);
         if (likeSnap.exists()) return; // 二重いいねを防ぐ
-        transaction.set(likeRef, { createdAt: serverTimestamp() });
+        transaction.set(likeRef, { userId: currentUser.uid, createdAt: serverTimestamp() });
         transaction.update(postRef, { likeCount: increment(1) });
       });
     } catch (e) {
@@ -242,7 +242,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
           {/* 💡 目標4: 踊り子の名前をタップしてプロフィール画面へ飛ぶ */}
           <TouchableOpacity
             onPress={() => navigation.navigate('UserProfile', {
-                userId: post.authorId,
+                userId: post.userId,
                 userName: post.authorName
             })}
             style={styles.authorProfileBtn}

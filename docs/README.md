@@ -7,17 +7,22 @@
 | 目的 | 文書 |
 | --- | --- |
 | プロジェクト全体を知りたい | [../README.md](../README.md) |
+| **開発の進め方を知りたい** | [rules/workflow.md](rules/workflow.md)（既定はイシュー駆動） |
 | **今どこまで実装されているか知りたい** | [status/gap-analysis.md](status/gap-analysis.md) |
 | **次に何を作るか知りたい** | [status/roadmap.md](status/roadmap.md) |
-| 仕様の正典を読みたい | [spec/README.md](spec/README.md) |
+| 仕様を読みたい（位置づけの注記あり） | [spec/README.md](spec/README.md) |
+| エージェント（AI）に作業させたい | [../AGENTS.md](../AGENTS.md) |
 
 ## ディレクトリ構成
 
 ```
 docs/
 ├── README.md                   ← この索引
-├── spec/                       仕様書 v0.3（正典・原本の記述は不変）
-├── design/                     実装向け設計（仕様書を実装に落とし込んだもの）
+├── AGENTS.md                   docs/ 編集時のエージェント向けルール
+├── spec/                       仕様書 v0.3（基準文書・原本の記述は不変・Markdown編集禁止）
+├── specs/                      機能単位の spec（普段は不要。イシュー駆動が既定）
+├── design/                     横断的な実装設計
+├── rules/                      開発ルール（開発フロー・禁止事項・コーディング規約・DoD）
 ├── status/                     実装状況・ロードマップ
 ├── api/                        旧 API メモ（初期の検討記録）
 ├── ER図.drawio                 ER 図（drawio 形式）
@@ -25,9 +30,13 @@ docs/
 └── sec_image.png               アクセス権限設計の図
 ```
 
-## spec/ — 仕様書 v0.3（正典）
+`spec/`（単数）が製品仕様書、`specs/`（複数）が作業単位の spec です。
 
-Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ごとに分割したものです。**原本の記述は改変していません。** 仕様の解釈で迷ったらここが正典です。
+## spec/ — 仕様書 v0.3（現時点の基準文書）
+
+Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ごとに分割したものです。**原本の記述は改変していません。**
+
+> ⚠️ **チームで合意した確定仕様ではありません。** 既存資料（パンフレット原稿・企画資料・ER図・UIフロー・プロトタイプ動画）からの推測で組み立てた文書です。記述の出どころを示すタグ（【資料由来】【合意方針】【設計提案】【要検討】）で信頼度を判断してください。詳しくは [spec/README.md](spec/README.md) の「この文書の位置づけ」。
 
 → [章一覧は spec/README.md](spec/README.md)
 
@@ -43,6 +52,8 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 
 仕様書の方針を、実際のファイル・パス・コードへ落とし込んだ文書です。仕様書 [付録C](spec/92-appendix-c-next-documents.md)「詳細設計へ進む際に追加する文書」に対応します。
 
+> ⚠️ **これらは仕様書 v0.3 をさらに推測で具体化したものです。** Firestore の物理パス、Security Rules の実コード、Rule Engine の閾値などは仕様書に無かった判断を含みます。**仕様書 → design → イシューの三段で推測が重なっており、下の層ほど根拠が弱い**と思ってください。特に AI 判定の閾値は全て暫定値で、根拠はありません（指導者ヒアリング後に確定する前提）。
+
 | 文書 | 内容 | 主な読者 |
 | --- | --- | --- |
 | [architecture.md](design/architecture.md) | システム構成、処理配置方針、技術スタック、ディレクトリ構成、既知のアーキテクチャ課題 | 全員 |
@@ -52,6 +63,29 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 | [ai-style-similarity.md](design/ai-style-similarity.md) | Motion Encoder の選定観点、Embedding 設計、類似度の扱い、検証計画、縮退案 | AI 担当 |
 | [api-functions.md](design/api-functions.md) | FN-01〜FN-07 の request/response 定義、Firestore トリガ、エラーコード対応 | バックエンド担当 |
 | [screens.md](design/screens.md) | U-01〜U-10 / R-01〜R-08 と実装ファイルの対応、ナビゲーション構成、入力制約 | フロントエンド担当 |
+
+## rules/ — 開発ルール
+
+エージェント向けのルールブックです。ルート [../AGENTS.md](../AGENTS.md) から参照されています。
+
+> **このディレクトリだけ英語で書かれています。** AIへの指示ファイルは英語、人間が読むドキュメントは日本語という方針です（[../AGENTS.md](../AGENTS.md) の "Language policy"）。内容は日本語で読みたい場合、各ファイルの構成は日本語版と同じなので見出しから追えます。
+
+| 文書 | 内容 |
+| --- | --- |
+| [rules/workflow.md](rules/workflow.md) | **開発フロー。** 既定はイシュー駆動。spec を切る 3 条件、EARS 記法 |
+| [rules/safety.md](rules/safety.md) | 安全境界・禁止事項。3 段階の使い分け、Rules を緩める変更の扱い、権限判定、秘密情報、破壊的操作 |
+| [rules/coding.md](rules/coding.md) | コーディング規約。TypeScript、ディレクトリ責務、Firestore 命名、Expo の注意点 |
+| [rules/definition-of-done.md](rules/definition-of-done.md) | 完了の定義。フェーズ別 DoD と報告のルール |
+
+## specs/ — 機能単位の spec
+
+⚠️ **既定はイシュー駆動なので、普段ここに spec を作る必要はありません。** 複数イシューをまたぐ判断が必要なときだけ作ります。→ [specs/README.md](specs/README.md)
+
+| spec | 内容 | 状態 |
+| --- | --- | --- |
+| [001-hand-height-realtime](specs/001-hand-height-realtime/requirements.md) | カメラ → 姿勢推定 → RULE-01 手の高さ判定 → リアルタイム表示（Prototype 1） | requirements 承認済み |
+
+雛形は [specs/TEMPLATE/](specs/TEMPLATE/) にあります。
 
 ## status/ — 実装状況
 
@@ -81,9 +115,15 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 
 ## 文書の更新ルール
 
+言語は「AIへの指示ファイルは英語、人間が読むドキュメントは日本語」です（[../AGENTS.md](../AGENTS.md) の "Language policy"）。`rules/` だけ英語、それ以外の `docs/` 配下は日本語です。
+
 | 対象 | 更新方法 |
 | --- | --- |
 | `spec/` | **直接編集しない。** 仕様変更は Word 原本を v0.4 として更新し、再分割する |
 | `design/` | 実装で決定した事項（TBD の解決を含む）を随時追記する。イシューの受け入れ条件に「設計文書へ記録」を含めている |
+| `specs/` | 普段は作らない（イシュー駆動が既定）。作る場合はフェーズごとに承認を得る |
+| `rules/` | 人間の承認を得てから変更する。ルート `AGENTS.md` の要約も併せて更新する |
 | `status/gap-analysis.md` | マイルストーン完了時に見直す |
 | `status/roadmap.md` | イシューの追加・完了時に更新する |
+
+詳細は [AGENTS.md](AGENTS.md)（このディレクトリ用）を参照してください。

@@ -42,5 +42,21 @@ service cloud.firestore {
         allow update: if false;
       }
     }
+
+    // Users: プロフィール。本人のみ読み書き可能。
+    // 💡 #39でコレクション名をlowercaseのusersに統一する予定。
+    match /Users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // chats: チャットIDが "小さいUID_大きいUID" の形式であることを前提に、
+    // 当事者2人のみ読み書き可能とする。
+    match /chats/{chatId}/messages/{messageId} {
+      allow read: if request.auth != null && request.auth.uid in chatId.split('_');
+      allow create: if request.auth != null
+                    && request.auth.uid in chatId.split('_')
+                    && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if false;
+    }
   }
 }

@@ -13,8 +13,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebase/firebaseConfig";
-import { db } from "../../firebase/firebaseConfig";
+import { auth, db } from "../config/firebaseConfig";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");

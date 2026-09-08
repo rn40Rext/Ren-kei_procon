@@ -5,9 +5,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-// ⚠️ Firebaseのパスが2種類あったため、環境に合わせて適宜修正してください
-// もしエラーが出る場合は "../config/firebaseConfig" か "../../firebase/firebaseConfig" のどちらかに直してください
-import { auth } from "../config/firebaseConfig"; 
+import { auth } from "../config/firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
 const COLORS = {

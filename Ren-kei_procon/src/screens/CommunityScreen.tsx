@@ -11,25 +11,25 @@ import { Video, ResizeMode } from 'expo-av';
 
 // Firebase設定
 import { db, storage, auth } from '../config/firebaseConfig';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, increment, runTransaction } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
 
-interface VideoPost {
-  id: string; authorName: string; authorId: string; title: string; videoUrl: string; 
-  score: number; likes: number; commentsCount: number; tags: string[]; createdAt: any;
+interface Post {
+  id: string; authorName: string; authorId: string; title: string; videoUrl: string;
+  score: number; likeCount: number; commentCount: number; tags: string[]; createdAt: any;
 }
 
-interface CommentData { id: string; userName: string; text: string; type: 'advice' | 'comment'; }
+interface CommentData { id: string; userId: string; userName: string; text: string; type: 'instructor' | 'normal'; }
 
 export default function CommunityScreen() {
   const navigation = useNavigation<any>(); // 💡 型エラー回避のため any
-  const [videos, setVideos] = useState<VideoPost[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVideo, setSelectedVideo] = useState<VideoPost | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [selectedTagFilter, setSelectedTagFilter] = useState('すべて');
 
@@ -40,9 +40,9 @@ export default function CommunityScreen() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (s) => {
-      setVideos(s.docs.map(d => ({ id: d.id, ...d.data() } as VideoPost)));
+      setPosts(s.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
       setLoading(false);
     });
   }, []);
@@ -67,15 +67,15 @@ export default function CommunityScreen() {
       const authorName = currentUser?.email?.split('@')[0] || "匿名踊り子";
       const authorId = currentUser?.uid || "";
 
-      await addDoc(collection(db, 'videos'), {
+      await addDoc(collection(db, 'posts'), {
         title: postTitle,
         authorName: authorName,
         authorId: authorId, // 💡 これにより連絡が可能になる
         videoUrl: url,
         tags: postTags,
         score: Math.floor(Math.random() * 20) + 80,
-        likes: 0,
-        commentsCount: 0,
+        likeCount: 0,
+        commentCount: 0,
         createdAt: serverTimestamp(),
       });
       setIsPostModalOpen(false);
@@ -85,10 +85,10 @@ export default function CommunityScreen() {
     finally { setIsUploading(false); }
   };
 
-  const filteredVideos = selectedTagFilter === 'すべて' ? videos : videos.filter(v => v.tags?.includes(selectedTagFilter));
+  const filteredPosts = selectedTagFilter === 'すべて' ? posts : posts.filter(p => p.tags?.includes(selectedTagFilter));
 
-  if (selectedVideo) {
-    return <VideoDetailScreen video={selectedVideo} onBack={() => setSelectedVideo(null)} />;
+  if (selectedPost) {
+    return <PostDetailScreen post={selectedPost} onBack={() => setSelectedPost(null)} />;
   }
 
   return (
@@ -131,24 +131,24 @@ export default function CommunityScreen() {
         </ScrollView>
 
         <View style={styles.grid}>
-          {loading ? <ActivityIndicator style={{marginTop: 50}}/> : filteredVideos.map(v => (
-            <TouchableOpacity key={v.id} style={styles.card} onPress={() => setSelectedVideo(v)}>
+          {loading ? <ActivityIndicator style={{marginTop: 50}}/> : filteredPosts.map(p => (
+            <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)}>
               <View style={styles.cardMain}>
                 <View style={styles.thumbWrapper}>
-                  <Video style={StyleSheet.absoluteFill} source={{uri: v.videoUrl}} resizeMode={ResizeMode.COVER} shouldPlay={false} />
-                  <View style={styles.scoreBadgeMini}><Text style={styles.scoreValueMini}>AI {v.score}点</Text></View>
+                  <Video style={StyleSheet.absoluteFill} source={{uri: p.videoUrl}} resizeMode={ResizeMode.COVER} shouldPlay={false} />
+                  <View style={styles.scoreBadgeMini}><Text style={styles.scoreValueMini}>AI {p.score}点</Text></View>
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle}>{v.title}</Text>
+                  <Text style={styles.cardTitle}>{p.title}</Text>
                   <View style={styles.authorRow}>
                     <View style={styles.avatarMini}><Text style={styles.avatarTextMini}>阿</Text></View>
-                    <Text style={styles.authorName}>{v.authorName}</Text>
+                    <Text style={styles.authorName}>{p.authorName}</Text>
                   </View>
                 </View>
               </View>
               <View style={styles.cardFooter}>
-                <View style={styles.statItem}><Heart size={16} color="#F43F5E" /><Text style={styles.statText}>{v.likes}</Text></View>
-                <View style={styles.statItem}><MessageSquare size={16} color="#64748B" /><Text style={styles.statText}>{v.commentsCount}</Text></View>
+                <View style={styles.statItem}><Heart size={16} color="#F43F5E" /><Text style={styles.statText}>{p.likeCount}</Text></View>
+                <View style={styles.statItem}><MessageSquare size={16} color="#64748B" /><Text style={styles.statText}>{p.commentCount}</Text></View>
               </View>
             </TouchableOpacity>
           ))}
@@ -185,63 +185,81 @@ export default function CommunityScreen() {
 }
 
 // --- 詳細画面 ---
-function VideoDetailScreen({ video, onBack }: { video: VideoPost, onBack: () => void }) {
+function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) {
   const navigation = useNavigation<any>();
-  const [tab, setTab] = useState<'advice' | 'comment'>('advice');
+  const [tab, setTab] = useState<'instructor' | 'normal'>('instructor');
   const [text, setText] = useState('');
   const [comments, setComments] = useState<CommentData[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'videos', video.id, 'comments'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'posts', post.id, 'comments'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (s) => setComments(s.docs.map(d => ({ id: d.id, ...d.data() } as CommentData))));
-  }, [video.id]);
+  }, [post.id]);
 
   const onSend = async () => {
     if (!text.trim()) return;
     const currentUser = auth.currentUser;
-    const userName = currentUser?.email?.split('@')[0] || "匿名";
+    if (!currentUser) return;
+    const userName = currentUser.email?.split('@')[0] || "匿名";
 
-    await addDoc(collection(db, 'videos', video.id, 'comments'), {
-      userName, text: text.trim(), type: tab, createdAt: serverTimestamp()
+    await addDoc(collection(db, 'posts', post.id, 'comments'), {
+      userId: currentUser.uid, userName, text: text.trim(), type: tab, createdAt: serverTimestamp()
     });
-    await updateDoc(doc(db, 'videos', video.id), { commentsCount: increment(1) });
+    await updateDoc(doc(db, 'posts', post.id), { commentCount: increment(1) });
     setText('');
+  };
+
+  const onLike = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    const likeRef = doc(db, 'posts', post.id, 'likes', currentUser.uid);
+    const postRef = doc(db, 'posts', post.id);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const likeSnap = await transaction.get(likeRef);
+        if (likeSnap.exists()) return; // 二重いいねを防ぐ
+        transaction.set(likeRef, { createdAt: serverTimestamp() });
+        transaction.update(postRef, { likeCount: increment(1) });
+      });
+    } catch (e) {
+      Alert.alert("失敗", "拍手の送信に失敗しました");
+    }
   };
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
       <View style={styles.detailHeader}>
         <TouchableOpacity onPress={onBack} style={{flexDirection:'row', alignItems:'center'}}><ChevronLeft color="#2563EB" size={30} /><Text style={{color:'#2563EB', fontWeight:'bold'}}>戻る</Text></TouchableOpacity>
-        <Text style={styles.detailNavTitle} numberOfLines={1}>{video.title}</Text>
+        <Text style={styles.detailNavTitle} numberOfLines={1}>{post.title}</Text>
       </View>
-      
+
       <ScrollView stickyHeaderIndices={[2]}>
-        <View style={styles.detailVideoBox}><Video style={styles.detailFullVideo} source={{uri: video.videoUrl}} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping /></View>
+        <View style={styles.detailVideoBox}><Video style={styles.detailFullVideo} source={{uri: post.videoUrl}} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping /></View>
 
         <View style={styles.metaSection}>
-          <View style={styles.scoreBadgeLarge}><Award size={20} color="#FACC15" /><Text style={styles.scoreTextLarge}>AI採点 {video.score}点</Text></View>
-          
+          <View style={styles.scoreBadgeLarge}><Award size={20} color="#FACC15" /><Text style={styles.scoreTextLarge}>AI採点 {post.score}点</Text></View>
+
           {/* 💡 目標4: 踊り子の名前をタップしてプロフィール画面へ飛ぶ */}
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('UserProfile', { 
-                userId: video.authorId, 
-                userName: video.authorName 
+          <TouchableOpacity
+            onPress={() => navigation.navigate('UserProfile', {
+                userId: post.authorId,
+                userName: post.authorName
             })}
             style={styles.authorProfileBtn}
           >
             <User size={18} color="#2563EB" />
-            <Text style={styles.detailAuthorTextClick}>踊り子：{video.authorName} のプロフィールを見る ＞</Text>
+            <Text style={styles.detailAuthorTextClick}>踊り子：{post.authorName} のプロフィールを見る ＞</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.clapBtn} onPress={async () => await updateDoc(doc(db, 'videos', video.id), { likes: increment(1) })}>
+          <TouchableOpacity style={styles.clapBtn} onPress={onLike}>
             <Heart size={20} color="#E11D48" fill="#E11D48" />
-            <Text style={styles.clapBtnText}>拍手を送る ({video.likes})</Text>
+            <Text style={styles.clapBtnText}>拍手を送る ({post.likeCount})</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.tabBar}>
-          <TouchableOpacity style={[styles.tabItem, tab === 'advice' && styles.tabActive]} onPress={() => setTab('advice')}><Text style={[styles.tabLabel, tab === 'advice' && styles.tabLabelActive]}>師匠の教え</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.tabItem, tab === 'comment' && styles.tabActive]} onPress={() => setTab('comment')}><Text style={[styles.tabLabel, tab === 'comment' && styles.tabLabelActive]}>門下生の声</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.tabItem, tab === 'instructor' && styles.tabActive]} onPress={() => setTab('instructor')}><Text style={[styles.tabLabel, tab === 'instructor' && styles.tabLabelActive]}>師匠の教え</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.tabItem, tab === 'normal' && styles.tabActive]} onPress={() => setTab('normal')}><Text style={[styles.tabLabel, tab === 'normal' && styles.tabLabelActive]}>門下生の声</Text></TouchableOpacity>
         </View>
 
         <View style={styles.commentContainer}>

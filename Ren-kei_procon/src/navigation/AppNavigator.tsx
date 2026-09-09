@@ -3,11 +3,13 @@ import { View, ActivityIndicator } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
+import { colors } from "../theme";
 
 // 画面のインポート
 import LoginScreen from "../screens/LoginScreen";
-import HomeScreen from "../screens/HomeScreen"; // 💡 追加
-import CommunityScreen from "../screens/CommunityScreen";
+import HomeScreen from "../screens/HomeScreen";
+import VideoDetailScreen from "../screens/VideoDetailScreen"; // 稽古録・師匠の教え
+import ChallengeDetailScreen from "../screens/ChallengeDetailScreen"; // 先輩からのチャレンジ
 import MypageScreen from "../screens/MypageScreen";
 import ScoringScreen from "../screens/ScoringScreen";
 import GroupScreen from "../screens/GroupScreen";
@@ -22,8 +24,9 @@ import ChatScreen from "../screens/ChatScreen";
 
 export type RootStackParamList = {
   Login: undefined;
-  Home: undefined; // 💡 ホームを追加
-  Community: undefined;
+  Home: undefined;
+  VideoDetail: { id?: string };
+  Challenge: { id?: string };
   Mypage: undefined;
   Scoring: undefined;
   VideoList: undefined;
@@ -33,8 +36,8 @@ export type RootStackParamList = {
   Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole" };
   Result: undefined;
   Request: undefined;
-  UserProfile: { userId: string; userName: string }; // 💡 追加
-  Chat: { chatId: string; recipientName: string };   // 💡 追加
+  UserProfile: { userId: string; userName: string };
+  Chat: { chatId: string; recipientName: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -53,8 +56,8 @@ export default function AppNavigator() {
 
   if (initializing) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#2563EB" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.indigoDeep }}>
+        <ActivityIndicator size="large" color={colors.gold} />
       </View>
     );
   }
@@ -62,10 +65,10 @@ export default function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        // 💡 ログイン後に最初に表示されるのは「Home」になります
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Community" component={CommunityScreen} />
+          <Stack.Screen name="VideoDetail" component={VideoDetailScreen} />
+          <Stack.Screen name="Challenge" component={ChallengeDetailScreen} />
           <Stack.Screen name="Scoring" component={ScoringScreen} />
           <Stack.Screen name="Mypage" component={MypageScreen} />
 

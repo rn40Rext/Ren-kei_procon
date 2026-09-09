@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Alert,
+  Image,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
 import { signOut } from 'firebase/auth';
@@ -7,21 +17,19 @@ import { auth, db, storage } from '../config/firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
+import { RenMon } from '../components/motifs';
+import { colors, spacing, radius, typography } from '../theme';
 
 type DanceStyle = 'male' | 'female' | null;
 
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-  white: '#FFFFFF',
-  danger: '#EF4444',
-};
+const KEIKO_STATS = [
+  { label: '連続稽古', value: '18', unit: '日' },
+  { label: '総演舞', value: '42', unit: '本' },
+  { label: '獲得段位', value: '三段', unit: '' },
+];
 
 export default function MypageScreen() {
-  // 💡 解決策: useNavigationに <any> を指定することで、すべての遷移エラーを消します
   const navigation = useNavigation<any>();
 
   const [editing, setEditing] = useState(false);
@@ -40,9 +48,9 @@ export default function MypageScreen() {
   const [draftIcon, setDraftIcon] = useState('');
 
   const handleLogout = () => {
-    Alert.alert("ログアウト", "ログアウトしてもよろしいですか？", [
-      { text: "キャンセル", style: "cancel" },
-      { text: "ログアウト", style: "destructive", onPress: () => signOut(auth) }
+    Alert.alert('ログアウト', 'ログアウトしてもよろしいですか？', [
+      { text: 'キャンセル', style: 'cancel' },
+      { text: 'ログアウト', style: 'destructive', onPress: () => signOut(auth) },
     ]);
   };
 
@@ -55,7 +63,12 @@ export default function MypageScreen() {
   };
 
   const pickIcon = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
     if (result.canceled) return;
 
     const user = auth.currentUser;
@@ -80,8 +93,7 @@ export default function MypageScreen() {
 
     setSaving(true);
     try {
-      // 💡 role/uid/createdAtは送らない(firestore.rulesでも保護されているが、
-      // クライアント側から意図せず含めないようにする)
+      // role/uid/createdAt は送らない（firestore.rules でも保護されている）
       await setDoc(
         doc(db, 'users', user.uid),
         {
@@ -91,7 +103,7 @@ export default function MypageScreen() {
           icon: draftIcon,
           updatedAt: serverTimestamp(),
         },
-        { merge: true }
+        { merge: true },
       );
 
       setNickname(draftNickname.trim());
@@ -129,31 +141,36 @@ export default function MypageScreen() {
     fetchProfile();
   }, []);
 
-  const displayName = nickname || auth.currentUser?.email?.split('@')[0] || 'ユーザー名を設定';
+  const displayName = nickname || auth.currentUser?.email?.split('@')[0] || '踊り名を定める';
+  const shownIcon = editing ? draftIcon : icon;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>マイページ</Text>
+        <View style={{ width: 38 }} />
+        <Text style={styles.headerTitle}>稽古手帳</Text>
+        <AppMenu />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
           <TouchableOpacity
-            style={styles.avatarLarge}
-            onPress={editing ? pickIcon : undefined}
-            disabled={!editing}
+            style={styles.avatarWrap}
+            onPress={editing ? pickIcon : startEditing}
+            activeOpacity={0.85}
           >
-            {(editing ? draftIcon : icon) ? (
-              <Image source={{ uri: editing ? draftIcon : icon }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarTextLarge}>阿</Text>
-            )}
-            {editing && (
+            <RenMon size={78} color={colors.gold}>
+              {shownIcon ? (
+                <Image source={{ uri: shownIcon }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarChar}>{(nickname || '阿').slice(0, 1)}</Text>
+              )}
+            </RenMon>
+            {editing ? (
               <View style={styles.avatarEditBadge}>
-                <Camera size={14} color="#fff" />
+                <Camera size={13} color={colors.textOnGold} />
               </View>
-            )}
+            ) : null}
           </TouchableOpacity>
 
           {editing ? (
@@ -162,47 +179,41 @@ export default function MypageScreen() {
                 style={styles.nameInput}
                 value={draftNickname}
                 onChangeText={setDraftNickname}
-                placeholder="ニックネーム"
+                placeholder="踊り名"
+                placeholderTextColor={colors.textMuted}
               />
-
               <TextInput
                 style={styles.profileInput}
                 value={draftProfile}
                 onChangeText={setDraftProfile}
-                placeholder="自己紹介"
+                placeholder="自己紹介・稽古への思い"
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
-
               <View style={styles.danceStyleRow}>
                 <TouchableOpacity
                   style={[styles.danceStyleBtn, draftDanceStyle === 'male' && styles.danceStyleBtnActive]}
                   onPress={() => setDraftDanceStyle('male')}
                 >
-                  <Text style={[styles.danceStyleText, draftDanceStyle === 'male' && styles.danceStyleTextActive]}>男踊り</Text>
+                  <Text style={[styles.danceStyleText, draftDanceStyle === 'male' && styles.danceStyleTextActive]}>
+                    男踊り
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.danceStyleBtn, draftDanceStyle === 'female' && styles.danceStyleBtnActive]}
                   onPress={() => setDraftDanceStyle('female')}
                 >
-                  <Text style={[styles.danceStyleText, draftDanceStyle === 'female' && styles.danceStyleTextActive]}>女踊り</Text>
+                  <Text style={[styles.danceStyleText, draftDanceStyle === 'female' && styles.danceStyleTextActive]}>
+                    女踊り
+                  </Text>
                 </TouchableOpacity>
               </View>
-
               <View style={styles.nameButtonRow}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setEditing(false)}
-                  disabled={saving}
-                >
-                  <Text>キャンセル</Text>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setEditing(false)} disabled={saving}>
+                  <Text style={styles.cancelButtonText}>やめる</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.saveButton}
-                  onPress={handleSaveProfile}
-                  disabled={saving}
-                >
-                  <Text style={styles.saveButtonText}>{saving ? '保存中...' : '保存'}</Text>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={saving}>
+                  <Text style={styles.saveButtonText}>{saving ? '保存中…' : '改める'}</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -210,176 +221,214 @@ export default function MypageScreen() {
             <TouchableOpacity onPress={startEditing}>
               <Text style={styles.userName}>{displayName}</Text>
               {profile ? <Text style={styles.profileText}>{profile}</Text> : null}
-              <Text style={styles.editText}>タップして変更</Text>
+              <Text style={styles.editText}>
+                {danceStyle === 'male' ? '男踊り' : danceStyle === 'female' ? '女踊り' : '傘連・阿波徳島　新進'}　▸ タップして改める
+              </Text>
             </TouchableOpacity>
           )}
+
+          {!editing ? (
+            <View style={styles.statRow}>
+              {KEIKO_STATS.map((s, i) => (
+                <View key={s.label} style={[styles.statItem, i > 0 && styles.statDivider]}>
+                  <Text style={styles.statValue}>
+                    {s.value}
+                    {s.unit ? <Text style={styles.statUnit}>{s.unit}</Text> : null}
+                  </Text>
+                  <Text style={styles.statLabel}>{s.label}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>アクティビティ</Text>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('VideoList')}
-          >
+          <Text style={styles.sectionLabel}>稽古の記録</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('VideoList')}>
             <View style={styles.menuLeft}>
-              <Video size={20} color={COLORS.primary} />
-              <Text style={styles.menuText}>自分の練習動画一覧</Text>
+              <Video size={19} color={colors.gold} />
+              <Text style={styles.menuText}>自分の演舞・稽古録</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Group')}>
             <View style={styles.menuLeft}>
-              <Users size={20} color={COLORS.primary} />
-              <Text style={styles.menuText}>所属グループ・連の設定</Text>
+              <Users size={19} color={colors.gold} />
+              <Text style={styles.menuText}>所属連・役職の設定</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>サポート & 設定</Text>
-
+          <Text style={styles.sectionLabel}>サポート・設定</Text>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ContactInfo')}>
             <View style={styles.menuLeft}>
-              <Mail size={20} color={COLORS.textMuted} />
+              <Mail size={19} color={colors.textSecondary} />
               <Text style={styles.menuText}>お問い合わせ</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Setting')}>
             <View style={styles.menuLeft}>
-              <Settings size={20} color={COLORS.textMuted} />
+              <Settings size={19} color={colors.textSecondary} />
               <Text style={styles.menuText}>アプリ設定</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuLeft}>
-              <ShieldCheck size={20} color={COLORS.textMuted} />
+              <ShieldCheck size={19} color={colors.textSecondary} />
               <Text style={styles.menuText}>プライバシーポリシー</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color={COLORS.danger} />
+          <LogOut size={19} color={colors.danger} />
           <Text style={styles.logoutText}>ログアウト</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 32 }} />
       </ScrollView>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderColor: COLORS.border },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: {
+    height: 56,
+    backgroundColor: colors.indigoDeep,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
   content: { flex: 1 },
-  profileSection: { alignItems: 'center', padding: 30, backgroundColor: '#fff', marginBottom: 10 },
-  avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
-  avatarImage: { width: '100%', height: '100%' },
-  avatarTextLarge: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
-  avatarEditBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: COLORS.primary, borderRadius: 10, padding: 4, borderWidth: 2, borderColor: '#fff' },
-  userName: { fontSize: 20, fontWeight: 'bold', color: COLORS.textMain, textAlign: 'center' },
-  userSub: { fontSize: 14, color: COLORS.textMuted, marginTop: 5 },
-  profileText: { fontSize: 13, color: COLORS.textMuted, marginTop: 8, textAlign: 'center' },
-  section: { backgroundColor: '#fff', marginBottom: 10, paddingVertical: 10 },
-  sectionLabel: { fontSize: 12, fontWeight: 'bold', color: COLORS.textMuted, marginLeft: 20, marginBottom: 10, textTransform: 'uppercase' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: '#F1F5F9' },
+
+  profileSection: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.xl,
+    backgroundColor: colors.indigo,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  avatarWrap: { marginBottom: spacing.md },
+  avatarImage: { width: 60, height: 60, borderRadius: radius.pill },
+  avatarChar: { color: colors.gold, fontSize: 30, fontFamily: typography.titleSerif.fontFamily, fontWeight: '700' },
+  avatarEditBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.gold,
+    borderRadius: radius.pill,
+    padding: 5,
+    borderWidth: 2,
+    borderColor: colors.indigo,
+  },
+  userName: { ...typography.titleSerif, color: colors.textPrimary, textAlign: 'center' },
+  profileText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
+  editText: { textAlign: 'center', ...typography.caption, color: colors.textMuted, marginTop: 4 },
+
+  statRow: { flexDirection: 'row', marginTop: spacing.xl, justifyContent: 'center' },
+  statItem: { alignItems: 'center', paddingHorizontal: spacing.lg },
+  statDivider: { borderLeftWidth: 1, borderLeftColor: colors.indigoLine },
+  statValue: { ...typography.titleSerif, color: colors.gold, fontSize: 18 },
+  statUnit: { ...typography.caption, color: colors.textMuted },
+  statLabel: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+
+  section: {
+    backgroundColor: colors.indigo,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  sectionLabel: {
+    ...typography.sectionLabel,
+    color: colors.gold,
+    marginLeft: spacing.lg,
+    marginVertical: spacing.sm,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.indigoLine,
+  },
   menuLeft: { flexDirection: 'row', alignItems: 'center' },
-  menuText: { fontSize: 16, color: COLORS.textMain, marginLeft: 15 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: 15, marginTop: 10 },
-  logoutText: { color: COLORS.danger, fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+  menuText: { ...typography.body, fontSize: 14, color: colors.textPrimary, marginLeft: spacing.md },
+
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.indigo,
+    paddingVertical: spacing.lg,
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  logoutText: { color: colors.danger, ...typography.button, marginLeft: spacing.sm },
 
   nameInput: {
-    width: '80%',
+    minWidth: 220,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderColor: colors.gold,
+    backgroundColor: colors.indigoRaised,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     textAlign: 'center',
-    fontSize: 18,
+    fontSize: 17,
+    color: colors.textPrimary,
   },
-
   profileInput: {
-    width: '80%',
+    minWidth: 260,
+    minHeight: 64,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 10,
-    minHeight: 60,
+    borderColor: colors.indigoLine,
+    backgroundColor: colors.indigoRaised,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.sm,
     textAlignVertical: 'top',
-    fontSize: 14,
+    color: colors.textPrimary,
+    ...typography.body,
   },
-
-  danceStyleRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    gap: 10,
-  },
-
+  danceStyleRow: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
   danceStyleBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.indigoLine,
+    backgroundColor: colors.indigoRaised,
   },
+  danceStyleBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+  danceStyleText: { ...typography.caption, color: colors.textSecondary },
+  danceStyleTextActive: { color: colors.textOnGold, fontWeight: '700' },
 
-  danceStyleBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-
-  danceStyleText: {
-    color: COLORS.textMain,
-    fontSize: 13,
-  },
-
-  danceStyleTextActive: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-
-  nameButtonRow: {
-    flexDirection: 'row',
-    marginTop: 15,
-    gap: 10,
-  },
-
-  cancelButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-  },
-
+  nameButtonRow: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.md },
+  cancelButton: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  cancelButtonText: { ...typography.button, color: colors.textSecondary },
   saveButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 8,
+    backgroundColor: colors.gold,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sm,
   },
-
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-
-  editText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: COLORS.textMuted,
-    marginTop: 8,
-  },
+  saveButtonText: { color: colors.textOnGold, ...typography.button },
 });

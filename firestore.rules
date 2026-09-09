@@ -8,9 +8,18 @@ service cloud.firestore {
       allow read: if request.auth != null
                   && (resource.data.userId == request.auth.uid
                       || resource.data.visibility == 'public');
+      // 作成時はvisibility=private・analysisStatus=uploaded固定。
       allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.visibility == 'private'
+                    && request.resource.data.analysisStatus == 'uploaded';
+      // visibility/analysisStatusはクライアントから変更不可
+      // (publishPost/FN-01はAdmin SDK経由でRulesを通らないため別枠)。
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['userId', 'visibility', 'analysisStatus']);
+      allow delete: if request.auth != null
                     && resource.data.userId == request.auth.uid;
     }
 

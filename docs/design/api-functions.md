@@ -368,5 +368,5 @@ firebase deploy --only functions
 ```
 
 - `setGlobalOptions({ maxInstances: 10 })` はコスト制御のため維持します。
-- リージョンは Firestore の `nam5` に合わせるか、レイテンシ重視で `asia-northeast1` にするかを決める必要があります（**未決定**。ユーザーが日本国内のみであれば `asia-northeast1` を推奨。ただし Firestore が `nam5` にあるため、Functions ↔ Firestore 間の往復が増える点とのトレードオフ）。
+- **リージョン（N-4）: `asia-northeast1` に決定**（2026-09-09、`functions/src/index.ts` の `setGlobalOptions` で設定済み）。ユーザーが日本国内のみであることを優先し、クライアント ↔ Functions 間のレイテンシを削減する側を選びました。Firestore（`nam5`）との往復増はトレードオフとして許容します。現状の各関数（`publishPost`）は Firestore 操作が1回程度と少なく、影響は小さいと判断しています。関数内で Firestore 操作が多段になる場合（例: `ren` 関連のトランザクション）は改めて見直しを検討してください。クライアント側は `src/config/firebaseConfig.ts` の `getFunctions(app, "asia-northeast1")` で合わせています。
 - Cloud Run（Motion Encoder）との役割分担は TBD-12。

@@ -187,7 +187,7 @@
 | N-1 | 1 対 1 チャット（仕様書外の実装）を正式機能にするか、`joinRequests` + 通知へ統合するか | 未割当。v0.4 での要件化を推奨 |
 | N-2 | 「指導リクエスト」（`HomeScreen` のメニュー、仕様書に無い）の位置づけ | [#27](../../../issues/27) |
 | N-3 | 連管理者に見せる投稿の範囲（自連メンバーのみ / 全公開投稿） | [#30](../../../issues/30) |
-| N-4 | Cloud Functions のリージョン（Firestore は `nam5`、ユーザーは日本国内） | [#46](../../../issues/46) |
+| N-4 | Cloud Functions のリージョン（Firestore は `nam5`、ユーザーは日本国内） | ✅ **`asia-northeast1` に決定**（[#46](../../../issues/46)、詳細は [api-functions.md 6章](../design/api-functions.md#6-デプロイと運用)） |
 | N-5 | `isRenAdmin()` の `get()` 消費を Custom Claims へ移行するか | [#29](../../../issues/29) |
 | N-6 | 既存 Firestore データを移行するか破棄して作り直すか | [#39](../../../issues/39) |
 | N-7 | 成長曲線のグラフライブラリ選定（Expo 互換性） | [#37](../../../issues/37) |

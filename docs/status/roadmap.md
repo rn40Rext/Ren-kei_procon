@@ -170,7 +170,7 @@
 | TBD-04 | リズムの基準 BPM と音源の扱い | [#19](../../../issues/19) | 未決定 |
 | TBD-05 | Analysis Score の項目重み | [#20](../../../issues/20) | 未決定（初期は単純平均） |
 | TBD-06 | ゲームスコア/コンボの点数設計 | [#16](../../../issues/16) | 暫定値あり |
-| TBD-07 | 練習動画を常に保存するか任意保存か | [#41](../../../issues/41) | 未決定 |
+| TBD-07 | 練習動画を常に保存するか任意保存か | [#13](../../../issues/13)〜（練習動画アップロード実装時） | 未決定。#41はRulesの受け皿のみ用意し、判断は保留した（[api-functions.md](../design/api-functions.md)・[data-model.md 3.2章](../design/data-model.md#32-videosvideoid)参照） |
 | TBD-08 | Motion Encoder の最終モデル選定 | [#22](../../../issues/22) | 未決定 |
 | TBD-09 | Embedding の保存形式・ベクトル検索基盤 | [#23](../../../issues/23) | Firestore 直接保存で暫定決定 |
 | TBD-10 | 類似度の % 表示スケーリング | [#25](../../../issues/25) | 未決定（min-max 再スケーリング推奨） |

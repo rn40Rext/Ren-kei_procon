@@ -5,8 +5,9 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
-import { auth } from "../config/firebaseConfig";
+import { auth, db } from "../config/firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const COLORS = {
   primary: '#2563EB',
@@ -37,7 +38,22 @@ export default function LoginScreen() {
         // --- 🔵 新規登録を実行 ---
         const result = await createUserWithEmailAndPassword(auth, email, password);
         console.log("新規登録成功:", result.user.email);
-        
+
+        // 💡 #39: usersドキュメントをrole: 'user'で作成する
+        // (roleはクライアントから変更不可。firestore.rulesで保護)
+        await setDoc(doc(db, "users", result.user.uid), {
+          uid: result.user.uid,
+          name: result.user.email?.split("@")[0] || "",
+          nickname: "",
+          mail: result.user.email || "",
+          icon: "",
+          profile: "",
+          danceStyle: null,
+          role: "user",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
         Alert.alert(
           "登録完了", 
           `${result.user.email} でアカウントを作成しました！`,

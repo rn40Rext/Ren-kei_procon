@@ -222,6 +222,18 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 - `videos.userId == uid` かつ `analysisStatus == 'completed'` → 満たさなければ `POST_VIDEO_NOT_PUBLICABLE`
 - `title` 1〜100 文字、`description` 0〜1000 文字、`tags` は既定リストのみ許可
 
+> #### 実装との差分（2026-09-09時点・縮小版で実装）
+>
+> `videos` コレクションへの書き込み経路と FN-01（AI 採点確定）が未実装のため、上記どおりには実装できない（渡せる `videoId` が存在しない）。チームで確認のうえ、次の縮小版を先行実装した。
+>
+> - **Request**: `videoId` を受け取らず、代わりにクライアントが Storage へアップロード済みの `videoUrl` と `authorName` を直接渡す（`{ title, description?, tags?, videoUrl, authorName }`）
+> - **videoId / analysisStatus の検証は行わない**（対象の `videos` ドキュメントが存在しないため）
+> - `videos.visibility` の更新、`downloadUrl` の発行は行わない（`videoUrl` はクライアントがアップロード時に取得した URL をそのまま使う）
+> - スコアは AI 採点（FN-01）が未実装のため、Functions 側で暫定的にモック値（`Math.random()` ベース）を発行する。クライアントから直接指定はできない
+> - 満たしている点: `title`/`description`/`tags` の検証、`likeCount`/`commentCount` の 0 初期化、クライアントによる `posts` への直接書き込み禁止（Firestore Rules で `posts.create` を拒否し Cloud Functions 経由に限定）
+>
+> FN-01・#41（`videos.visibility`/`analysisStatus` 導入）の実装後、本来の設計（`videoId` ベース・トランザクション化・`downloadUrl` 発行）に置き換える。
+
 ---
 
 ### FN-04 `submitJoinRequest`

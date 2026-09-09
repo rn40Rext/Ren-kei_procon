@@ -10,9 +10,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 
 // Firebase設定
-import { db, storage, auth } from '../config/firebaseConfig';
+import { db, storage, auth, functions } from '../config/firebaseConfig';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, increment, runTransaction } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
@@ -62,21 +63,18 @@ export default function CommunityScreen() {
       await uploadBytes(storageRef, blob);
       const url = await getDownloadURL(storageRef);
 
-      // 💡 目標3: ログイン中のユーザーID (userId) を一緒に保存する
+      // 💡 目標3: ログイン中のユーザー名をpublishPostに渡す
       const currentUser = auth.currentUser;
       const authorName = currentUser?.email?.split('@')[0] || "匿名踊り子";
-      const userId = currentUser?.uid || "";
 
-      await addDoc(collection(db, 'posts'), {
+      // スコア・カウンタの初期化はクライアントで改ざんできないよう
+      // Cloud Functions(publishPost)側で行う
+      const publishPost = httpsCallable(functions, 'publishPost');
+      await publishPost({
         title: postTitle,
-        authorName: authorName,
-        userId: userId, // 💡 これにより連絡が可能になる
+        authorName,
         videoUrl: url,
         tags: postTags,
-        score: Math.floor(Math.random() * 20) + 80,
-        likeCount: 0,
-        commentCount: 0,
-        createdAt: serverTimestamp(),
       });
       setIsPostModalOpen(false);
       setPostTitle(''); setPostVideoUri(null); setPostTags([]);

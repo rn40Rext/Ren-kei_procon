@@ -17,8 +17,9 @@ service cloud.firestore {
     // posts: 交流広場に公開された投稿
     match /posts/{postId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
+      // 作成はpublishPost(Cloud Functions/Admin SDK)経由のみ。
+      // Admin SDKはRulesを経由しないため、クライアントからは常に拒否する。
+      allow create: if false;
       // 投稿者本人は全フィールド更新可。他の認証済みユーザーは
       // いいね・コメント機能によるカウンタ更新のみ許可。
       allow update: if request.auth != null

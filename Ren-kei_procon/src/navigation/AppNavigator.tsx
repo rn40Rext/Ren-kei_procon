@@ -14,6 +14,11 @@ import GroupScreen from "../screens/GroupScreen";
 import VideoListScreen from "../screens/VideoListScreen";
 import ConatctInfoScreen from '../screens/ContactInfoScreen';
 import SettingScreen from "../screens/SettingScreen";
+import CameraScreen from "../screens/CameraScreen";
+import ResultScreen from "../screens/ResultScreen";
+import RequestScreen from "../screens/RequestScreen";
+import UserProfileScreen from "../screens/UserProfileScreen";
+import ChatScreen from "../screens/ChatScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -25,7 +30,10 @@ export type RootStackParamList = {
   ContactInfo: undefined;
   Setting: undefined;
   Group: undefined;
-   UserProfile: { userId: string; userName: string }; // 💡 追加
+  Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole" };
+  Result: undefined;
+  Request: undefined;
+  UserProfile: { userId: string; userName: string }; // 💡 追加
   Chat: { chatId: string; recipientName: string };   // 💡 追加
 };
 
@@ -65,6 +73,11 @@ export default function AppNavigator() {
           <Stack.Screen name="Group" component={GroupScreen} />
           <Stack.Screen name="ContactInfo" component={ConatctInfoScreen} />
           <Stack.Screen name="Setting" component={SettingScreen} />
+          <Stack.Screen name="Camera" component={CameraScreen} />
+          <Stack.Screen name="Result" component={ResultScreen} />
+          <Stack.Screen name="Request" component={RequestScreen} />
+          <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+          <Stack.Screen name="Chat" component={ChatScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

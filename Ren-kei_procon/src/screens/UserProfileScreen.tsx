@@ -6,6 +6,7 @@ import { auth } from '../config/firebaseConfig';
 export default function UserProfileScreen({ route, navigation }: any) {
   const { userId, userName } = route.params;
   const currentUser = auth.currentUser;
+  const isSelf = currentUser?.uid === userId;
 
   const startChat = (isScout: boolean) => {
     // チャットIDを作成 (小さいUID _ 大きいUID)
@@ -29,17 +30,21 @@ export default function UserProfileScreen({ route, navigation }: any) {
         <Text style={styles.name}>{userName}</Text>
         <Text style={styles.team}>所属：徳島連</Text>
         
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.msgBtn} onPress={() => startChat(false)}>
-            <MessageCircle color="#fff" size={20} />
-            <Text style={styles.btnText}>メッセージを送る</Text>
-          </TouchableOpacity>
+        {isSelf ? (
+          <Text style={styles.selfNote}>これはあなた自身のプロフィールです</Text>
+        ) : (
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.msgBtn} onPress={() => startChat(false)}>
+              <MessageCircle color="#fff" size={20} />
+              <Text style={styles.btnText}>メッセージを送る</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.msgBtn, {backgroundColor: '#10B981'}]} onPress={() => startChat(true)}>
-            <UserPlus color="#fff" size={20} />
-            <Text style={styles.btnText}>連に勧誘する</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity style={[styles.msgBtn, {backgroundColor: '#10B981'}]} onPress={() => startChat(true)}>
+              <UserPlus color="#fff" size={20} />
+              <Text style={styles.btnText}>連に勧誘する</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -54,6 +59,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: 'bold' },
   team: { color: '#64748B', marginTop: 5 },
   actions: { marginTop: 30, width: '100%' },
+  selfNote: { marginTop: 30, color: '#94A3B8', fontSize: 13 },
   msgBtn: { backgroundColor: '#2563EB', flexDirection: 'row', padding: 15, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   btnText: { color: '#fff', fontWeight: 'bold', marginLeft: 10 }
 });

@@ -1,4 +1,5 @@
-import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
+import {CallableRequest} from "firebase-functions/v2/https";
+import {ErrorCode, httpsErrorFor} from "./errors";
 
 /**
  * 認証済みユーザーのuidを返す。未認証ならUNAUTHORIZEDを投げる。
@@ -7,7 +8,7 @@ import {CallableRequest, HttpsError} from "firebase-functions/v2/https";
  */
 export function requireAuth(request: CallableRequest): string {
   if (!request.auth?.uid) {
-    throw new HttpsError("unauthenticated", "UNAUTHORIZED");
+    throw httpsErrorFor(ErrorCode.UNAUTHORIZED);
   }
   return request.auth.uid;
 }

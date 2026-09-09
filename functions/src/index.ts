@@ -3,10 +3,11 @@ import {setGlobalOptions} from "firebase-functions";
 
 initializeApp();
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit.
-setGlobalOptions({maxInstances: 10});
+// リージョンはasia-northeast1(東京)。ユーザーは日本国内のみのため、
+// クライアント↔Functions間のレイテンシを優先する
+// (Firestoreはnam5だが、現状の各関数はDB操作が少なく往復増の影響は
+// 小さい。docs/design/api-functions.md 6章のN-4を参照)。
+// maxInstancesはコスト制御のため維持する。
+setGlobalOptions({region: "asia-northeast1", maxInstances: 10});
 
 export {publishPost} from "./community/publishPost";

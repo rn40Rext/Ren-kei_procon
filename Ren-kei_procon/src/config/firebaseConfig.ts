@@ -18,6 +18,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app);
+// Cloud Functions側(functions/src/index.ts)のリージョン設定と合わせる
+export const functions = getFunctions(app, "asia-northeast1");
 
 export default app;

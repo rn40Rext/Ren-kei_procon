@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck } from 'lucide-react-native';
+import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
 import { signOut } from 'firebase/auth';
-import { auth, db } from '../config/firebaseConfig';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db, storage } from '../config/firebaseConfig';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import * as ImagePicker from 'expo-image-picker';
 import BottomNav from '../components/BottomNav';
 
+type DanceStyle = 'male' | 'female' | null;
 
 const COLORS = {
   primary: '#2563EB',
@@ -21,9 +24,20 @@ export default function MypageScreen() {
   // 💡 解決策: useNavigationに <any> を指定することで、すべての遷移エラーを消します
   const navigation = useNavigation<any>();
 
-  const [userName, setUserName] = useState('');
-  const [editingName, setEditingName] = useState(false);
-  const [inputName, setInputName] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // users/{uid} のフィールド
+  const [nickname, setNickname] = useState('');
+  const [profile, setProfile] = useState('');
+  const [danceStyle, setDanceStyle] = useState<DanceStyle>(null);
+  const [icon, setIcon] = useState('');
+
+  // 編集中の下書き
+  const [draftNickname, setDraftNickname] = useState('');
+  const [draftProfile, setDraftProfile] = useState('');
+  const [draftDanceStyle, setDraftDanceStyle] = useState<DanceStyle>(null);
+  const [draftIcon, setDraftIcon] = useState('');
 
   const handleLogout = () => {
     Alert.alert("ログアウト", "ログアウトしてもよろしいですか？", [
@@ -32,53 +46,90 @@ export default function MypageScreen() {
     ]);
   };
 
-  const handleSaveUserName = async () => {
-    const user = auth.currentUser;
+  const startEditing = () => {
+    setDraftNickname(nickname);
+    setDraftProfile(profile);
+    setDraftDanceStyle(danceStyle);
+    setDraftIcon(icon);
+    setEditing(true);
+  };
 
+  const pickIcon = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
+    if (result.canceled) return;
+
+    const user = auth.currentUser;
     if (!user) return;
 
-    if (!inputName.trim()) {
-      Alert.alert('エラー', 'ユーザー名を入力してください');
-      return;
-    }
-
     try {
+      const res = await fetch(result.assets[0].uri);
+      const blob = await res.blob();
+      const iconRef = ref(storage, `users/${user.uid}/icon/${Date.now()}.jpg`);
+      await uploadBytes(iconRef, blob);
+      const url = await getDownloadURL(iconRef);
+      setDraftIcon(url);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('エラー', 'アイコンのアップロードに失敗しました');
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    setSaving(true);
+    try {
+      // 💡 role/uid/createdAtは送らない(firestore.rulesでも保護されているが、
+      // クライアント側から意図せず含めないようにする)
       await setDoc(
-        doc(db, 'Users', user.uid),
+        doc(db, 'users', user.uid),
         {
-          userName: inputName.trim(),
+          nickname: draftNickname.trim(),
+          profile: draftProfile.trim(),
+          danceStyle: draftDanceStyle,
+          icon: draftIcon,
+          updatedAt: serverTimestamp(),
         },
         { merge: true }
       );
 
-      setUserName(inputName.trim());
-      setEditingName(false);
+      setNickname(draftNickname.trim());
+      setProfile(draftProfile.trim());
+      setDanceStyle(draftDanceStyle);
+      setIcon(draftIcon);
+      setEditing(false);
 
-      Alert.alert('完了', 'ユーザー名を変更しました');
+      Alert.alert('完了', 'プロフィールを変更しました');
     } catch (error) {
       console.error(error);
-      Alert.alert('エラー', 'ユーザー名の保存に失敗しました');
+      Alert.alert('エラー', 'プロフィールの保存に失敗しました');
+    } finally {
+      setSaving(false);
     }
   };
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    const fetchProfile = async () => {
       const user = auth.currentUser;
-
       if (!user) return;
 
-      const userRef = doc(db, 'Users', user.uid);
+      const userRef = doc(db, 'users', user.uid);
       const userSnap = await getDoc(userRef);
 
       if (userSnap.exists()) {
-        const name = userSnap.data().userName || '';
-        setUserName(name);
-        setInputName(name);
+        const data = userSnap.data();
+        setNickname(data.nickname || '');
+        setProfile(data.profile || '');
+        setDanceStyle(data.danceStyle ?? null);
+        setIcon(data.icon || '');
       }
     };
 
-    fetchUserName();
+    fetchProfile();
   }, []);
+
+  const displayName = nickname || auth.currentUser?.email?.split('@')[0] || 'ユーザー名を設定';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -88,46 +139,78 @@ export default function MypageScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.profileSection}>
-          <View style={styles.avatarLarge}>
-            <Text style={styles.avatarTextLarge}>阿</Text>
-          </View>
-          {editingName ? (
+          <TouchableOpacity
+            style={styles.avatarLarge}
+            onPress={editing ? pickIcon : undefined}
+            disabled={!editing}
+          >
+            {(editing ? draftIcon : icon) ? (
+              <Image source={{ uri: editing ? draftIcon : icon }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarTextLarge}>阿</Text>
+            )}
+            {editing && (
+              <View style={styles.avatarEditBadge}>
+                <Camera size={14} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {editing ? (
             <>
               <TextInput
                 style={styles.nameInput}
-                value={inputName}
-                onChangeText={setInputName}
-                placeholder="ユーザー名"
+                value={draftNickname}
+                onChangeText={setDraftNickname}
+                placeholder="ニックネーム"
               />
+
+              <TextInput
+                style={styles.profileInput}
+                value={draftProfile}
+                onChangeText={setDraftProfile}
+                placeholder="自己紹介"
+                multiline
+              />
+
+              <View style={styles.danceStyleRow}>
+                <TouchableOpacity
+                  style={[styles.danceStyleBtn, draftDanceStyle === 'male' && styles.danceStyleBtnActive]}
+                  onPress={() => setDraftDanceStyle('male')}
+                >
+                  <Text style={[styles.danceStyleText, draftDanceStyle === 'male' && styles.danceStyleTextActive]}>男踊り</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.danceStyleBtn, draftDanceStyle === 'female' && styles.danceStyleBtnActive]}
+                  onPress={() => setDraftDanceStyle('female')}
+                >
+                  <Text style={[styles.danceStyleText, draftDanceStyle === 'female' && styles.danceStyleTextActive]}>女踊り</Text>
+                </TouchableOpacity>
+              </View>
 
               <View style={styles.nameButtonRow}>
                 <TouchableOpacity
                   style={styles.cancelButton}
-                  onPress={() => {
-                    setInputName(userName);
-                    setEditingName(false);
-                  }}
+                  onPress={() => setEditing(false)}
+                  disabled={saving}
                 >
                   <Text>キャンセル</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.saveButton}
-                  onPress={handleSaveUserName}
+                  onPress={handleSaveProfile}
+                  disabled={saving}
                 >
-                  <Text style={styles.saveButtonText}>保存</Text>
+                  <Text style={styles.saveButtonText}>{saving ? '保存中...' : '保存'}</Text>
                 </TouchableOpacity>
               </View>
             </>
           ) : (
-            <TouchableOpacity onPress={() => setEditingName(true)}>
-              <Text style={styles.userName}>
-                {userName || 'ユーザー名を設定'}
-              </Text>
-
-              <Text style={styles.editText}>
-                タップして変更
-              </Text>
+            <TouchableOpacity onPress={startEditing}>
+              <Text style={styles.userName}>{displayName}</Text>
+              {profile ? <Text style={styles.profileText}>{profile}</Text> : null}
+              <Text style={styles.editText}>タップして変更</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -202,10 +285,13 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
   content: { flex: 1 },
   profileSection: { alignItems: 'center', padding: 30, backgroundColor: '#fff', marginBottom: 10 },
-  avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%' },
   avatarTextLarge: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
-  userName: { fontSize: 20, fontWeight: 'bold', color: COLORS.textMain },
+  avatarEditBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: COLORS.primary, borderRadius: 10, padding: 4, borderWidth: 2, borderColor: '#fff' },
+  userName: { fontSize: 20, fontWeight: 'bold', color: COLORS.textMain, textAlign: 'center' },
   userSub: { fontSize: 14, color: COLORS.textMuted, marginTop: 5 },
+  profileText: { fontSize: 13, color: COLORS.textMuted, marginTop: 8, textAlign: 'center' },
   section: { backgroundColor: '#fff', marginBottom: 10, paddingVertical: 10 },
   sectionLabel: { fontSize: 12, fontWeight: 'bold', color: COLORS.textMuted, marginLeft: 20, marginBottom: 10, textTransform: 'uppercase' },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: '#F1F5F9' },
@@ -225,9 +311,51 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 
-  nameButtonRow: {
+  profileInput: {
+    width: '80%',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 10,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    fontSize: 14,
+  },
+
+  danceStyleRow: {
     flexDirection: 'row',
     marginTop: 10,
+    gap: 10,
+  },
+
+  danceStyleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  danceStyleBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+
+  danceStyleText: {
+    color: COLORS.textMain,
+    fontSize: 13,
+  },
+
+  danceStyleTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  nameButtonRow: {
+    flexDirection: 'row',
+    marginTop: 15,
     gap: 10,
   },
 
@@ -252,6 +380,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     color: COLORS.textMuted,
-    marginTop: 4,
+    marginTop: 8,
   },
 });

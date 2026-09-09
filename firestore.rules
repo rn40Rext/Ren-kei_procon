@@ -46,10 +46,18 @@ service cloud.firestore {
       }
     }
 
-    // Users: プロフィール。本人のみ読み書き可能。
-    // 💡 #39でコレクション名をlowercaseのusersに統一する予定。
-    match /Users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // users: プロフィール。本人のみ読み書き可能。
+    // roleは自己昇格防止のため、createではroleが'user'固定、
+    // updateではrole/uid/createdAtが変更差分に含まれないことを検証する
+    // (仕様書10.3)。
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && request.resource.data.role == 'user';
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['role', 'uid', 'createdAt']);
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // chats: チャットIDが "小さいUID_大きいUID" の形式であることを前提に、

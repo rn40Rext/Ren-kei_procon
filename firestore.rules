@@ -147,6 +147,16 @@ service cloud.firestore {
       }
     }
 
+    // membersのcollectionGroupクエリ(#29 useAdminRens)用。上のネストした
+    // match /ren/{renId}/members/{uid} のread許可は、そのパス単位のget/list
+    // にのみ適用され、collectionGroupクエリには適用されない(Firestoreの
+    // 仕様。https://firebase.google.com/docs/firestore/security/rules-structure#collection-group)。
+    // そのためread専用に再帰ワイルドカードで別途許可する(create/update/deleteは
+    // 上のブロックのまま)。
+    match /{path=**}/members/{uid} {
+      allow read: if isSignedIn();
+    }
+
     // joinRequests: 申請者は取消のみ、連管理者は承認・却下のみ(状態遷移を検証)。
     match /joinRequests/{requestId} {
       allow read: if isSignedIn()

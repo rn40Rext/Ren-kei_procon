@@ -369,6 +369,14 @@ functions/test/rules/            または  tests/rules/
 firebase emulators:exec --only firestore,storage "npm run test:rules"
 ```
 
+### #26・#27 実装時の差分（2026-09-10時点）
+
+- `ren/{renId}` の `create` を、本章 3 章の CRUD 表（「認証済み」）から **`false` に変更**した。連本体の作成と、作成者を `role: 'admin'` のメンバーとして登録する処理をアトミックに行うため `createRen`（Cloud Functions、#26 で新設）に一本化したため。`members` の `create` は元々 `false`（このドキュメントの当初案通り）。
+- `joinRequests/{id}` の `create` も、本章 3 章の CRUD 表（「self（`status == 'pending'` 固定）」）から **`false` に変更**した。重複 pending 申請・既存メンバーの再申請チェックは複数ドキュメントにまたがる検証で Rules では表現できないため、`submitJoinRequest`（Cloud Functions、#27 で実装）に一本化した。
+- `submitJoinRequest` は FN-04 の設計（`docs/design/api-functions.md`）通りだが、「対象連の管理者へ通知を作成」は `notifications` 機能自体が未実装（#43）のため見送った。
+
+エミュレータ（Firestore + Functions + Auth）で `createRen`・`submitJoinRequest` の実際の呼び出しを確認済み（連作成＋管理者登録、重複 pending 申請の拒否、既存メンバーの再申請拒否、入力バリデーション）。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

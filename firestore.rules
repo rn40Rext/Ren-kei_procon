@@ -151,9 +151,10 @@ service cloud.firestore {
     match /joinRequests/{requestId} {
       allow read: if isSignedIn()
                   && (resource.data.userId == request.auth.uid || isRenAdmin(resource.data.renId));
-      allow create: if isSignedIn()
-                    && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.status == 'pending';
+      // 作成はsubmitJoinRequest(Cloud Functions/Admin SDK)経由のみ。
+      // 重複pending申請・既存メンバーの再申請チェックは複数ドキュメント
+      // にまたがるためRulesでは表現できず、関数側で検証する(#27)。
+      allow create: if false;
       allow update: if isSignedIn()
                     && ((resource.data.userId == request.auth.uid
                           && resource.data.status == 'pending'

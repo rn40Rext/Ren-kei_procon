@@ -84,8 +84,8 @@ export default function HomeScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#FEFCE8' }]}>
                 <ClipboardList color={COLORS.gold} size={28} />
               </View>
-              <Text style={styles.menuLabel}>指導リクエスト</Text>
-              <Text style={styles.menuSub}>師匠に教えを乞う</Text>
+              <Text style={styles.menuLabel}>連を探す</Text>
+              <Text style={styles.menuSub}>参加を申請する</Text>
               <View style={styles.newBadge}><Text style={styles.newBadgeText}>新機能</Text></View>
             </TouchableOpacity>
 

@@ -46,10 +46,18 @@ export default function RequestScreen() {
 
   useEffect(() => {
     const q = query(collection(db, 'ren'), orderBy('name'));
-    return onSnapshot(q, (snap) => {
-      setRens(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ren)));
-      setLoading(false);
-    });
+    return onSnapshot(
+      q,
+      (snap) => {
+        setRens(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ren)));
+        setLoading(false);
+      },
+      (error) => {
+        console.error('連一覧の取得に失敗しました', error);
+        setLoading(false);
+        Alert.alert('エラー', '連一覧の取得に失敗しました。時間をおいて再度お試しください');
+      }
+    );
   }, []);
 
   useEffect(() => {
@@ -63,9 +71,21 @@ export default function RequestScreen() {
       where('userId', '==', currentUser.uid),
       orderBy('createdAt', 'desc')
     );
-    return onSnapshot(q, (snap) => {
-      setMyRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() } as JoinRequest)));
-    });
+    return onSnapshot(
+      q,
+      (snap) => {
+        setMyRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() } as JoinRequest)));
+      },
+      (error) => {
+        // 複合インデックスがデプロイ直後で構築中の場合など、一時的に
+        // 失敗することがある。エラーを可視化し、再読み込みを促す。
+        console.error('申請履歴の取得に失敗しました', error);
+        Alert.alert(
+          'エラー',
+          '申請履歴の取得に失敗しました。時間をおいて画面を開き直してください'
+        );
+      }
+    );
   }, []);
 
   const filteredRens = rens.filter((r) => {

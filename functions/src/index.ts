@@ -11,3 +11,7 @@ initializeApp();
 setGlobalOptions({region: "asia-northeast1", maxInstances: 10});
 
 export {publishPost} from "./community/publishPost";
+export {onLikeWrite} from "./triggers/onLikeWrite";
+export {onCommentWrite} from "./triggers/onCommentWrite";
+export {onMemberWrite} from "./triggers/onMemberWrite";
+export {onVideoDeleted} from "./triggers/onVideoDeleted";

@@ -40,12 +40,13 @@ service cloud.firestore {
       // 作成はpublishPost(Cloud Functions/Admin SDK)経由のみ。
       // Admin SDKはRulesを経由しないため、クライアントからは常に拒否する。
       allow create: if false;
-      // 投稿者本人は全フィールド更新可。他の認証済みユーザーは
-      // いいね・コメント機能によるカウンタ更新のみ許可。
+      // 投稿者本人のみ更新可。likeCount/commentCountは#48のCloud
+      // Functionsトリガ(count()集計、Admin SDK経由でRulesを通らない)
+      // のみが更新するため、投稿者本人でもクライアントからは変更不可。
       allow update: if request.auth != null
-                    && (resource.data.userId == request.auth.uid
-                        || request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['likeCount', 'commentCount']));
+                    && resource.data.userId == request.auth.uid
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['userId', 'likeCount', 'commentCount']);
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
 
       match /comments/{commentId} {

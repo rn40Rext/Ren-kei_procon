@@ -346,6 +346,9 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 
 `increment()` ではなく **`count()` 集約クエリで再集計**します。トリガの重複実行（at-least-once 配信）でカウンタがずれるのを防ぐためです。
 
+> #### 実装状況（2026-09-10・#48）
+> 上表のうち `onLikeWrite` / `onCommentWrite` / `onMemberWrite`（`status=='active'` のみ集計） / `onVideoDeleted`（Storage削除は冪等）を `functions/src/triggers/` に実装済み。`onDocumentCreated('posts/{postId}/comments/{id}')` による通知作成は、`notifications` 機能自体が未実装（#43）のため対象外。`ren`/`videos` へのアプリからの書き込みがまだ無いため、`onMemberWrite`/`onVideoDeleted` は現状休眠中。エミュレータで各トリガの発火・カウント・冪等性を確認済み。
+
 ## 5. Firestore 直接 CRUD にするもの（仕様書 11.2）
 
 Functions を経由せず、Security Rules だけで守る操作です。

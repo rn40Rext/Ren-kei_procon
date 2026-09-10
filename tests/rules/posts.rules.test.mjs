@@ -27,24 +27,29 @@ test("posts.createはクライアントから常に拒否される(publishPost�
 });
 
 test(
-  "[本設計の追加分] 投稿者以外はlikeCountと一緒に他フィールドを更新できない",
-  { skip: false },
+  "[本設計の追加分・#48実装により本来の形にした] 投稿者以外がposts.likeCountをupdateできない",
   async () => {
-    // 現状はlikeCount/commentCountのみを対象に、暫定的にどの認証済み
-    // ユーザーにも更新を許可している(#48でCloud Functionsトリガに
-    // 置き換えるまでの既知の暫定対応。docs/design/security-rules.md
-    // 「1.5 実装との既知の差分」参照)。そのため「投稿者以外はlikeCount
-    // を一切updateできない」という文字通りの検証はできないが、実際に
-    // 効いている境界(他フィールドとの同時更新はできない)を検証する。
+    // #48(カウンタ同期トリガ)実装前は、いいね機能のためlikeCount/
+    // commentCountをどの認証済みユーザーにも更新可能にしていた
+    // (docs/design/security-rules.md「1.5 実装との既知の差分」)。
+    // トリガ導入により、likeCountはCloud Functions(Admin SDK経由、
+    // Rulesを通らない)のみが更新する形に締めた。
     const bob = testEnv.authenticatedContext("bob").firestore();
     await assertFails(
-      bob.doc("posts/p1").set({ likeCount: 1, title: "乗っ取り" }, { merge: true })
-    );
-    await assertSucceeds(
       bob.doc("posts/p1").set({ likeCount: 1 }, { merge: true })
     );
   }
 );
+
+test("[#48実装後] 投稿者本人もlikeCount/commentCountを直接updateできない", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertFails(
+    alice.doc("posts/p1").set({ likeCount: 1 }, { merge: true })
+  );
+  await assertFails(
+    alice.doc("posts/p1").set({ commentCount: 1 }, { merge: true })
+  );
+});
 
 test("投稿者本人は全フィールドを更新できる", async () => {
   const alice = testEnv.authenticatedContext("alice").firestore();

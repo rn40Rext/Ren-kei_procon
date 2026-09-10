@@ -38,6 +38,15 @@ test("[仕様書15.2] ren_adminは別の連のデータを更新できない", a
   await assertFails(alice.doc("ren/r2").set({ name: "乗っ取り" }, { merge: true }));
 });
 
+test("[#26] renはクライアントから直接createできない(createRen経由のみ)", async () => {
+  const carol = testEnv.authenticatedContext("carol").firestore();
+  await assertFails(
+    carol.doc("ren/r3").set({
+      name: "連3", createdBy: "carol", memberCount: 1, createdAt: new Date(), updatedAt: new Date(),
+    })
+  );
+});
+
 test("membersはクライアントから直接createできない(FN-05/system経由)", async () => {
   const carol = testEnv.authenticatedContext("carol").firestore();
   await assertFails(

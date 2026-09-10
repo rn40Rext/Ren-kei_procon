@@ -120,10 +120,12 @@ service cloud.firestore {
       allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
-    // ren: 作成者が自動でadminになる想定(members作成は通常FN-05/system経由)。
+    // ren: 作成はcreateRen(Cloud Functions/Admin SDK)経由のみ。
+    // ren本体とmembers(作成者をadminにする)を1つのトランザクションで
+    // 書き込むため、クライアントからの直接createは常に拒否する(#26)。
     match /ren/{renId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow create: if false;
       allow update: if isRenAdmin(renId)
                     && !request.resource.data.diff(resource.data).affectedKeys()
                           .hasAny(['createdBy', 'memberCount', 'createdAt']);
@@ -131,7 +133,7 @@ service cloud.firestore {
 
       match /members/{uid} {
         allow read: if isSignedIn();
-        allow create: if false; // FN-05(参加承認)経由。Admin SDKはRulesを通らない
+        allow create: if false; // createRen(作成者登録)・FN-05(参加承認)経由。Admin SDKはRulesを通らない
         allow update: if isRenAdmin(renId);
         allow delete: if isRenAdmin(renId) || (isSignedIn() && request.auth.uid == uid); // 本人の脱退は許可
       }

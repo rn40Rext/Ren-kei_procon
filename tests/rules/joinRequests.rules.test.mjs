@@ -22,9 +22,9 @@ beforeEach(async () => {
   });
 });
 
-test("本人はpendingで申請を作成できる", async () => {
+test("[#27] joinRequestsはクライアントから直接createできない(submitJoinRequest経由のみ)", async () => {
   const carol = testEnv.authenticatedContext("carol").firestore();
-  await assertSucceeds(
+  await assertFails(
     carol.doc("joinRequests/jr2").set({
       userId: "carol", renId: "r1", status: "pending", createdAt: new Date(), updatedAt: new Date(),
     })

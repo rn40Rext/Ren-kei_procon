@@ -385,6 +385,18 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 エミュレータ（Firestore Admin SDK）で `requireRenAdmin()` 相当のロジックと `collectionGroup` クエリの絞り込み（admin かつ active のみ）を確認済み。
 
+**マージ後の追記**: 実機で `useAdminRens()` が `Missing or insufficient permissions` になる不具合が発生した。原因は、ネストしたパス指定ルール（`match /ren/{renId}/members/{uid}`）は通常の `get`/`list` には適用されるが **`collectionGroup` クエリには適用されない**という Firestore の仕様（Admin SDK 経由のエミュレータ検証では Rules 自体を経由しないため見逃していた）。再帰ワイルドカード（`match /{path=**}/members/{uid}`）で read 専用のルールを別途追加して解消した（詳細は 4 章の `members` のルールを参照）。
+
+### #32 実装時の差分（2026-09-10時点）
+
+- FN-05 `updateJoinRequestStatus`（`functions/src/ren/updateJoinRequestStatus.ts`）は本章冒頭のガード方針通り `requireRenAdmin(uid, renId)` を使う。`joinRequests.status` の更新・`members` 作成・通知作成を1つのトランザクションで行う。
+- `notifications`（`users/{uid}/notifications/{notificationId}`）へ書き込む処理は本関数が**リポジトリで初めて**実装した。フィールド定義は `docs/design/data-model.md` に個別の定義が無く、`docs/spec/09-data-design.md` §9.3 の Notifications 定義（`userId`/`type`/`referenceId`/`title`/`body`/`read`/`createdAt`）をそのまま採用した。
+- `joinRequests.update` の Rules を、連管理者による直接 `approved`/`rejected` への更新を許可する分岐ごと削除し、`false`寄りに強化した（申請者本人の `pending→cancelled` のみ残す）。承認・却下を `updateJoinRequestStatus` 経由に一本化し、`members` 作成・通知作成との同期性が Rules 側の直接 update で崩れないようにするため（3章 CRUD 表・`tests/rules/joinRequests.rules.test.mjs` を更新）。
+- `firestore.indexes.json` に `joinRequests(renId, status, createdAt)` の複合インデックス（本issueの受け入れ条件）と、申請者の投稿動画一覧表示用に `posts(userId, createdAt)` の複合インデックスを追加した。
+- Functions のリージョン（`asia-northeast1`）と Firestore のロケーション（`nam5`）が異なる点について、本関数はトランザクション内で読み取り2回（`joinRequests`・`ren`）＋書き込み最大3回（`joinRequests`・`members`・`notifications`）を行うマルチステップな処理であり、`docs/design/api-functions.md` 6章 N-4 が「見直しを検討」と留保していたケースに該当する。今回はリージョン変更のような大きな決定は行わず、実装のみ先行させた。エミュレータでの実測では体感できる遅延は無かったが、本番でのレイテンシ悪化が疑われた場合は改めてチームでリージョン方針を見直すこと。
+
+エミュレータ（Firestore + Functions + Auth）で `updateJoinRequestStatus` の実際の呼び出しを確認済み（承認時の `members` 作成・通知作成・トランザクション、却下時の通知のみ作成、`pending` 以外への再承認拒否(`INVALID_STATUS_TRANSITION`)、他連の管理者による操作拒否、非管理者による操作拒否）。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

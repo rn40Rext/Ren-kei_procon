@@ -13,6 +13,7 @@ setGlobalOptions({region: "asia-northeast1", maxInstances: 10});
 export {publishPost} from "./community/publishPost";
 export {createRen} from "./ren/createRen";
 export {submitJoinRequest} from "./ren/submitJoinRequest";
+export {updateJoinRequestStatus} from "./ren/updateJoinRequestStatus";
 export {onLikeWrite} from "./triggers/onLikeWrite";
 export {onCommentWrite} from "./triggers/onCommentWrite";
 export {onMemberWrite} from "./triggers/onMemberWrite";

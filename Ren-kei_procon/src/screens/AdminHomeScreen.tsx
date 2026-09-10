@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
-import { ClipboardList, Bell, Video, ChevronLeft } from 'lucide-react-native';
+import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../config/firebaseConfig';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -87,13 +87,17 @@ export default function AdminHomeScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.renName}>{selectedRen.name}</Text>
 
-        <View style={styles.statCard}>
+        <TouchableOpacity
+          style={styles.statCard}
+          onPress={() => navigation.navigate('ManageJoinRequests', { renId: selectedRen.renId })}
+        >
           <ClipboardList size={22} color={COLORS.primary} />
-          <View style={{ marginLeft: 12 }}>
+          <View style={{ marginLeft: 12, flex: 1 }}>
             <Text style={styles.statValue}>{pendingCount}件</Text>
             <Text style={styles.statLabel}>未対応の参加リクエスト</Text>
           </View>
-        </View>
+          <ChevronRight size={20} color="#CBD5E1" />
+        </TouchableOpacity>
 
         <View style={styles.pendingCard}>
           <View style={styles.pendingRow}>
@@ -107,8 +111,23 @@ export default function AdminHomeScreen() {
         </View>
 
         <Text style={styles.sectionLabel}>管理メニュー</Text>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ManageJoinRequests', { renId: selectedRen.renId })}
+        >
+          <ClipboardList size={20} color={COLORS.primary} />
+          <Text style={styles.menuItemText}>参加リクエスト管理</Text>
+          <ChevronRight size={18} color="#CBD5E1" />
+        </TouchableOpacity>
         <View style={styles.menuPlaceholder}>
-          <Text style={styles.menuPlaceholderText}>参加リクエスト管理・メンバー管理・お知らせなどの管理画面は準備中です</Text>
+          <View style={styles.pendingRow}>
+            <Users size={18} color={COLORS.textMuted} />
+            <Text style={styles.pendingText}>メンバー管理は準備中です</Text>
+          </View>
+          <View style={styles.pendingRow}>
+            <Megaphone size={18} color={COLORS.textMuted} />
+            <Text style={styles.pendingText}>お知らせ・活動情報の管理は準備中です</Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -135,8 +154,9 @@ const styles = StyleSheet.create({
   pendingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   pendingText: { marginLeft: 10, fontSize: 13, color: COLORS.textMuted },
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  menuItemText: { flex: 1, marginLeft: 12, fontSize: 14, fontWeight: 'bold', color: COLORS.textMain },
   menuPlaceholder: { backgroundColor: '#F1F5F9', borderRadius: 14, padding: 18 },
-  menuPlaceholderText: { fontSize: 13, color: COLORS.textMuted, lineHeight: 20 },
   emptyWrap: { flex: 1, padding: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
   backBtnText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 4 },

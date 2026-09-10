@@ -20,6 +20,7 @@ import RequestScreen from "../screens/RequestScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import ChatScreen from "../screens/ChatScreen";
 import AdminHomeScreen from "../screens/AdminHomeScreen";
+import ManageJoinRequestsScreen from "../screens/ManageJoinRequestsScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -37,6 +38,7 @@ export type RootStackParamList = {
   UserProfile: { userId: string; userName: string }; // 💡 追加
   Chat: { chatId: string; recipientName: string };   // 💡 追加
   AdminHome: undefined;
+  ManageJoinRequests: { renId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -81,6 +83,7 @@ export default function AppNavigator() {
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
+          <Stack.Screen name="ManageJoinRequests" component={ManageJoinRequestsScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

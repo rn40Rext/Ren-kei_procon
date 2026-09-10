@@ -45,9 +45,23 @@ test("申請者はpending→cancelledにはできる", async () => {
   );
 });
 
-test("[正常系] 連管理者は自連のjoinRequestsをapprovedへupdateできる", async () => {
+test("[#32] 連管理者でもjoinRequestsをクライアントから直接approvedにはできない(updateJoinRequestStatus経由のみ)", async () => {
   const alice = testEnv.authenticatedContext("alice").firestore();
-  await assertSucceeds(
+  await assertFails(
     alice.doc("joinRequests/jr1").set({ status: "approved" }, { merge: true })
+  );
+});
+
+test("[#32] 連管理者でもjoinRequestsをクライアントから直接rejectedにはできない(updateJoinRequestStatus経由のみ)", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertFails(
+    alice.doc("joinRequests/jr1").set({ status: "rejected" }, { merge: true })
+  );
+});
+
+test("[#32] 他人はjoinRequestsをpending→cancelledにできない", async () => {
+  const carol = testEnv.authenticatedContext("carol").firestore();
+  await assertFails(
+    carol.doc("joinRequests/jr1").set({ status: "cancelled" }, { merge: true })
   );
 });

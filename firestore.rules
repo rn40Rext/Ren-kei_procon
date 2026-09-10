@@ -157,7 +157,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
     }
 
-    // joinRequests: 申請者は取消のみ、連管理者は承認・却下のみ(状態遷移を検証)。
+    // joinRequests: 申請者は取消のみクライアントから直接可能。
+    // 承認・却下はupdateJoinRequestStatus(Cloud Functions/Admin SDK)
+    // 経由のみに一本化する(#32)。members作成・notification作成と
+    // 同一トランザクションで行う必要があり、Rules側の直接updateを
+    // 許すとその同期性が保証できなくなるため。
     match /joinRequests/{requestId} {
       allow read: if isSignedIn()
                   && (resource.data.userId == request.auth.uid || isRenAdmin(resource.data.renId));
@@ -166,12 +170,9 @@ service cloud.firestore {
       // にまたがるためRulesでは表現できず、関数側で検証する(#27)。
       allow create: if false;
       allow update: if isSignedIn()
-                    && ((resource.data.userId == request.auth.uid
-                          && resource.data.status == 'pending'
-                          && request.resource.data.status == 'cancelled')
-                        || (isRenAdmin(resource.data.renId)
-                              && resource.data.status == 'pending'
-                              && request.resource.data.status in ['approved', 'rejected']));
+                    && resource.data.userId == request.auth.uid
+                    && resource.data.status == 'pending'
+                    && request.resource.data.status == 'cancelled';
       allow delete: if false;
     }
 

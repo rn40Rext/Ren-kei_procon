@@ -16,6 +16,23 @@
         { "fieldPath": "role", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "joinRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "renId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

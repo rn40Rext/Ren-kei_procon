@@ -236,6 +236,35 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 
 ---
 
+### FN-03.5 `createRen`（本設計での追加・#26）
+
+仕様書・当初の FN-01〜07 一覧には無いが、[#26](../../issues/26) の実装にあたって新設した。連の作成と、作成者を `role: 'admin'` のメンバーとして登録する処理を 1 つのトランザクションで行う。
+
+**背景**: `firestore.rules` は `ren/{renId}/members/{uid}` の `create` を常に拒否する設計（4章参照。通常は FN-05 の参加承認経由）。連作成自体は当初クライアント直接書き込みを許可していたが、そのままでは**連の作成者が自分自身を管理者として登録する手段が無い**という矛盾があった。連本体の作成もクライアントから拒否に変更し、本関数に一本化することで解消した。
+
+**Request**
+
+```ts
+{ name: string; description?: string; location?: string; iconUrl?: string; beginnerFriendly?: boolean; }
+```
+
+**Response**
+
+```ts
+{ renId: string; }
+```
+
+**副作用**（トランザクション）
+
+1. `ren/{renId}` を作成（`createdBy` = 呼び出しユーザー、`memberCount: 1`）
+2. `ren/{renId}/members/{uid}` を `role: 'admin'`, `status: 'active'` で作成
+
+**検証**: `name` 1〜100 文字、`description` 0〜1000 文字、`location` 0〜100 文字。
+
+エミュレータ（Firestore + Functions + Auth）で実際に呼び出し、`ren`/`members` 両ドキュメントの内容と入力バリデーションを確認済み。
+
+---
+
 ### FN-04 `submitJoinRequest`
 
 **Request**

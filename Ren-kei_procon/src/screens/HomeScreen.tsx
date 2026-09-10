@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Animated,
 } from 'react-native';
-import { X, Search } from 'lucide-react-native';
+import { X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography } from '../theme';
 import { SectionHeader, Badge, Chip, MetricRow } from '../components/ui';
-import { ChochinGarland, SeigaihaBand, RenMon, KumihimoRule, AwaDivider } from '../components/motifs';
+import { ChochinGarland, Noren, SeigaihaBand, RenMon, KumihimoRule, AwaDivider } from '../components/motifs';
 import {
   IconEnbuPlay,
   IconUchiwa,
@@ -43,10 +44,24 @@ import { awaImage } from '../data/awaImages';
 const { width: SCREEN_W } = Dimensions.get('window');
 const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
 
+/** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
+function daysToFestival(): number {
+  const now = new Date();
+  let year = now.getFullYear();
+  let start = new Date(year, 7, 11); // 8月11日
+  if (now.getTime() > new Date(year, 7, 15, 23, 59).getTime()) {
+    start = new Date(year + 1, 7, 11);
+  }
+  return Math.max(0, Math.ceil((start.getTime() - now.getTime()) / 86400000));
+}
+
 export default function HomeScreen({ navigation }: any) {
   const [activeChip, setActiveChip] = useState(filterChips[0]);
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const festivalDays = useMemo(() => daysToFestival(), []);
 
   // ダミー：投稿はローカル state で保持（自分の投稿 + 交流フィード）
   const [feed, setFeed] = useState<FeedPost[]>([...seedMine, ...seedFeed]);
@@ -105,11 +120,12 @@ export default function HomeScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       <ChochinGarland width={SCREEN_W} count={7} height={44} style={styles.topGarland} />
 
-      {/* ヘッダー：アプリ銘・メニューアイコン */}
+      {/* ヘッダー：藍染めの暖簾風。アプリ銘を中央に */}
       <View style={styles.header}>
-        <View style={styles.logoRow}>
+        <View style={styles.headerSide} />
+        <View style={styles.headerCenter}>
           <RenKeiWordmark size={21} />
-          <Text style={styles.logoSub}>阿波・稽古と交流の広場</Text>
+          <Text style={styles.logoSub}>稽古と交流の広場</Text>
         </View>
         <AppMenu>
           <View style={styles.menuFilterHead}>
@@ -129,13 +145,7 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         </AppMenu>
       </View>
-      <SeigaihaBand
-        width={SCREEN_W}
-        height={13}
-        color={colors.gold}
-        opacity={0.4}
-        style={styles.headerBand}
-      />
+      <Noren width={SCREEN_W} height={24} style={styles.noren} />
 
       {/* 演舞の投稿（常に上部に固定） */}
       <TouchableOpacity
@@ -157,7 +167,14 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       ) : null}
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
+      >
         {/* 自分が投稿した演舞 */}
         {heroPost ? (
           <View style={styles.hero}>
@@ -172,11 +189,34 @@ export default function HomeScreen({ navigation }: any) {
                   locations={[0, 0.42, 1]}
                   style={styles.heroImgGrad}
                 >
-                  <ChochinGarland width={SCREEN_W} count={9} height={46} sag={14} style={styles.heroGarland} />
+                  {/* 提灯行列：スクロールでゆっくり動く（パララックス） */}
+                  <Animated.View
+                    style={[
+                      styles.heroGarland,
+                      {
+                        transform: [
+                          {
+                            translateY: scrollY.interpolate({
+                              inputRange: [-HERO_H, 0, HERO_H],
+                              outputRange: [-24, 0, 24],
+                              extrapolate: 'clamp',
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                    pointerEvents="none"
+                  >
+                    <ChochinGarland width={SCREEN_W} count={9} height={46} sag={14} />
+                  </Animated.View>
 
                   <View style={styles.heroEyebrowTop}>
                     <KumihimoRule width={18} />
                     <Text style={styles.heroEyebrowText}>　あなたの直近の投稿</Text>
+                  </View>
+
+                  <View style={styles.countdownChip}>
+                    <Text style={styles.countdownText}>阿波おどり本番まで あと {festivalDays} 日</Text>
                   </View>
 
                   <View style={styles.heroPlayWrap} pointerEvents="none">
@@ -321,7 +361,8 @@ export default function HomeScreen({ navigation }: any) {
           <AwaDivider width={SCREEN_W} style={{ marginTop: spacing.sm }} />
         </View>
 
-        {/* 交流フィード（旧コミュニティを統合） */}
+        {/* 交流フィード（旧コミュニティを統合）— 青海波を敷く */}
+        <SeigaihaBand width={SCREEN_W} height={16} color={colors.gold} opacity={0.28} style={styles.feedWave} />
         <View style={styles.feedHead}>
           <Text style={styles.feedCategory}>連の広場</Text>
           <Text style={styles.feedTitle}>みんなの演舞と門下生の声</Text>
@@ -329,7 +370,7 @@ export default function HomeScreen({ navigation }: any) {
 
         <View style={styles.searchWrap}>
           <View style={styles.searchBar}>
-            <Search size={16} color={colors.textMuted} />
+            <IconUchiwa size={16} color={colors.textMuted} />
             <TextInput
               style={styles.searchInput}
               value={search}
@@ -403,7 +444,7 @@ export default function HomeScreen({ navigation }: any) {
         </View>
 
         <View style={{ height: 32 }} />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* 演舞を披露する（ダミー投稿） */}
       <Modal visible={posting} transparent animationType="slide" onRequestClose={() => setPosting(false)}>
@@ -463,14 +504,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  headerBand: {
-    backgroundColor: colors.indigo,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.indigoLine,
-  },
+  headerSide: { width: 38 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  noren: { backgroundColor: colors.indigoDeep },
   postBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -479,8 +519,19 @@ const styles = StyleSheet.create({
     height: 46,
   },
   postBarText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
-  logoRow: { flex: 1 },
-  logoSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 2 },
+  logoSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 3 },
+
+  countdownChip: {
+    position: 'absolute',
+    top: 62,
+    left: spacing.lg,
+    backgroundColor: colors.akaDeep,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.sm,
+  },
+  countdownText: { ...typography.metric, color: colors.kinari, fontSize: 10 },
+  feedWave: { marginTop: spacing.xs },
   menuPanelLabel: { ...typography.sectionLabel, color: colors.gold },
   menuFilterHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   menuChipWrap: { flexDirection: 'row', flexWrap: 'wrap' },

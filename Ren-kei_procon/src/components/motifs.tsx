@@ -10,6 +10,69 @@ import { colors, fontFamily } from '../theme';
  */
 
 /* ------------------------------------------------------------------ */
+/* 暖簾（のれん）— ヘッダーの下端に垂らす藍染めの布                      */
+/* ------------------------------------------------------------------ */
+export function Noren({
+  width,
+  height = 26,
+  color = colors.indigo,
+  trim = colors.gold,
+  slits = 3,
+  style,
+}: {
+  width: number;
+  height?: number;
+  color?: string;
+  trim?: string;
+  slits?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const gap = 5; // 切れ目の幅
+  const panels = slits + 1;
+  const panelW = (width - gap * slits) / panels;
+  const cut = height * 0.55; // 切れ目の深さ
+  return (
+    <View style={style} pointerEvents="none">
+      <Svg width={width} height={height}>
+        {/* 布本体（下端に切れ目） */}
+        {Array.from({ length: panels }).map((_, i) => {
+          const x = i * (panelW + gap);
+          return <Rect key={i} x={x} y={0} width={panelW} height={height} fill={color} />;
+        })}
+        {/* 上端の吊り棒 */}
+        <Rect x={0} y={0} width={width} height={2} fill={trim} opacity={0.9} />
+        {/* 切れ目の縁を金で締める */}
+        {Array.from({ length: slits }).map((_, i) => {
+          const x = (i + 1) * panelW + i * gap + gap / 2;
+          return (
+            <Line
+              key={i}
+              x1={x}
+              y1={height - cut}
+              x2={x}
+              y2={height}
+              stroke={trim}
+              strokeWidth={0.75}
+              opacity={0.5}
+            />
+          );
+        })}
+        {/* 中央の紋（丸に一つ引き風） */}
+        <Circle cx={width / 2} cy={height / 2 - 1} r={6} fill="none" stroke={trim} strokeWidth={1.1} />
+        <Line
+          x1={width / 2 - 3.5}
+          y1={height / 2 - 1}
+          x2={width / 2 + 3.5}
+          y2={height / 2 - 1}
+          stroke={trim}
+          strokeWidth={1.1}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* 高張提灯                                                            */
 /* ------------------------------------------------------------------ */
 export function Chochin({

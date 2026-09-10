@@ -15,16 +15,16 @@
 
 S-2 は公開前に必ず修正が必要です。
 
-## 1.5. 実装との既知の差分（2026-09-08時点）
+## 1.5. 実装との既知の差分（2026-09-08時点、S-4は2026-09-10に#48で解消）
 
-S-1（#57）とS-2（#50）は本書の内容に沿って先行実装・本番デプロイ済みです。ただしS-4は本書の方針（Cloud Functionsトリガでの同期）とは異なる暫定対応のまま残しています。
+S-1（#57）とS-2（#50）は本書の内容に沿って先行実装・本番デプロイ済みです。S-4も#48実装により本書の方針通りになりました。
 
 | 項目 | 本書の方針 | 現在の実装 | 状態 |
 | --- | --- | --- | --- |
 | `posts` の所有者フィールド名 | `userId` | `userId`（旧実装の `authorId` から統一済み） | 一致 |
-| `posts.likeCount` / `commentCount` の更新 | クライアントから一切触らせず、`likes`/`comments` サブコレクションから Cloud Functions トリガ（`count()` 集計）で同期 | クライアントのトランザクションで `posts/{id}/likes/{uid}` の作成有無を確認してから `increment()` を実行（同一ユーザーの二重加算のみ防止） | **暫定対応**。[#48](../../issues/48)（非正規化カウンタ同期トリガ）実装まではこのまま維持する方針でチーム合意済み |
+| `posts.likeCount` / `commentCount` の更新 | クライアントから一切触らせず、`likes`/`comments` サブコレクションから Cloud Functions トリガ（`count()` 集計）で同期 | `functions/src/triggers/onLikeWrite.ts` / `onCommentWrite.ts` が `count()` 集計で同期。`firestore.rules` の `posts` update は投稿者本人でも `likeCount`/`commentCount` を変更不可 | ✅ **一致**（[#48](../../issues/48)で解消） |
 
-`firestore.rules` の `posts` update ルールも、上記の暫定対応に合わせて「投稿者本人は全フィールド、他の認証済みユーザーは `likeCount`/`commentCount` のみ更新可」としています。#48実装時にはクライアント側の直接更新を廃止し、本書 4章のコード例（`notChanging(['likeCount', 'commentCount'])` で投稿者も含め全クライアントから保護）に合わせて更新してください。
+旧実装（クライアントのトランザクションで `increment()`）は#48で廃止した。`CommunityScreen.tsx` の `onLike`/`onSend` は `likes`/`comments` ドキュメントの作成のみを行い、カウンタの同期はトリガーに一本化している。
 
 ### #40 実装時の差分（2026-09-10時点）
 

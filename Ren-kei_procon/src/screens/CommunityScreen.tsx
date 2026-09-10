@@ -11,7 +11,7 @@ import { Video, ResizeMode } from 'expo-av';
 
 // Firebase設定
 import { db, storage, auth, functions } from '../config/firebaseConfig';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, increment, runTransaction } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
 import BottomNav from '../components/BottomNav';
@@ -200,10 +200,11 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     if (!currentUser) return;
     const userName = currentUser.email?.split('@')[0] || "匿名";
 
+    // 💡 commentCountはCloud Functionsトリガ(onCommentWrite)が
+    // count()集計で自動更新するため、ここでは触らない
     await addDoc(collection(db, 'posts', post.id, 'comments'), {
       userId: currentUser.uid, userName, text: text.trim(), type: tab, createdAt: serverTimestamp()
     });
-    await updateDoc(doc(db, 'posts', post.id), { commentCount: increment(1) });
     setText('');
   };
 
@@ -211,13 +212,13 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     const likeRef = doc(db, 'posts', post.id, 'likes', currentUser.uid);
-    const postRef = doc(db, 'posts', post.id);
     try {
+      // likeCountはCloud Functionsトリガ(onLikeWrite)がcount()集計で
+      // 自動更新するため、ここではlikesドキュメントの作成のみ行う
       await runTransaction(db, async (transaction) => {
         const likeSnap = await transaction.get(likeRef);
         if (likeSnap.exists()) return; // 二重いいねを防ぐ
         transaction.set(likeRef, { userId: currentUser.uid, createdAt: serverTimestamp() });
-        transaction.update(postRef, { likeCount: increment(1) });
       });
     } catch (e) {
       Alert.alert("失敗", "拍手の送信に失敗しました");

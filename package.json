@@ -1,0 +1,8 @@
+{
+  "name": "ren-kei-procon",
+  "private": true,
+  "description": "リポジトリ全体のスクリプト置き場。アプリ本体はRen-kei_procon/、Cloud Functionsはfunctions/にそれぞれ別のpackage.jsonがあります。",
+  "scripts": {
+    "test:rules": "firebase emulators:exec --only firestore,storage \"npm --prefix tests/rules test\""
+  }
+}

@@ -58,3 +58,27 @@ test("本人は自分のmembersドキュメントを削除できる(脱退)", as
   const alice = testEnv.authenticatedContext("alice").firestore();
   await assertSucceeds(alice.doc("ren/r1/members/alice").delete());
 });
+
+test("[#29] membersはcollectionGroupクエリで読める(useAdminRens)", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertSucceeds(
+    alice
+      .collectionGroup("members")
+      .where("userId", "==", "alice")
+      .where("role", "==", "admin")
+      .where("status", "==", "active")
+      .get()
+  );
+});
+
+test("[#29] 未サインインはmembersをcollectionGroupクエリで読めない", async () => {
+  const anon = testEnv.unauthenticatedContext().firestore();
+  await assertFails(
+    anon
+      .collectionGroup("members")
+      .where("userId", "==", "alice")
+      .where("role", "==", "admin")
+      .where("status", "==", "active")
+      .get()
+  );
+});

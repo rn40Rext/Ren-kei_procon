@@ -355,6 +355,14 @@ functions/test/rules/            または  tests/rules/
 | 11 | 所有者が自分の private 動画を read | 許可 |
 | 12 | 連管理者が自連の `joinRequests` を `approved` へ update | 許可 |
 
+### #42 実装時の差分（2026-09-10時点）
+
+- 配置は `tests/rules/`（`functions/test/rules/` ではない。Cloud Functions のコードと Security Rules のテストは別物のため）。ファイル形式も `.rules.test.ts` ではなく `.rules.test.mjs`（Node 標準の `node:test` を使用。tsc のビルドステップを増やさないため。#46 の Cloud Functions 側のテストと同じ方針）。`scores.rules.test.mjs`（`analysisResults`/`growthRecords`）を6ファイル構成に追加している。
+- 実行は `npm run test:rules`（ルートの `package.json`）→ `firebase emulators:exec --only firestore,storage "npm --prefix tests/rules test"`。GitHub Actions（`.github/workflows/rules-tests.yml`）で `firestore.rules`/`storage.rules`/`tests/rules/**` の変更時に自動実行する。
+- ケース6（コメントAの投稿者がコメントBをdelete）を検証するため、`posts/comments` の update/delete を「全員拒否」から「コメント本人のみ許可」（仕様書10.3の原則通り）に直した。削除UI自体はまだ無いため見た目の挙動は変わらない。
+- ケース7（投稿者以外が`posts.likeCount`をupdate）は、文字通りには検証できない。`likeCount`/`commentCount`はクライアントの暫定対応として認証済みユーザーなら誰でも更新できる設計のため（1.5章参照、#48で置き換え予定）。テストは実際に効いている境界（他フィールドと同時には更新できない）を検証している。
+- `type: 'instructor'` コメントの作成者を `isRenAdmin()` で絞るテストケースは意図的に `skip` している。連機能（`ren`/`members`）が未実装で誰も連管理者になれないため、今締めると「師匠の教え」機能を誰も使えなくなる。連機能実装時に対応する方針とした。
+
 実行コマンド（導入後）:
 
 ```bash

@@ -19,6 +19,7 @@ import ResultScreen from "../screens/ResultScreen";
 import RequestScreen from "../screens/RequestScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import ChatScreen from "../screens/ChatScreen";
+import AdminHomeScreen from "../screens/AdminHomeScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -35,6 +36,7 @@ export type RootStackParamList = {
   Request: undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   Chat: { chatId: string; recipientName: string };   // 💡 追加
+  AdminHome: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -78,6 +80,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Request" component={RequestScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
+          <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

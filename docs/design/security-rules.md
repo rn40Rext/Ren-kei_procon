@@ -377,6 +377,14 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 エミュレータ（Firestore + Functions + Auth）で `createRen`・`submitJoinRequest` の実際の呼び出しを確認済み（連作成＋管理者登録、重複 pending 申請の拒否、既存メンバーの再申請拒否、入力バリデーション）。
 
+### #29 実装時の差分（2026-09-10時点）
+
+- `requireRenAdmin(uid, renId)` を本章冒頭のサンプルコード通り `functions/src/lib/guards.ts` に実装した。現時点で呼び出す連管理者向け Function はまだ無いが、R-02〜R-08（#30〜#34）実装時にそのまま使う想定。
+- クライアント側の `useAdminRens()`（`src/hooks/useAdminRens.ts`）は `collectionGroup('members')` に `userId`/`role`/`status` の等価条件3つで問い合わせる。コレクショングループクエリは自動インデックスの対象外のため、`firestore.indexes.json` に `queryScope: COLLECTION_GROUP` の複合インデックスを追加した。
+- R-01 管理ホーム（`AdminHomeScreen.tsx`）は、フック・ガード・入り口の出し分け（`MypageScreen.tsx` に管理者のみ表示の「連の管理」メニューを追加）・複数連の切り替え・未対応の参加リクエスト件数までを実装した。**「新着投稿」の表示範囲は #30 の未確定事項 N-3（自連メンバーのみ／全公開投稿）が決まっていないため、「通知」は #43 が未実装のため、R-02〜R-08 への遷移は該当画面がまだ無いため、いずれも「準備中」のプレースホルダーに留めている。**
+
+エミュレータ（Firestore Admin SDK）で `requireRenAdmin()` 相当のロジックと `collectionGroup` クエリの絞り込み（admin かつ active のみ）を確認済み。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

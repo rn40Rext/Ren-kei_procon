@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
+import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera, Shield } from 'lucide-react-native';
 import { signOut } from 'firebase/auth';
 import { auth, db, storage } from '../config/firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
+import { useAdminRens } from '../hooks/useAdminRens';
 import BottomNav from '../components/BottomNav';
 
 type DanceStyle = 'male' | 'female' | null;
@@ -23,6 +24,7 @@ const COLORS = {
 export default function MypageScreen() {
   // 💡 解決策: useNavigationに <any> を指定することで、すべての遷移エラーを消します
   const navigation = useNavigation<any>();
+  const { adminRens } = useAdminRens();
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -236,6 +238,16 @@ export default function MypageScreen() {
             </View>
             <ChevronRight size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
+
+          {adminRens.length > 0 && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AdminHome')}>
+              <View style={styles.menuLeft}>
+                <Shield size={20} color={COLORS.primary} />
+                <Text style={styles.menuText}>連の管理</Text>
+              </View>
+              <ChevronRight size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.section}>

@@ -2,6 +2,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- ヘルパー(#40で追加) ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // 対象連の管理者か(users.roleではなくren/members側のroleで判定する。仕様書10.3)。
+    function isRenAdmin(renId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/ren/$(renId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/ren/$(renId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // videos: 練習動画(非公開がデフォルト)。所有者のみ読み書き可能。
     // publishPost実行後(visibility=='public')は他ユーザーも閲覧可能。
     match /videos/{videoId} {
@@ -77,6 +88,93 @@ service cloud.firestore {
                     && request.auth.uid in chatId.split('_')
                     && request.resource.data.senderId == request.auth.uid;
       allow update, delete: if false;
+    }
+
+    // ---------- #40で追加(以下はまだ書き込むアプリ機能が無いため休眠中) ----------
+
+    // analysisResults / styleAnalysisResults: スコアはsystem(Cloud Functions/
+    // Admin SDK)のみが書く。クライアントは直接書き込めない(仕様書10.3)。
+    match /analysisResults/{analysisId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+    match /styleAnalysisResults/{styleAnalysisId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create, update: if false;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /users/{uid}/growthRecords/{recordId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+    match /users/{uid}/notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if false;
+      allow update: if isSignedIn() && request.auth.uid == uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ren: 作成者が自動でadminになる想定(members作成は通常FN-05/system経由)。
+    match /ren/{renId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isRenAdmin(renId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['createdBy', 'memberCount', 'createdAt']);
+      allow delete: if isRenAdmin(renId);
+
+      match /members/{uid} {
+        allow read: if isSignedIn();
+        allow create: if false; // FN-05(参加承認)経由。Admin SDKはRulesを通らない
+        allow update: if isRenAdmin(renId);
+        allow delete: if isRenAdmin(renId) || (isSignedIn() && request.auth.uid == uid); // 本人の脱退は許可
+      }
+      match /announcements/{announcementId} {
+        allow read: if isSignedIn();
+        allow write: if isRenAdmin(renId);
+      }
+      match /activities/{activityId} {
+        allow read: if isSignedIn();
+        allow write: if isRenAdmin(renId);
+      }
+    }
+
+    // joinRequests: 申請者は取消のみ、連管理者は承認・却下のみ(状態遷移を検証)。
+    match /joinRequests/{requestId} {
+      allow read: if isSignedIn()
+                  && (resource.data.userId == request.auth.uid || isRenAdmin(resource.data.renId));
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      allow update: if isSignedIn()
+                    && ((resource.data.userId == request.auth.uid
+                          && resource.data.status == 'pending'
+                          && request.resource.data.status == 'cancelled')
+                        || (isRenAdmin(resource.data.renId)
+                              && resource.data.status == 'pending'
+                              && request.resource.data.status in ['approved', 'rejected']));
+      allow delete: if false;
+    }
+
+    // renStyle*: 連スタイル類似度まわり。参照動画の登録・閲覧は連管理者のみ。
+    // renId はドキュメントのフィールドなので、createではresourceが無くresource.data
+    // を参照できない。request.resource側で判定する(create/update以降で分ける)。
+    match /renStyleReferences/{referenceId} {
+      allow read: if isSignedIn() && isRenAdmin(resource.data.renId);
+      allow create: if isSignedIn() && isRenAdmin(request.resource.data.renId);
+      allow update, delete: if isSignedIn() && isRenAdmin(resource.data.renId);
+    }
+    match /renStyleProfiles/{renId} {
+      allow read: if isSignedIn();
+      allow write: if false; // FN-07(system)のみ
+    }
+
+    // analysisRules: 判定閾値のマスタ。運用者がコンソール/Functionsから更新する想定。
+    match /analysisRules/{ruleId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
   }
 }

@@ -26,6 +26,20 @@ S-1（#57）とS-2（#50）は本書の内容に沿って先行実装・本番�
 
 `firestore.rules` の `posts` update ルールも、上記の暫定対応に合わせて「投稿者本人は全フィールド、他の認証済みユーザーは `likeCount`/`commentCount` のみ更新可」としています。#48実装時にはクライアント側の直接更新を廃止し、本書 4章のコード例（`notChanging(['likeCount', 'commentCount'])` で投稿者も含め全クライアントから保護）に合わせて更新してください。
 
+### #40 実装時の差分（2026-09-10時点）
+
+`firestore.rules` は本章のコード例に沿って `analysisResults` / `styleAnalysisResults` / `users/{uid}/growthRecords` / `users/{uid}/notifications` / `ren`(+members/announcements/activities) / `joinRequests` / `renStyle*` / `analysisRules` を追加した（いずれもアプリ側に書き込む機能がまだ無いため休眠中。`videos`/`posts`/`users`/`chats` の既存ルールは変更していない）。`renStyleReferences` のみ、本章のコード例をそのまま使うと `create` 時に `resource` が存在せずエラーになるバグがあったため、`create` は `request.resource.data.renId` を見る形に分けて実装している。
+
+以下は本章・5章のコード例からあえて外した点。
+
+| 項目 | 本章の方針 | 実装状況 | 理由 |
+| --- | --- | --- | --- |
+| Storage の「明示的に許可した以外は全拒否」（5章末尾） | 全拒否をデフォルトにする | **採用せず**。既存の包括ルール（認証+サイズ制限のみ）を維持 | `CommunityScreen.tsx` の投稿動画アップロードが `videos/{Date.now()}.mp4`（所有者情報を含まないフラットなパス）を今も使っており、全拒否にすると投稿機能が壊れる。パス規約への移行はフロント側の変更を伴うため別issue化を検討 |
+| Storage の `isValidVideo()`/`isValidImage()`（contentType検証） | `contentType.matches('video/.*')` 等で検証 | **見送り**。サイズ制限のみ実装 | React Native側でアップロード時に正しい `contentType` が送られるか実機未検証（#50と同じ判断）。既に#39で使われている `users/{uid}/icon/` を壊すリスクがある |
+| `firestore.indexes.json` の複合インデックス（4章末尾の表） | `videos`/`joinRequests`/`analysisResults`等に複合インデックスを追加 | **追加せず**（空のまま） | 該当する複合クエリを発行するアプリコードがまだ存在しない。クエリが実際に必要になった時点で追加する方針 |
+
+Firestore Rules Unit Test（`@firebase/rules-unit-testing`、要Java）でスコア保護・`isRenAdmin()`・`joinRequests` の状態遷移・`renStyleReferences` のバグ修正・既存ルールの回帰が無いことを確認済み。自動テストへの組み込みは引き続き#42のスコープ。
+
 ## 2. 権限判定の基本原則
 
 1. `request.auth.uid` を所有者判定の唯一の根拠にする。

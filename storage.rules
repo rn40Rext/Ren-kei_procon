@@ -10,6 +10,29 @@ service firebase.storage {
                     && request.resource.size < 200 * 1024 * 1024;
     }
 
+    // プロフィールアイコン(#40)。5MB上限。contentTypeの検証は、
+    // React Native側でアップロード時に正しい値が送られるか実機未検証の
+    // ため見送っている(#50と同じ判断)。既に#39で使われているパス。
+    match /users/{uid}/icon/{fileName} {
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                    && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // 連(ren)アイコン・スタイル参照動画(#40)。ren機能自体が未実装のため休眠中。
+    // Storage RulesはFirestoreを参照できないため、renId所有権の厳密な検証は
+    // 連機能実装時にCloud Functions経由に寄せることを検討する
+    // (docs/design/security-rules.md 5章)。
+    match /ren/{renId}/icon/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                    && request.resource.size < 5 * 1024 * 1024;
+    }
+    match /ren/{renId}/styleReferences/{fileName} {
+      allow read, write: if false; // 一般ユーザーには読ませない。system/管理者はAdmin SDK経由
+    }
+
     match /{allPaths=**} {
       allow read, delete: if request.auth != null;
       allow create, update: if request.auth != null

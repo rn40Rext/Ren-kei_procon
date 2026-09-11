@@ -20,23 +20,37 @@ service firebase.storage {
                     && request.resource.size < 5 * 1024 * 1024;
     }
 
-    // 連(ren)アイコン・スタイル参照動画(#40)。ren機能自体が未実装のため休眠中。
-    // Storage RulesはFirestoreを参照できないため、renId所有権の厳密な検証は
-    // 連機能実装時にCloud Functions経由に寄せることを検討する
-    // (docs/design/security-rules.md 5章)。
+    // 連(ren)アイコン。#34でGroupScreen/ManageActivitiesScreenの
+    // 連基本情報編集から実際に使われるようになったため、#40時点の
+    // 「誰でも書き込み可」を、対象連の管理者のみに強化した。
+    // Storage RulesはFirestore Cross-Service Rulesのfirestore.get()で
+    // ren/{renId}/members/{uid}.roleを直接参照できる(2023年提供の機能)。
     match /ren/{renId}/icon/{fileName} {
       allow read: if request.auth != null;
       allow write: if request.auth != null
-                    && request.resource.size < 5 * 1024 * 1024;
+                    && request.resource.size < 5 * 1024 * 1024
+                    && firestore.get(/databases/(default)/documents/ren/$(renId)/members/$(request.auth.uid)).data.role == 'admin';
     }
     match /ren/{renId}/styleReferences/{fileName} {
       allow read, write: if false; // 一般ユーザーには読ませない。system/管理者はAdmin SDK経由
     }
 
-    match /{allPaths=**} {
-      allow read, delete: if request.auth != null;
+    // CommunityScreenの公開投稿動画。以前は下の包括ルールに依存していた。
+    // #34で、その包括ルールが上記すべての制限付きルール(所有者のみ・
+    // admin限定・styleReferencesのif false)を無効化していることが
+    // 判明したため、この専用ルールを新設し、包括ルールをデフォルト拒否に
+    // 差し替えた。削除経路は現状無い(投稿削除UI自体が未実装)ため拒否する。
+    match /videos/{fileName} {
+      allow read: if request.auth != null;
       allow create, update: if request.auth != null
                     && request.resource.size < 200 * 1024 * 1024;
+      allow delete: if false;
+    }
+
+    // 上記いずれにも一致しないパスはデフォルト拒否(#34以前は包括的に
+    // 許可しており、他の全ての制限付きルールを事実上無効化していた)。
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
-import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone } from 'lucide-react-native';
+import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone, CalendarDays } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../config/firebaseConfig';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -127,12 +127,22 @@ export default function AdminHomeScreen() {
           <Text style={styles.menuItemText}>メンバー管理</Text>
           <ChevronRight size={18} color="#CBD5E1" />
         </TouchableOpacity>
-        <View style={styles.menuPlaceholder}>
-          <View style={styles.pendingRow}>
-            <Megaphone size={18} color={COLORS.textMuted} />
-            <Text style={styles.pendingText}>お知らせ・活動情報の管理は準備中です</Text>
-          </View>
-        </View>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ManageAnnouncements', { renId: selectedRen.renId })}
+        >
+          <Megaphone size={20} color={COLORS.primary} />
+          <Text style={styles.menuItemText}>お知らせ管理</Text>
+          <ChevronRight size={18} color="#CBD5E1" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ManageActivities', { renId: selectedRen.renId })}
+        >
+          <CalendarDays size={20} color={COLORS.primary} />
+          <Text style={styles.menuItemText}>活動情報・連の基本情報</Text>
+          <ChevronRight size={18} color="#CBD5E1" />
+        </TouchableOpacity>
       </ScrollView>
 
       <BottomNav />
@@ -160,7 +170,6 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
   menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
   menuItemText: { flex: 1, marginLeft: 12, fontSize: 14, fontWeight: 'bold', color: COLORS.textMain },
-  menuPlaceholder: { backgroundColor: '#F1F5F9', borderRadius: 14, padding: 18 },
   emptyWrap: { flex: 1, padding: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
   backBtnText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 4 },

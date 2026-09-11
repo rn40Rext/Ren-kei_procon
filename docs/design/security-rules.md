@@ -416,6 +416,16 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 エミュレータ（Firestore + Auth、クライアントSDK）で `useMyRens` 相当の `collectionGroup` クエリ（複数連所属時の件数、所属していないユーザーは0件）と、活動情報のstartAt昇順・お知らせのcreatedAt降順の並び順を確認済み。
 
+### #34 実装時の差分（2026-09-11時点）
+
+**TBD-15（お知らせ・活動情報の公開範囲）の結論**: 現状維持（`allow read: if isSignedIn();`。サインイン済みなら所属者でなくても閲覧可能）とする。ユーザー判断（2026-09-11）。理由: `ren` ドキュメント自体・R-01管理ホームなど他の連情報も同じ「誰でも read」の扱いで統一しているため。**将来的にメンバー限定のメッセージ機能（所属者のみ読める連絡）を別途追加したいという要望があり**、その際は本チケットの「誰でも read」の結論とは別に、新しいコレクション（例: 所属者限定の `ren/{renId}/memberMessages` 等）を新設し、`isRenMember(renId)` のようなヘルパーを追加して対応する想定。既存の `announcements`/`activities` の公開範囲は変更しない。
+
+- FN-06 `createAnnouncement`（`functions/src/ren/createAnnouncement.ts`）は設計通り実装。通知の宛先は `status=='active'` のメンバーから**作成者自身を除外**する。500件超のバッチ分割は`docs/design/api-functions.md` FN-06参照。
+- R-07 お知らせ管理（`ManageAnnouncementsScreen.tsx`）・R-08 活動情報管理＋連基本情報編集（`ManageActivitiesScreen.tsx`、`createRen`/更新は既存の `ren` update Rules で足りるため直接Firestore書き込み）を実装。日時入力は専用の日付選択UIライブラリを新規導入せず、`YYYY-MM-DD HH:mm` 形式のテキスト入力＋パース検証とした（他の箇所と同様、新規依存追加を避ける方針）。
+- **想定外だった修正（storage.rulesの包括ルール不具合)**: 連アイコンを対象連の管理者のみ書き込み可にする際、Storage Rulesの Cross-Service Rules（`firestore.get()`）でFirestoreの`ren/{renId}/members/{uid}.role`を直接参照する形にした。ところが検証中、`storage.rules`末尾の包括ルール（`match /{allPaths=**} { allow create, update: if request.auth != null && size<200MB; }`）が、この新ルールを含め既存の**すべての制限付きルール**（`users/{uid}/videos`の所有者限定、`users/{uid}/icon`の所有者限定、`ren/{renId}/styleReferences`の`allow ...: if false`）を実質無効化していた（同一パスに複数のmatchが一致する場合はいずれかが許可すれば許可される、というFirebase Rulesの仕様のため）ことが判明した。任意のsigned-inユーザーが他人の動画・アイコンを上書きできる状態が本番に存在していたことになる。ユーザー確認のうえ、この包括ルールを削除し、実際にCommunityScreenが使っている`videos/{fileName}`（公開投稿動画）専用のルールを新設、それ以外はデフォルト拒否に変更した。#34自体のスコープを超える修正だが、ren アイコンの管理者限定化と両立できないため合わせて対応した。
+
+エミュレータ（Firestore + Functions + Auth + Storage）で以下を確認済み: `createAnnouncement`呼び出し(announcements作成・通知の宛先絞り込み・脱退済み/作成者除外・文字数バリデーション・他連管理者と一般メンバーからの拒否)、Storageの`ren/{renId}/icon`が対象連の管理者のみ書き込み可であること、`videos/{fileName}`は署名済みユーザーなら誰でも書き込み可であること、`users/{uid}/videos`・`icon`・`ren/{renId}/styleReferences`が包括ルール撤去後も意図通り制限されること、未知のパスがデフォルト拒否になること。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

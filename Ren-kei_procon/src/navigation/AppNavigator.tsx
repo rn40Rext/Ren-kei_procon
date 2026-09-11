@@ -22,6 +22,8 @@ import ChatScreen from "../screens/ChatScreen";
 import AdminHomeScreen from "../screens/AdminHomeScreen";
 import ManageJoinRequestsScreen from "../screens/ManageJoinRequestsScreen";
 import MemberManagementScreen from "../screens/MemberManagementScreen";
+import ManageAnnouncementsScreen from "../screens/ManageAnnouncementsScreen";
+import ManageActivitiesScreen from "../screens/ManageActivitiesScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -41,6 +43,8 @@ export type RootStackParamList = {
   AdminHome: undefined;
   ManageJoinRequests: { renId: string };
   MemberManagement: { renId: string };
+  ManageAnnouncements: { renId: string };
+  ManageActivities: { renId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -87,6 +91,8 @@ export default function AppNavigator() {
           <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
           <Stack.Screen name="ManageJoinRequests" component={ManageJoinRequestsScreen} />
           <Stack.Screen name="MemberManagement" component={MemberManagementScreen} />
+          <Stack.Screen name="ManageAnnouncements" component={ManageAnnouncementsScreen} />
+          <Stack.Screen name="ManageActivities" component={ManageActivitiesScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

@@ -97,3 +97,58 @@ test("[#29] 未サインインはmembersをcollectionGroupクエリで読めな�
       .get()
   );
 });
+
+test("[#34] 連管理者はannouncementsを作成できる", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertSucceeds(
+    alice.collection("ren/r1/announcements").add({
+      title: "お知らせ", content: "本文", createdBy: "alice", createdAt: new Date(),
+    })
+  );
+});
+
+test("[#34] 他連の管理者はannouncementsを作成できない", async () => {
+  const bob = testEnv.authenticatedContext("bob").firestore();
+  await assertFails(
+    bob.collection("ren/r1/announcements").add({
+      title: "乗っ取り", content: "本文", createdBy: "bob", createdAt: new Date(),
+    })
+  );
+});
+
+test("[#34] 一般メンバーはannouncementsを作成できない", async () => {
+  const dave = testEnv.authenticatedContext("dave").firestore();
+  await assertFails(
+    dave.collection("ren/r1/announcements").add({
+      title: "お知らせ", content: "本文", createdBy: "dave", createdAt: new Date(),
+    })
+  );
+});
+
+test("[#34] 連管理者はactivitiesを作成できる", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertSucceeds(
+    alice.collection("ren/r1/activities").add({
+      title: "練習", startAt: new Date(),
+    })
+  );
+});
+
+test("[#34] 他連の管理者はactivitiesを作成できない", async () => {
+  const bob = testEnv.authenticatedContext("bob").firestore();
+  await assertFails(
+    bob.collection("ren/r1/activities").add({
+      title: "乗っ取り", startAt: new Date(),
+    })
+  );
+});
+
+test("[#34] 一般メンバーはactivitiesを更新できない", async () => {
+  const dave = testEnv.authenticatedContext("dave").firestore();
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await ctx.firestore().doc("ren/r1/activities/a1").set({ title: "練習", startAt: new Date() });
+  });
+  await assertFails(
+    dave.doc("ren/r1/activities/a1").set({ title: "改ざん" }, { merge: true })
+  );
+});

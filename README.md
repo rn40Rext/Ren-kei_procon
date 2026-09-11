@@ -125,7 +125,7 @@ firebase deploy --only firestore:rules,storage
 | 目的 | 文書 |
 | --- | --- |
 | ドキュメント全体の索引 | [docs/README.md](docs/README.md) |
-| **仕様の正典（v0.3）** | [docs/spec/README.md](docs/spec/README.md) |
+| **仕様（v0.3・位置づけの注記あり）** | [docs/spec/README.md](docs/spec/README.md) |
 | 現在の実装状況と仕様との差分 | [docs/status/gap-analysis.md](docs/status/gap-analysis.md) |
 | 実装ロードマップとイシュー対応 | [docs/status/roadmap.md](docs/status/roadmap.md) |
 | システム構成・技術スタック | [docs/design/architecture.md](docs/design/architecture.md) |
@@ -137,6 +137,57 @@ firebase deploy --only firestore:rules,storage
 | 画面一覧とナビゲーション | [docs/design/screens.md](docs/design/screens.md) |
 
 ## 開発の進め方
+
+### イシュー駆動
+
+```
+イシューを受け取る → 参照を読む → 実装 → 検証（DoD）
+```
+
+**タスクは GitHub イシューで管理されています（#5〜#59）。各イシューに受け入れ条件・仕様書該当箇所・設計文書へのリンクが入っており、それが実質の spec です。**
+
+1. `gh issue view <番号>` でイシューを読む。親エピック（#5〜#12）に推奨順序と依存関係がある
+2. **イシューがリンクしている設計文書を実際に読む。** リンクを読まずに書き始めない
+3. 実装する。受け入れ条件から外れる必要が出たら**先にイシューを直す**
+4. [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) で検証する
+
+**大原則: 仕様を発明しない。** 作る機能が [docs/spec/](docs/spec/README.md) のどこに定義されているか確認してから書きます。無ければ止まって確認してください。
+
+> ⚠️ ただし仕様書 v0.3 は**チームで合意した確定仕様ではありません。** 既存資料（パンフレット原稿・企画資料・ER図・UIフロー・プロトタイプ動画）からの推測で組み立てた文書で、`docs/design/` はそれをさらに具体化したものです。**内容がおかしいと思ったら指摘してください** → [docs/spec/README.md](docs/spec/README.md)
+
+**決めた TBD は [docs/design/](docs/design/) に記録する。** チャットやイシューのコメントだけに残った決定は次の担当者に届きません。
+
+手順の詳細は [docs/rules/workflow.md](docs/rules/workflow.md)。
+
+複数イシューをまたぐ判断が必要なときだけ `docs/specs/` に spec を切ります（3 つの条件は [docs/rules/workflow.md](docs/rules/workflow.md) 3章）。実例: [docs/specs/001-hand-height-realtime/](docs/specs/001-hand-height-realtime/requirements.md)
+
+### AI エージェントを使う場合
+
+[AGENTS.md](AGENTS.md) がエージェント向けの契約です。[AGENTS.md 標準](https://agents.md)に従っているため、Codex CLI / GitHub Copilot / Cursor / Windsurf / Zed / Aider などは**そのまま読みます**。Claude Code は [CLAUDE.md](CLAUDE.md)（`@AGENTS.md` を読み込むだけのファイル）経由で同じ内容を読みます。
+
+ディレクトリ固有のルールは、そのディレクトリの `AGENTS.md` にあります（`Ren-kei_procon/`、`functions/`、`docs/`）。編集対象に最も近いものが優先されます。
+
+| ルール | 内容 |
+| --- | --- |
+| [docs/rules/workflow.md](docs/rules/workflow.md) | 開発フロー（既定はイシュー駆動） |
+| [docs/rules/safety.md](docs/rules/safety.md) | 禁止事項・安全境界 |
+| [docs/rules/coding.md](docs/rules/coding.md) | コーディング規約 |
+| [docs/rules/definition-of-done.md](docs/rules/definition-of-done.md) | 完了の定義 |
+
+### ドキュメントの言語
+
+**AIへの指示ファイルは英語、人間が読むドキュメントは日本語**にしています。
+
+| 対象 | 言語 |
+| --- | --- |
+| `AGENTS.md` / `CLAUDE.md` / `.claude/rules/**` / `.claude/skills/**` / `docs/rules/**` | 英語 |
+| `README.md` / `docs/README.md` / `docs/spec/**` / `docs/design/**` / `docs/status/**` / `docs/specs/**` | 日本語 |
+| ソースコードのコメント | 日本語（既存コードに合わせる） |
+| 識別子（変数・関数・型） | 英語 |
+| ユーザーに見える文言 | 日本語 |
+| コミットメッセージ・PR・イシュー | 日本語 |
+
+**新しくドキュメントを追加するときもこの表に従ってください。** 判断に迷ったら「AIにどう振る舞ってほしいかを書くもの（英語）か、システムが何でありなぜそうなっているかを記録するもの（日本語）か」で分けます。完全な定義は [AGENTS.md](AGENTS.md) の "Language policy" にあります。
 
 ### イシューとマイルストーン
 

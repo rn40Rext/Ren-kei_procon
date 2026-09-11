@@ -25,6 +25,9 @@ beforeEach(async () => {
     await ctx.firestore().doc("ren/r2/members/bob").set({
       userId: "bob", role: "admin", status: "active", joinedAt: new Date(),
     });
+    await ctx.firestore().doc("ren/r1/members/dave").set({
+      userId: "dave", role: "member", status: "active", joinedAt: new Date(),
+    });
   });
 });
 
@@ -57,6 +60,18 @@ test("membersはクライアントから直接createできない(FN-05/system経
 test("本人は自分のmembersドキュメントを削除できる(脱退)", async () => {
   const alice = testEnv.authenticatedContext("alice").firestore();
   await assertSucceeds(alice.doc("ren/r1/members/alice").delete());
+});
+
+test("[#33] 連管理者でもmembers.roleをクライアントから直接updateできない(updateMemberRole経由のみ)", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertFails(
+    alice.doc("ren/r1/members/dave").set({ role: "admin" }, { merge: true })
+  );
+});
+
+test("[#33] 連管理者でも他メンバーをクライアントから直接deleteできない(removeMember経由のみ)", async () => {
+  const alice = testEnv.authenticatedContext("alice").firestore();
+  await assertFails(alice.doc("ren/r1/members/dave").delete());
 });
 
 test("[#29] membersはcollectionGroupクエリで読める(useAdminRens)", async () => {

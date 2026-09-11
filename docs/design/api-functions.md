@@ -83,12 +83,12 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 | 仕様書のコード | `HttpsError` code | 発生元 |
 | --- | --- | --- |
 | `UNAUTHORIZED` | `unauthenticated` | 全関数 |
-| `FORBIDDEN` | `permission-denied` | FN-05, FN-06, FN-07 |
+| `FORBIDDEN` | `permission-denied` | FN-05, FN-05.5, FN-06, FN-07 |
 | `VIDEO_UPLOAD_FAILED` | `internal` | クライアント側（Storage） |
 | `ANALYSIS_FAILED` | `internal` | FN-01, FN-02 |
 | `STYLE_MODEL_UNAVAILABLE` | `unavailable` | FN-02 |
 | `JOIN_REQUEST_ALREADY_PENDING` | `already-exists` | FN-04 |
-| `INVALID_STATUS_TRANSITION` | `failed-precondition` | FN-05 |
+| `INVALID_STATUS_TRANSITION` | `failed-precondition` | FN-05, FN-05.5（#33、最後の管理者保護に流用） |
 | `POST_VIDEO_NOT_PUBLICABLE` | `failed-precondition` | FN-03 |
 | `PERSON_NOT_DETECTED` 等 | — | クライアント側（Rule Engine）で処理 |
 
@@ -314,6 +314,39 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 
 - `requireRenAdmin(uid, request.renId)`
 - 現在の `status` が `'pending'` でなければ `failed-precondition` / `INVALID_STATUS_TRANSITION`
+
+---
+
+### FN-05.5 `updateMemberRole` / `removeMember`（本設計での追加・#33）
+
+仕様書・当初の FN-01〜07 一覧には無いが、`createRen`（FN-03.5）と同じ理由で [#33](../../issues/33) の実装にあたって新設した。「連の最後の管理者を降格・削除できない」という ren 単位の不変条件は、Firestore Rules の `get()`/`exists()` だけでは残り管理者数を数えられず表現できないため、この2つの Cloud Function に一本化した。
+
+**Request（updateMemberRole）**
+
+```ts
+{ renId: string; uid: string; role: 'admin' | 'member'; }
+```
+
+**Request（removeMember）**
+
+```ts
+{ renId: string; uid: string; }
+```
+
+**Response**: `updateMemberRole` は `{ role: 'admin' | 'member'; }`、`removeMember` は `{ removed: true; }`。
+
+**副作用**（トランザクション）
+
+- `updateMemberRole`: `ren/{renId}/members/{uid}.role` を更新
+- `removeMember`: `ren/{renId}/members/{uid}` を削除（本人による脱退は Rules で直接許可済みのため対象外。管理者が他メンバーを除名する場合のみ使う）
+- どちらも `ren.memberCount` の再集計は既存の `onMemberWrite` トリガ（#48）に任せる（本関数側では触らない）
+
+**検証**
+
+- `requireRenAdmin(uid, renId)`
+- 対象メンバーが現在 `role: 'admin'` かつ、対象を除く `role=='admin' && status=='active'` が 0 件になる変更（降格・除名）は `failed-precondition` / `INVALID_STATUS_TRANSITION`（仕様書13章に専用のエラーコードが無いため流用。詳細は `docs/design/security-rules.md` #33 差分参照）
+
+エミュレータ（Firestore + Functions + Auth）で実際に呼び出し、昇格・降格・除名の成功、最後の管理者の降格・除名の拒否、`memberCount` の再集計、他連の管理者による操作拒否を確認済み。
 
 ---
 

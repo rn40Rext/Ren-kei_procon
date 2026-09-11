@@ -14,6 +14,8 @@ export {publishPost} from "./community/publishPost";
 export {createRen} from "./ren/createRen";
 export {submitJoinRequest} from "./ren/submitJoinRequest";
 export {updateJoinRequestStatus} from "./ren/updateJoinRequestStatus";
+export {updateMemberRole} from "./ren/updateMemberRole";
+export {removeMember} from "./ren/removeMember";
 export {onLikeWrite} from "./triggers/onLikeWrite";
 export {onCommentWrite} from "./triggers/onCommentWrite";
 export {onMemberWrite} from "./triggers/onMemberWrite";

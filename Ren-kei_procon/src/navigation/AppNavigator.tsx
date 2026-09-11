@@ -21,6 +21,7 @@ import UserProfileScreen from "../screens/UserProfileScreen";
 import ChatScreen from "../screens/ChatScreen";
 import AdminHomeScreen from "../screens/AdminHomeScreen";
 import ManageJoinRequestsScreen from "../screens/ManageJoinRequestsScreen";
+import MemberManagementScreen from "../screens/MemberManagementScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -39,6 +40,7 @@ export type RootStackParamList = {
   Chat: { chatId: string; recipientName: string };   // 💡 追加
   AdminHome: undefined;
   ManageJoinRequests: { renId: string };
+  MemberManagement: { renId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -84,6 +86,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
           <Stack.Screen name="ManageJoinRequests" component={ManageJoinRequestsScreen} />
+          <Stack.Screen name="MemberManagement" component={MemberManagementScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

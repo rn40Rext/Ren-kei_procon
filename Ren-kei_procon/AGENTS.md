@@ -1,8 +1,16 @@
-# Expo changes between SDK versions
+# Expo SDK version
 
-This app uses the Expo SDK version pinned in `package.json` (`expo` dependency) —
-currently `^54`. Before writing any code, check that version and read the matching
-docs at `https://docs.expo.dev/versions/v<N>.0.0/` (replace `<N>` with the major
-version from `package.json`). Do not hardcode a version number here — it will go
-stale the next time the SDK is upgraded (this file previously pointed to v57,
-which was never the version actually installed; see [#55](../../issues/55)).
+This app is on **Expo SDK 54** (`expo: ^54.0.36` in `package.json`).
+
+Expo APIs change between SDK versions. Before writing any code, read the docs for
+**this** version — not the latest:
+
+https://docs.expo.dev/versions/v54.0.0/
+
+This applies especially to `expo-camera`, `expo-av`, `expo-image-picker`, and
+`expo-file-system`, where the API changed across recent SDKs.
+
+If `package.json` no longer says `^54`, trust `package.json` and update this file.
+
+> This file previously pointed to v57, which was never the version actually
+> installed. Resolved in [#55](../../issues/55).

@@ -16,7 +16,7 @@
 | U-05 | 投稿詳細 | 同上（`VideoDetailScreen` として内包） | ✅ 実装済み | `comments`, `likes` |
 | U-06 | 投稿作成 | 同上（モーダル） | 🔶 直接書き込み | FN-03 へ移行 |
 | U-07 | 連への参加リクエスト | **未作成**（[RequestScreen.tsx](../../Ren-kei_procon/src/screens/RequestScreen.tsx) は空） | ❌ | `ren` 検索, FN-04 |
-| U-08 | マイ連 | [GroupScreen.tsx](../../Ren-kei_procon/src/screens/GroupScreen.tsx) | ❌ スタブ | `ren`, `members`, `announcements` |
+| U-08 | マイ連 | [GroupScreen.tsx](../../Ren-kei_procon/src/screens/GroupScreen.tsx) | ✅ 実装済み（#28） | `ren`, `members`(collectionGroup), `announcements`, `activities` |
 | U-09 | マイページ | [MypageScreen.tsx](../../Ren-kei_procon/src/screens/MypageScreen.tsx) | 🔶 部分実装 | `users/{uid}` |
 | U-10 | 成長曲線 | **未作成** | ❌ | `growthRecords` |
 

@@ -3,9 +3,8 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, Scro
 import { useNavigation } from '@react-navigation/native';
 import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera, Shield } from 'lucide-react-native';
 import { signOut } from 'firebase/auth';
-import { auth, db, storage } from '../config/firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth } from '../config/firebaseConfig';
+import { fetchUserProfile, saveUserProfile, uploadUserIcon } from '../repositories/users';
 import * as ImagePicker from 'expo-image-picker';
 import { useAdminRens } from '../hooks/useAdminRens';
 import BottomNav from '../components/BottomNav';
@@ -22,7 +21,7 @@ const COLORS = {
 };
 
 export default function MypageScreen() {
-  // 💡 解決策: useNavigationに <any> を指定することで、すべての遷移エラーを消します
+  // TODO: NativeStackNavigationProp<RootStackParamList, 'Mypage'>へ置き換える(docs/rules/coding.md 2章)
   const navigation = useNavigation<any>();
   const { adminRens } = useAdminRens();
 
@@ -66,10 +65,7 @@ export default function MypageScreen() {
     try {
       const res = await fetch(result.assets[0].uri);
       const blob = await res.blob();
-      const iconRef = ref(storage, `users/${user.uid}/icon/${Date.now()}.jpg`);
-      await uploadBytes(iconRef, blob);
-      const url = await getDownloadURL(iconRef);
-      setDraftIcon(url);
+      setDraftIcon(await uploadUserIcon(user.uid, blob));
     } catch (error) {
       console.error(error);
       Alert.alert('エラー', 'アイコンのアップロードに失敗しました');
@@ -82,19 +78,12 @@ export default function MypageScreen() {
 
     setSaving(true);
     try {
-      // 💡 role/uid/createdAtは送らない(firestore.rulesでも保護されているが、
-      // クライアント側から意図せず含めないようにする)
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          nickname: draftNickname.trim(),
-          profile: draftProfile.trim(),
-          danceStyle: draftDanceStyle,
-          icon: draftIcon,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await saveUserProfile(user.uid, {
+        nickname: draftNickname.trim(),
+        profile: draftProfile.trim(),
+        danceStyle: draftDanceStyle,
+        icon: draftIcon,
+      });
 
       setNickname(draftNickname.trim());
       setProfile(draftProfile.trim());
@@ -116,11 +105,8 @@ export default function MypageScreen() {
       const user = auth.currentUser;
       if (!user) return;
 
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const data = userSnap.data();
+      const data = await fetchUserProfile(user.uid);
+      if (data) {
         setNickname(data.nickname || '');
         setProfile(data.profile || '');
         setDanceStyle(data.danceStyle ?? null);

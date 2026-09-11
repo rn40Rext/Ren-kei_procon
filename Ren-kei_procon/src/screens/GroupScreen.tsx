@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Users, MapPin, Plus, X, Shield, ChevronRight, Megaphone, CalendarDays, Search } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { db, functions } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { subscribeRenActivities, subscribeAnnouncements, createRen } from '../repositories/ren';
+import { Announcement, RenActivity } from '../types/firestore';
 import { useMyRens } from '../hooks/useMyRens';
 import BottomNav from '../components/BottomNav';
 
@@ -14,24 +13,6 @@ const COLORS = {
   textMuted: '#64748B',
   border: '#E2E8F0',
 };
-
-// docs/design/data-model.md 3.11章(仕様書9.3 RenActivities)
-interface Activity {
-  id: string;
-  title: string;
-  description?: string;
-  startAt: any;
-  endAt?: any;
-  location?: string;
-}
-
-// docs/design/data-model.md 3.11章(仕様書9.3 Announcements)
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: any;
-}
 
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
@@ -50,7 +31,7 @@ export default function GroupScreen() {
   const navigation = useNavigation<any>();
   const { myRens, loading } = useMyRens();
   const [selectedRenId, setSelectedRenId] = useState<string | null>(null);
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<RenActivity[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -72,14 +53,14 @@ export default function GroupScreen() {
       setAnnouncements([]);
       return;
     }
-    const unsubActivities = onSnapshot(
-      query(collection(db, 'ren', selectedRenId, 'activities'), orderBy('startAt', 'asc')),
-      (snap) => setActivities(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Activity))),
+    const unsubActivities = subscribeRenActivities(
+      selectedRenId,
+      setActivities,
       (error) => console.error('活動情報の取得に失敗しました', error)
     );
-    const unsubAnnouncements = onSnapshot(
-      query(collection(db, 'ren', selectedRenId, 'announcements'), orderBy('createdAt', 'desc')),
-      (snap) => setAnnouncements(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Announcement))),
+    const unsubAnnouncements = subscribeAnnouncements(
+      selectedRenId,
+      setAnnouncements,
       (error) => console.error('お知らせの取得に失敗しました', error)
     );
     return () => {
@@ -92,14 +73,12 @@ export default function GroupScreen() {
     if (!name.trim()) return Alert.alert('エラー', '連の名前を入力してください');
     setCreating(true);
     try {
-      const createRen = httpsCallable(functions, 'createRen');
-      const result = await createRen({
+      const renId = await createRen({
         name: name.trim(),
         description: description.trim(),
         location: location.trim(),
         beginnerFriendly,
       });
-      const { renId } = result.data as { renId: string };
       setName('');
       setDescription('');
       setLocation('');

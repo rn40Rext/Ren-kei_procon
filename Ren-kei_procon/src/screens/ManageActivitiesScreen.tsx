@@ -2,10 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal, Image } from 'react-native';
 import { ChevronLeft, Plus, X, Camera, Pencil, Trash2 } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { db, storage, auth, functions } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes } from 'firebase/storage';
-import { httpsCallable } from 'firebase/functions';
+import { auth } from '../config/firebaseConfig';
+import {
+  subscribeRen,
+  subscribeRenActivities,
+  createRenActivity,
+  updateRenActivity,
+  deleteRenActivity,
+  updateRenIcon,
+  updateRenInfo,
+} from '../repositories/ren';
+import { RenActivity } from '../types/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import BottomNav from '../components/BottomNav';
 
@@ -24,16 +31,6 @@ interface RenInfo {
   location: string;
   beginnerFriendly: boolean;
   iconUrl: string;
-}
-
-// docs/design/data-model.md 3.11章(仕様書9.3 RenActivities)
-interface Activity {
-  id: string;
-  title: string;
-  description?: string;
-  startAt: any;
-  endAt?: any;
-  location?: string;
 }
 
 function formatDateTime(value: any): string {
@@ -70,43 +67,45 @@ export default function ManageActivitiesScreen() {
   const [draftBeginnerFriendly, setDraftBeginnerFriendly] = useState(false);
   const [draftIconUrl, setDraftIconUrl] = useState('');
 
-  const [activities, setActivities] = useState<Activity[]>([]);
+  const [activities, setActivities] = useState<RenActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
-  const [editingActivity, setEditingActivity] = useState<Activity | 'new' | null>(null);
+  const [editingActivity, setEditingActivity] = useState<RenActivity | 'new' | null>(null);
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formStartAt, setFormStartAt] = useState('');
   const [formEndAt, setFormEndAt] = useState('');
   const [formLocation, setFormLocation] = useState('');
   const [savingActivity, setSavingActivity] = useState(false);
-  const [deletingActivity, setDeletingActivity] = useState<Activity | null>(null);
+  const [deletingActivity, setDeletingActivity] = useState<RenActivity | null>(null);
 
   useEffect(() => {
-    return onSnapshot(doc(db, 'ren', renId), (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const info: RenInfo = {
-        name: data.name ?? '',
-        description: data.description ?? '',
-        location: data.location ?? '',
-        beginnerFriendly: !!data.beginnerFriendly,
-        iconUrl: data.iconUrl ?? '',
-      };
-      setRenInfo(info);
-      setDraftName(info.name);
-      setDraftDescription(info.description);
-      setDraftLocation(info.location);
-      setDraftBeginnerFriendly(info.beginnerFriendly);
-      setDraftIconUrl(info.iconUrl);
-    });
+    return subscribeRen(
+      renId,
+      (ren) => {
+        if (!ren) return;
+        const info: RenInfo = {
+          name: ren.name ?? '',
+          description: ren.description ?? '',
+          location: ren.location ?? '',
+          beginnerFriendly: !!ren.beginnerFriendly,
+          iconUrl: ren.iconUrl ?? '',
+        };
+        setRenInfo(info);
+        setDraftName(info.name);
+        setDraftDescription(info.description);
+        setDraftLocation(info.location);
+        setDraftBeginnerFriendly(info.beginnerFriendly);
+        setDraftIconUrl(info.iconUrl);
+      },
+      (error) => console.error('連の基本情報の取得に失敗しました', error)
+    );
   }, [renId]);
 
   useEffect(() => {
-    const q = query(collection(db, 'ren', renId, 'activities'), orderBy('startAt', 'asc'));
-    return onSnapshot(
-      q,
-      (snap) => {
-        setActivities(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Activity)));
+    return subscribeRenActivities(
+      renId,
+      (list) => {
+        setActivities(list);
         setLoadingActivities(false);
       },
       (error) => {
@@ -125,16 +124,7 @@ export default function ManageActivitiesScreen() {
     try {
       const res = await fetch(result.assets[0].uri);
       const blob = await res.blob();
-      // 本人のみ書き込み可能な一時領域へアップロードしてから、
-      // updateRenIcon(Cloud Functions)で管理者確認のうえ本配置する
-      // (#34。Storage RulesのCross-Service Rulesが本番で
-      // 不安定だったため、Admin SDK経由に切り替えた)。
-      const tempPath = `users/${currentUser.uid}/renIconUploads/${renId}/${Date.now()}.jpg`;
-      await uploadBytes(ref(storage, tempPath), blob);
-      const updateRenIcon = httpsCallable(functions, 'updateRenIcon');
-      const callResult = await updateRenIcon({ renId, tempPath });
-      const { iconUrl } = callResult.data as { iconUrl: string };
-      setDraftIconUrl(iconUrl);
+      setDraftIconUrl(await updateRenIcon(renId, currentUser.uid, blob));
     } catch (error) {
       console.error(error);
       Alert.alert('エラー', 'アイコンのアップロードに失敗しました');
@@ -145,13 +135,12 @@ export default function ManageActivitiesScreen() {
     if (!draftName.trim()) return Alert.alert('エラー', '連の名前を入力してください');
     setSavingInfo(true);
     try {
-      await updateDoc(doc(db, 'ren', renId), {
+      await updateRenInfo(renId, {
         name: draftName.trim(),
         description: draftDescription.trim(),
         location: draftLocation.trim(),
         beginnerFriendly: draftBeginnerFriendly,
         iconUrl: draftIconUrl,
-        updatedAt: serverTimestamp(),
       });
       Alert.alert('完了', '連の基本情報を更新しました');
     } catch (error) {
@@ -171,7 +160,7 @@ export default function ManageActivitiesScreen() {
     setEditingActivity('new');
   };
 
-  const openEditActivityForm = (activity: Activity) => {
+  const openEditActivityForm = (activity: RenActivity) => {
     setFormTitle(activity.title);
     setFormDescription(activity.description ?? '');
     setFormStartAt(toInputFormat(activity.startAt));
@@ -201,9 +190,9 @@ export default function ManageActivitiesScreen() {
         location: formLocation.trim(),
       };
       if (editingActivity === 'new') {
-        await addDoc(collection(db, 'ren', renId, 'activities'), payload);
+        await createRenActivity(renId, payload);
       } else if (editingActivity) {
-        await updateDoc(doc(db, 'ren', renId, 'activities', editingActivity.id), payload);
+        await updateRenActivity(renId, editingActivity.id, payload);
       }
       setEditingActivity(null);
     } catch (error) {
@@ -217,7 +206,7 @@ export default function ManageActivitiesScreen() {
   const handleDeleteActivity = async () => {
     if (!deletingActivity) return;
     try {
-      await deleteDoc(doc(db, 'ren', renId, 'activities', deletingActivity.id));
+      await deleteRenActivity(renId, deletingActivity.id);
     } catch (error) {
       console.error(error);
       Alert.alert('エラー', '活動情報の削除に失敗しました');

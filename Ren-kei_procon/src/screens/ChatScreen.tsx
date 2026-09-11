@@ -1,28 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Send, ChevronLeft } from 'lucide-react-native';
-import { db, auth } from '../config/firebaseConfig';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { auth } from '../config/firebaseConfig';
+import { subscribeChatMessages, sendChatMessage } from '../repositories/chats';
+import { ChatMessage } from '../types/firestore';
 
 export default function ChatScreen({ route, navigation }: any) {
   const { chatId, recipientName } = route.params;
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
 
   useEffect(() => {
-    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    return subscribeChatMessages(
+      chatId,
+      setMessages,
+      (error) => console.error('メッセージの取得に失敗しました', error)
+    );
   }, [chatId]);
 
   const sendMessage = async () => {
-    if (!inputText.trim()) return;
-    await addDoc(collection(db, 'chats', chatId, 'messages'), {
-      text: inputText,
-      senderId: auth.currentUser?.uid,
-      createdAt: serverTimestamp(),
-    });
+    const senderId = auth.currentUser?.uid;
+    if (!inputText.trim() || !senderId) return;
+    await sendChatMessage(chatId, senderId, inputText);
     setInputText('');
   };
 

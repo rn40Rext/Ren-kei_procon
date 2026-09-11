@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { collectionGroup, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../config/firebaseConfig';
+import { auth } from '../config/firebaseConfig';
+import { subscribeAdminMemberships } from '../repositories/ren';
 
 export interface AdminRen {
   renId: string;
@@ -23,26 +23,10 @@ export function useAdminRens() {
       return;
     }
 
-    // members はcollectionGroupクエリ(要: 複合インデックス)。
-    const q = query(
-      collectionGroup(db, 'members'),
-      where('userId', '==', currentUser.uid),
-      where('role', '==', 'admin'),
-      where('status', '==', 'active')
-    );
-
-    return onSnapshot(
-      q,
-      async (snap) => {
-        const results = await Promise.all(
-          snap.docs.map(async (memberDoc) => {
-            const renId = memberDoc.ref.parent.parent?.id ?? '';
-            const renSnap = await getDoc(doc(db, 'ren', renId));
-            const name = renSnap.exists() ? (renSnap.data().name as string) : renId;
-            return { renId, name };
-          })
-        );
-        setAdminRens(results);
+    return subscribeAdminMemberships(
+      currentUser.uid,
+      (memberships) => {
+        setAdminRens(memberships.map(({ renId, ren }) => ({ renId, name: ren?.name ?? renId })));
         setLoading(false);
       },
       (error) => {

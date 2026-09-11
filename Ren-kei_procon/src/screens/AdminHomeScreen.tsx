@@ -101,16 +101,20 @@ export default function AdminHomeScreen() {
 
         <View style={styles.pendingCard}>
           <View style={styles.pendingRow}>
-            <Video size={18} color={COLORS.textMuted} />
-            <Text style={styles.pendingText}>新着投稿の表示は準備中です</Text>
-          </View>
-          <View style={styles.pendingRow}>
             <Bell size={18} color={COLORS.textMuted} />
             <Text style={styles.pendingText}>通知機能は準備中です</Text>
           </View>
         </View>
 
         <Text style={styles.sectionLabel}>管理メニュー</Text>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ManagePosts', { renId: selectedRen.renId })}
+        >
+          <Video size={20} color={COLORS.primary} />
+          <Text style={styles.menuItemText}>投稿一覧</Text>
+          <ChevronRight size={18} color="#CBD5E1" />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() => navigation.navigate('ManageJoinRequests', { renId: selectedRen.renId })}

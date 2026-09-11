@@ -428,6 +428,16 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 **マージ後の追記（連アイコンのCross-Service Rulesを撤回）**: 上記の`ren/{renId}/icon`の`firestore.get()`ベースの管理者チェックは、エミュレータでは正しく動作したが、本番デプロイ後に実機で`storage/unauthorized`エラーが発生し、管理者本人でもアイコンを更新できない不具合が判明した（原因未特定。Cross-Service Rulesのエミュレータ/本番間の何らかの差異と推測されるが、確証は得られていない）。信頼性を優先し、Storage RulesでのFirestore参照はやめ、`updateRenIcon`（Cloud Functions/Admin SDK、新設）経由に切り替えた。クライアントは本人のみ書き込み可能な一時領域（`users/{uid}/renIconUploads/{renId}/{fileName}`、新設）へアップロードし、本関数が`requireRenAdmin`検証後に`ren/{renId}/icon/`へ`move`、ダウンロードトークンを発行して`ren.iconUrl`を更新する。`ren/{renId}/icon`への直接書き込みは`allow write: if false`とした。エミュレータ（Storage + Firestore + Functions + Auth）で、正常系（管理者による更新・`ren.iconUrl`反映）、一般メンバーからの拒否、他人の一時パスを指定した場合の拒否、`ren/{renId}/icon`への直接書き込みが拒否されることを確認済み。**教訓**: Cross-Service Rules（Storage RulesからのFirestore参照）はエミュレータでの検証だけでは本番動作の保証にならない可能性があるため、今後同様の機能を使う場合は本番の実機確認を必須とすること。
 
+### #30 実装時の差分（2026-09-11時点）
+
+**N-3（連管理者に見せる投稿の範囲）の結論**: 案B（全公開投稿を閲覧可、自連メンバーはハイライト）で決定（ユーザー判断、2026-09-11）。理由は本issueが提示したとおり、仕様書1.2の「実際の連・地域コミュニティへの橋渡し」という目的、パンフレットの連による勧誘機能と整合するため。`posts`コレクションは元々`allow read: if isSignedIn();`（コミュニティ機能として全ユーザーに公開）のままなので、この決定に伴うRules変更は無い。
+
+- R-02/R-03（`ManagePostsScreen.tsx`）は`posts`コレクションを直接購読し（`CommunityScreen.tsx`と同じデータソース）、連管理者向けの検索・並び替え・詳細表示のビューを追加しただけで、新しいコレクションやRulesは増やしていない。自連メンバーのハイライトは、対象連の`members`（`status=='active'`）のuid集合と`post.userId`を突き合わせるクライアント側の判定。
+- 「非公開の練習動画が管理者にも見えない」という受け入れ条件は、本画面が`videos`コレクション（練習動画、非公開デフォルト）に一切アクセスせず、常に`posts`（投稿時点で公開済みの動画）のみを参照する設計のため、構造的に満たされる。
+- 「AI採点結果（総合・項目別スコア）」は、FN-01（AI採点確定）・`analysisResults`コレクションが未実装のため、`posts.score`（`publishPost`が発行する暫定モック値、#41参照）の総合スコアのみを表示し、項目別スコアは「未実装のため表示できません」という注記に留めた。FN-01実装後、`analysisResults`と連携する形に置き換える想定。
+- 「アドバイスを送る」ボタンはUIとして設置したが、遷移先のR-04（#31、アドバイス送信画面）がまだ無いため、タップ時に「準備中」を案内するのみとした。#31実装時にこのボタンから実際に遷移させる。
+- 「未アドバイス優先」の並び替えは、各投稿の`comments`サブコレクションに`type=='instructor'`のドキュメントが1件でも存在するかをクライアント側で個別に確認して判定する（`limit(1)`のクエリ、投稿件数が多くない前提の実装）。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

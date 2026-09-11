@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal, Image } from 'react-native';
 import { ChevronLeft, Plus, X, Camera, Pencil, Trash2 } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { db, storage } from '../config/firebaseConfig';
+import { db, storage, auth, functions } from '../config/firebaseConfig';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, addDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes } from 'firebase/storage';
+import { httpsCallable } from 'firebase/functions';
 import * as ImagePicker from 'expo-image-picker';
 import BottomNav from '../components/BottomNav';
 
@@ -119,13 +120,21 @@ export default function ManageActivitiesScreen() {
   const pickIcon = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
     if (result.canceled) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
     try {
       const res = await fetch(result.assets[0].uri);
       const blob = await res.blob();
-      const iconRef = ref(storage, `ren/${renId}/icon/${Date.now()}.jpg`);
-      await uploadBytes(iconRef, blob);
-      const url = await getDownloadURL(iconRef);
-      setDraftIconUrl(url);
+      // 本人のみ書き込み可能な一時領域へアップロードしてから、
+      // updateRenIcon(Cloud Functions)で管理者確認のうえ本配置する
+      // (#34。Storage RulesのCross-Service Rulesが本番で
+      // 不安定だったため、Admin SDK経由に切り替えた)。
+      const tempPath = `users/${currentUser.uid}/renIconUploads/${renId}/${Date.now()}.jpg`;
+      await uploadBytes(ref(storage, tempPath), blob);
+      const updateRenIcon = httpsCallable(functions, 'updateRenIcon');
+      const callResult = await updateRenIcon({ renId, tempPath });
+      const { iconUrl } = callResult.data as { iconUrl: string };
+      setDraftIconUrl(iconUrl);
     } catch (error) {
       console.error(error);
       Alert.alert('エラー', 'アイコンのアップロードに失敗しました');

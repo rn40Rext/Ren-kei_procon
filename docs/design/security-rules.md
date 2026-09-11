@@ -426,6 +426,8 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 エミュレータ（Firestore + Functions + Auth + Storage）で以下を確認済み: `createAnnouncement`呼び出し(announcements作成・通知の宛先絞り込み・脱退済み/作成者除外・文字数バリデーション・他連管理者と一般メンバーからの拒否)、Storageの`ren/{renId}/icon`が対象連の管理者のみ書き込み可であること、`videos/{fileName}`は署名済みユーザーなら誰でも書き込み可であること、`users/{uid}/videos`・`icon`・`ren/{renId}/styleReferences`が包括ルール撤去後も意図通り制限されること、未知のパスがデフォルト拒否になること。
 
+**マージ後の追記（連アイコンのCross-Service Rulesを撤回）**: 上記の`ren/{renId}/icon`の`firestore.get()`ベースの管理者チェックは、エミュレータでは正しく動作したが、本番デプロイ後に実機で`storage/unauthorized`エラーが発生し、管理者本人でもアイコンを更新できない不具合が判明した（原因未特定。Cross-Service Rulesのエミュレータ/本番間の何らかの差異と推測されるが、確証は得られていない）。信頼性を優先し、Storage RulesでのFirestore参照はやめ、`updateRenIcon`（Cloud Functions/Admin SDK、新設）経由に切り替えた。クライアントは本人のみ書き込み可能な一時領域（`users/{uid}/renIconUploads/{renId}/{fileName}`、新設）へアップロードし、本関数が`requireRenAdmin`検証後に`ren/{renId}/icon/`へ`move`、ダウンロードトークンを発行して`ren.iconUrl`を更新する。`ren/{renId}/icon`への直接書き込みは`allow write: if false`とした。エミュレータ（Storage + Firestore + Functions + Auth）で、正常系（管理者による更新・`ren.iconUrl`反映）、一般メンバーからの拒否、他人の一時パスを指定した場合の拒否、`ren/{renId}/icon`への直接書き込みが拒否されることを確認済み。**教訓**: Cross-Service Rules（Storage RulesからのFirestore参照）はエミュレータでの検証だけでは本番動作の保証にならない可能性があるため、今後同様の機能を使う場合は本番の実機確認を必須とすること。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

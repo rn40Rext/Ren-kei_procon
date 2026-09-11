@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { ChevronLeft, X, Search, Heart, MessageSquare, Award, Shield, User as UserIcon, Send } from 'lucide-react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { db } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
+import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
+import { subscribeActiveMembers } from '../repositories/ren';
+import { Post } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 
 const COLORS = {
@@ -15,20 +16,6 @@ const COLORS = {
 };
 
 type SortMode = 'newest' | 'score' | 'noAdvice';
-
-// docs/design/data-model.md 3.3章(仕様書 Posts)
-interface Post {
-  id: string;
-  authorName: string;
-  userId: string;
-  title: string;
-  videoUrl: string;
-  score: number;
-  likeCount: number;
-  commentCount: number;
-  tags: string[];
-  createdAt: any;
-}
 
 export default function ManagePostsScreen() {
   const navigation = useNavigation<any>();
@@ -44,23 +31,30 @@ export default function ManagePostsScreen() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'ren', renId, 'members'), where('status', '==', 'active'));
-    return onSnapshot(q, (snap) => setMemberUids(new Set(snap.docs.map((d) => d.id))));
+    return subscribeActiveMembers(
+      renId,
+      (members) => setMemberUids(new Set(members.map((m) => m.uid))),
+      (error) => console.error('自連メンバーの取得に失敗しました', error)
+    );
   }, [renId]);
 
+  // 「未アドバイス優先」判定のクエリを投稿ごとに一度だけ発行するための
+  // 既読集合。state(hasAdviceMap)をuseEffect内のクロージャで直接見ると
+  // 古い値のままになり判定が効かなくなるため、refで管理する(#92レビュー
+  // で見つかった同種の不具合を避ける)。
+  const requestedAdviceIdsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    return onSnapshot(
-      q,
-      (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+    return subscribePosts(
+      (list) => {
         setPosts(list);
         setLoading(false);
         list.forEach((p) => {
-          if (p.id in hasAdviceMap) return;
-          getDocs(query(collection(db, 'posts', p.id, 'comments'), where('type', '==', 'instructor'), limit(1)))
-            .then((commentsSnap) => {
-              setHasAdviceMap((prev) => ({ ...prev, [p.id]: !commentsSnap.empty }));
+          if (requestedAdviceIdsRef.current.has(p.id)) return;
+          requestedAdviceIdsRef.current.add(p.id);
+          hasInstructorAdvice(p.id)
+            .then((hasAdvice) => {
+              setHasAdviceMap((prev) => ({ ...prev, [p.id]: hasAdvice }));
             })
             .catch(() => undefined);
         });
@@ -71,7 +65,6 @@ export default function ManagePostsScreen() {
         Alert.alert('エラー', '投稿一覧の取得に失敗しました。時間をおいて再度お試しください');
       }
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredSortedPosts = useMemo(() => {

@@ -24,9 +24,9 @@
 
 | 画面 ID | 画面名 | 実装ファイル | 実装状況 | 呼び出す API |
 | --- | --- | --- | --- | --- |
-| R-01 | 管理ホーム | [AdminHomeScreen.tsx](../../Ren-kei_procon/src/screens/AdminHomeScreen.tsx) | 🔶 部分実装（#29。新着投稿・通知は準備中） | `joinRequests`, 通知 |
-| R-02 | 投稿一覧 | 未作成 | ❌ | `posts` 検索 |
-| R-03 | 投稿詳細 | 未作成 | ❌ | `posts`, `analysisResults` |
+| R-01 | 管理ホーム | [AdminHomeScreen.tsx](../../Ren-kei_procon/src/screens/AdminHomeScreen.tsx) | 🔶 部分実装（#29。通知は準備中） | `joinRequests`, 通知 |
+| R-02 | 投稿一覧 | [ManagePostsScreen.tsx](../../Ren-kei_procon/src/screens/ManagePostsScreen.tsx) | ✅ 実装済み（#30。N-3=案Bで全公開投稿+自連ハイライト） | `posts` |
+| R-03 | 投稿詳細 | 同上（画面内モーダル） | 🔶 部分実装（#30。項目別スコアは`analysisResults`未実装のため総合スコアのみ、R-04導線はボタンのみで準備中） | `posts` |
 | R-04 | アドバイス送信 | 未作成 | ❌ | `comments`（`type: 'instructor'`） |
 | R-05 | 参加リクエスト管理 | [ManageJoinRequestsScreen.tsx](../../Ren-kei_procon/src/screens/ManageJoinRequestsScreen.tsx) | ✅ 実装済み（#32） | FN-05 |
 | R-06 | メンバー管理 | [MemberManagementScreen.tsx](../../Ren-kei_procon/src/screens/MemberManagementScreen.tsx) | ✅ 実装済み（#33） | `ren/{renId}/members`, FN-05.5 |

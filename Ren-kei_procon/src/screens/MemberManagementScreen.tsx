@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { ChevronLeft, ChevronRight, Shield, User as UserIcon } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { db, auth, functions } from '../config/firebaseConfig';
@@ -47,6 +47,7 @@ export default function MemberManagementScreen() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [loading, setLoading] = useState(true);
   const [processingUid, setProcessingUid] = useState<string | null>(null);
+  const [confirmingMember, setConfirmingMember] = useState<Member | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -96,30 +97,24 @@ export default function MemberManagementScreen() {
     }
   };
 
-  const handleRemove = (member: Member) => {
-    Alert.alert('確認', `${profiles[member.uid]?.nickname || profiles[member.uid]?.name || 'このメンバー'}を連から除名しますか？`, [
-      { text: 'キャンセル', style: 'cancel' },
-      {
-        text: '除名する',
-        style: 'destructive',
-        onPress: async () => {
-          setProcessingUid(member.uid);
-          try {
-            const removeMember = httpsCallable(functions, 'removeMember');
-            await removeMember({ renId, uid: member.uid });
-          } catch (error: any) {
-            if (error?.code === 'functions/failed-precondition') {
-              Alert.alert('お知らせ', '最後の管理者を除名することはできません');
-            } else {
-              console.error(error);
-              Alert.alert('エラー', '除名に失敗しました');
-            }
-          } finally {
-            setProcessingUid(null);
-          }
-        },
-      },
-    ]);
+  const confirmRemove = async () => {
+    if (!confirmingMember) return;
+    const member = confirmingMember;
+    setConfirmingMember(null);
+    setProcessingUid(member.uid);
+    try {
+      const removeMember = httpsCallable(functions, 'removeMember');
+      await removeMember({ renId, uid: member.uid });
+    } catch (error: any) {
+      if (error?.code === 'functions/failed-precondition') {
+        Alert.alert('お知らせ', '最後の管理者を除名することはできません');
+      } else {
+        console.error(error);
+        Alert.alert('エラー', '除名に失敗しました');
+      }
+    } finally {
+      setProcessingUid(null);
+    }
   };
 
   return (
@@ -186,7 +181,7 @@ export default function MemberManagementScreen() {
                     <TouchableOpacity
                       style={styles.removeBtn}
                       disabled={processingUid === member.uid}
-                      onPress={() => handleRemove(member)}
+                      onPress={() => setConfirmingMember(member)}
                     >
                       <Text style={styles.removeBtnText}>除名</Text>
                     </TouchableOpacity>
@@ -198,6 +193,26 @@ export default function MemberManagementScreen() {
         )}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <Modal visible={!!confirmingMember} animationType="fade" transparent onRequestClose={() => setConfirmingMember(null)}>
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>確認</Text>
+            <Text style={styles.confirmMessage}>
+              {(confirmingMember && (profiles[confirmingMember.uid]?.nickname || profiles[confirmingMember.uid]?.name)) || 'このメンバー'}
+              を連から除名しますか？
+            </Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity style={styles.confirmCancelBtn} onPress={() => setConfirmingMember(null)}>
+                <Text style={styles.confirmCancelText}>キャンセル</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.confirmRemoveBtn} onPress={confirmRemove}>
+                <Text style={styles.confirmRemoveText}>除名する</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <BottomNav />
     </SafeAreaView>
@@ -226,4 +241,13 @@ const styles = StyleSheet.create({
   roleBtnText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 12 },
   removeBtn: { flex: 1, backgroundColor: '#FEF2F2', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginLeft: 8 },
   removeBtnText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 12 },
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 30 },
+  confirmCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%' },
+  confirmTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
+  confirmMessage: { fontSize: 14, color: COLORS.textMain, lineHeight: 20, marginBottom: 24 },
+  confirmActions: { flexDirection: 'row' },
+  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#F1F5F9', marginRight: 8 },
+  confirmCancelText: { color: COLORS.textMain, fontWeight: 'bold', fontSize: 14 },
+  confirmRemoveBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.danger, marginLeft: 8 },
+  confirmRemoveText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 });

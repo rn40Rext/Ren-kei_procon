@@ -20,16 +20,21 @@ service firebase.storage {
                     && request.resource.size < 5 * 1024 * 1024;
     }
 
-    // 連(ren)アイコン。#34でGroupScreen/ManageActivitiesScreenの
-    // 連基本情報編集から実際に使われるようになったため、#40時点の
-    // 「誰でも書き込み可」を、対象連の管理者のみに強化した。
-    // Storage RulesはFirestore Cross-Service Rulesのfirestore.get()で
-    // ren/{renId}/members/{uid}.roleを直接参照できる(2023年提供の機能)。
+    // 連(ren)アイコン。当初はStorage RulesのCross-Service Rules
+    // (firestore.get()でren/{renId}/members/{uid}.roleを直接参照)で
+    // 対象連の管理者のみ書き込み可にしようとしたが、本番環境で
+    // permission-denied(emulatorでは再現しない)になったため断念し、
+    // updateRenIcon(Cloud Functions/Admin SDK、#34)経由に一本化した。
     match /ren/{renId}/icon/{fileName} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-                    && request.resource.size < 5 * 1024 * 1024
-                    && firestore.get(/databases/(default)/documents/ren/$(renId)/members/$(request.auth.uid)).data.role == 'admin';
+      allow write: if false;
+    }
+    // updateRenIconの一時アップロード領域。本人のみ書き込み可能な
+    // 単純なパスにすることで、Cross-Service Rulesの不安定さを回避する。
+    match /users/{uid}/renIconUploads/{renId}/{fileName} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                    && request.resource.size < 5 * 1024 * 1024;
     }
     match /ren/{renId}/styleReferences/{fileName} {
       allow read, write: if false; // 一般ユーザーには読ませない。system/管理者はAdmin SDK経由

@@ -377,6 +377,33 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 
 ---
 
+### FN-06.5 `updateRenIcon`（本設計での追加・#34）
+
+仕様書・当初の FN-01〜07 一覧には無いが、`createRen`（FN-03.5）と同じ理由で新設した。当初は連アイコンの書き込みをStorage RulesのCross-Service Rules（`firestore.get()`）で対象連の管理者のみに制限する設計だったが、本番デプロイ後に管理者本人でも`storage/unauthorized`になる不具合が発生し（エミュレータでは再現しなかった）、信頼性を優先してAdmin SDK経由に切り替えた。
+
+**Request**
+
+```ts
+{ renId: string; tempPath: string; } // tempPath: users/{uid}/renIconUploads/{renId}/{fileName}
+```
+
+**Response**
+
+```ts
+{ iconUrl: string; }
+```
+
+**副作用**: `tempPath`（本人のみ書き込み可能な一時領域）のファイルを`ren/{renId}/icon/{fileName}`へ`move`し、ダウンロードトークンを発行、`ren/{renId}.iconUrl`を更新する。
+
+**検証**
+
+- `tempPath`が呼び出し本人の一時領域（`users/{uid}/renIconUploads/{renId}/`）配下であること
+- `requireRenAdmin(uid, renId)`
+
+エミュレータ（Storage + Firestore + Functions + Auth）で実際に呼び出し、正常系（`ren.iconUrl`反映）、一般メンバーからの拒否、他人の一時パスを指定した場合の拒否、`ren/{renId}/icon`への直接書き込み（`allow write: if false`）が拒否されることを確認済み。
+
+---
+
 ### FN-07 `rebuildRenStyleProfile`
 
 承認済み参照 Embedding から連の代表ベクトルを再計算します。

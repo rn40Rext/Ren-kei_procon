@@ -119,11 +119,15 @@ export default function AdminHomeScreen() {
           <Text style={styles.menuItemText}>参加リクエスト管理</Text>
           <ChevronRight size={18} color="#CBD5E1" />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('MemberManagement', { renId: selectedRen.renId })}
+        >
+          <Users size={20} color={COLORS.primary} />
+          <Text style={styles.menuItemText}>メンバー管理</Text>
+          <ChevronRight size={18} color="#CBD5E1" />
+        </TouchableOpacity>
         <View style={styles.menuPlaceholder}>
-          <View style={styles.pendingRow}>
-            <Users size={18} color={COLORS.textMuted} />
-            <Text style={styles.pendingText}>メンバー管理は準備中です</Text>
-          </View>
           <View style={styles.pendingRow}>
             <Megaphone size={18} color={COLORS.textMuted} />
             <Text style={styles.pendingText}>お知らせ・活動情報の管理は準備中です</Text>

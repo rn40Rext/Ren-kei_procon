@@ -397,6 +397,16 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 エミュレータ（Firestore + Functions + Auth）で `updateJoinRequestStatus` の実際の呼び出しを確認済み（承認時の `members` 作成・通知作成・トランザクション、却下時の通知のみ作成、`pending` 以外への再承認拒否(`INVALID_STATUS_TRANSITION`)、他連の管理者による操作拒否、非管理者による操作拒否）。
 
+### #33 実装時の差分（2026-09-11時点）
+
+- 仕様書の FN-01〜07 一覧には無いが、`createRen`（#26）と同様の理由で `updateMemberRole` と `removeMember` を新設した（`functions/src/ren/updateMemberRole.ts` / `removeMember.ts`）。「最後の管理者を降格・削除できない」という ren 単位の不変条件は、Rules の `get()`/`exists()` だけでは残り管理者数を数えられず表現できないため、Cloud Functions（トランザクション内で `role=='admin' && status=='active'` を集計）に一本化した。
+- 上記に伴い `ren/{renId}/members/{uid}` の Rules を強化した。`update` は常に `false`（`updateMemberRole` 経由のみ）、`delete` は本人の脱退（`isSelf(uid)`）のみ直接許可し、連管理者による他メンバーの直接 `update`/`delete` は不可にした（`removeMember` 経由のみ）。本人による脱退は本issueの注記どおり変更していない（脱退時に「最後の管理者かどうか」はチェックしない。連が管理者不在になり得る点は仕様書側の既知の制約として残る）。
+- 「最後の管理者」制約を拒否するエラーコードは仕様書13章に専用のものが無いため、`INVALID_STATUS_TRANSITION` を流用した（状態遷移として不正、という点で意味が近いため。新規コード追加は行っていない）。
+- `ren.memberCount` の増減追従は、既存の `onMemberWrite` トリガ（#48 実装、`ren/{renId}/members` の書き込みで `status=='active'` を数え直す）がそのまま使えたため、本issue用の追加実装は不要だった。エミュレータで役割変更・除名後に `memberCount` が再集計されることを確認済み。
+- R-06 メンバー管理画面（`MemberManagementScreen.tsx`）は、一覧・役割変更・除名・プロフィール/投稿履歴への導線（既存の `UserProfileScreen` へ遷移）を実装した。UI 判断として、一覧に表示される行のうち**自分自身の行には役割変更・除名ボタンを出さない**（自分の権限を誤って落とす事故を防ぐため。Functions 側は自分自身を対象にしても動作する）。
+
+エミュレータ（Firestore + Functions + Auth）で `updateMemberRole`・`removeMember` の実際の呼び出しを確認済み（昇格・降格、残り管理者がいる場合の降格・除名の成功、最後の管理者の降格・除名の拒否(`INVALID_STATUS_TRANSITION`)、除名後の `memberCount` 再集計、他連の管理者による操作拒否）。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

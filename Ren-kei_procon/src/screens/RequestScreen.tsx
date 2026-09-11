@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Search, Users, MapPin, ChevronRight, X } from 'lucide-react-native';
-import { db, auth, functions } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, orderBy, where, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { auth } from '../config/firebaseConfig';
+import { subscribeRens, fetchRenMember } from '../repositories/ren';
+import {
+  subscribeMyJoinRequests,
+  submitJoinRequest,
+  cancelJoinRequest,
+} from '../repositories/joinRequests';
+import { JoinRequest, Ren } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 
 const COLORS = {
@@ -13,23 +18,6 @@ const COLORS = {
   border: '#E2E8F0',
   danger: '#EF4444',
 };
-
-// docs/design/data-model.md 3.8章
-interface Ren {
-  id: string;
-  name: string;
-  description: string;
-  location: string;
-  beginnerFriendly: boolean;
-  memberCount: number;
-}
-
-// docs/design/data-model.md 3.10章
-interface JoinRequest {
-  id: string;
-  renId: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-}
 
 export default function RequestScreen() {
   const [rens, setRens] = useState<Ren[]>([]);
@@ -45,11 +33,9 @@ export default function RequestScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'ren'), orderBy('name'));
-    return onSnapshot(
-      q,
-      (snap) => {
-        setRens(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Ren)));
+    return subscribeRens(
+      (list) => {
+        setRens(list);
         setLoading(false);
       },
       (error) => {
@@ -66,16 +52,9 @@ export default function RequestScreen() {
     // 複合インデックス(userId + createdAt)を使う自分の申請履歴クエリ。
     // 特定の連への重複pending申請の有無は、ここから取得した一覧を
     // クライアント側でフィルタして判定する(申請ごとのクエリを増やさない)。
-    const q = query(
-      collection(db, 'joinRequests'),
-      where('userId', '==', currentUser.uid),
-      orderBy('createdAt', 'desc')
-    );
-    return onSnapshot(
-      q,
-      (snap) => {
-        setMyRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() } as JoinRequest)));
-      },
+    return subscribeMyJoinRequests(
+      currentUser.uid,
+      setMyRequests,
       (error) => {
         // 複合インデックスがデプロイ直後で構築中の場合など、一時的に
         // 失敗することがある。エラーを可視化し、再読み込みを促す。
@@ -105,8 +84,8 @@ export default function RequestScreen() {
     try {
       const currentUser = auth.currentUser;
       if (currentUser) {
-        const memberSnap = await getDoc(doc(db, 'ren', ren.id, 'members', currentUser.uid));
-        setIsMember(memberSnap.exists() && memberSnap.data()?.status === 'active');
+        const member = await fetchRenMember(ren.id, currentUser.uid);
+        setIsMember(member?.status === 'active');
       }
     } finally {
       setCheckingMembership(false);
@@ -117,8 +96,7 @@ export default function RequestScreen() {
     if (!selectedRen) return;
     setSubmitting(true);
     try {
-      const submitJoinRequest = httpsCallable(functions, 'submitJoinRequest');
-      await submitJoinRequest({ renId: selectedRen.id, message: message.trim() });
+      await submitJoinRequest(selectedRen.id, message.trim());
       Alert.alert('完了', '参加を申請しました');
       setSelectedRen(null);
     } catch (error: any) {
@@ -137,7 +115,7 @@ export default function RequestScreen() {
 
   const handleCancelRequest = async (requestId: string) => {
     try {
-      await updateDoc(doc(db, 'joinRequests', requestId), { status: 'cancelled' });
+      await cancelJoinRequest(requestId);
       Alert.alert('完了', '申請を取り消しました');
     } catch (error) {
       console.error(error);

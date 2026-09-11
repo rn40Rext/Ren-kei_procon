@@ -5,29 +5,28 @@ import {
 } from 'react-native';
 import { Play, Heart, MessageSquare, Plus, Search, Video as VideoIcon, X, ChevronLeft, Send, Award, User } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native'; // 💡 追加
+import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 
-// Firebase設定
-import { db, storage, auth, functions } from '../config/firebaseConfig';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { httpsCallable } from 'firebase/functions';
+import { auth } from '../config/firebaseConfig';
+import {
+  subscribePosts,
+  subscribePostComments,
+  addPostComment,
+  likePost,
+  uploadPostVideo,
+  publishPost,
+} from '../repositories/posts';
+import { Post, PostComment } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
 const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
 
-interface Post {
-  id: string; authorName: string; userId: string; title: string; videoUrl: string;
-  score: number; likeCount: number; commentCount: number; tags: string[]; createdAt: any;
-}
-
-interface CommentData { id: string; userId: string; userName: string; text: string; type: 'instructor' | 'normal'; }
-
 export default function CommunityScreen() {
-  const navigation = useNavigation<any>(); // 💡 型エラー回避のため any
+  // TODO: NativeStackNavigationProp<RootStackParamList, 'Community'>へ置き換える(docs/rules/coding.md 2章)
+  const navigation = useNavigation<any>();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -41,11 +40,17 @@ export default function CommunityScreen() {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (s) => {
-      setPosts(s.docs.map(d => ({ id: d.id, ...d.data() } as Post)));
-      setLoading(false);
-    });
+    return subscribePosts(
+      (list) => {
+        setPosts(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('投稿一覧の取得に失敗しました', error);
+        setLoading(false);
+        Alert.alert('エラー', '投稿一覧の取得に失敗しました。通信環境を確認して画面を開き直してください');
+      }
+    );
   }, []);
 
   const pickVideo = async () => {
@@ -59,23 +64,14 @@ export default function CommunityScreen() {
     try {
       const res = await fetch(postVideoUri);
       const blob = await res.blob();
-      const storageRef = ref(storage, `videos/${Date.now()}.mp4`);
-      await uploadBytes(storageRef, blob);
-      const url = await getDownloadURL(storageRef);
+      const videoUrl = await uploadPostVideo(blob);
 
-      // 💡 目標3: ログイン中のユーザー名をpublishPostに渡す
       const currentUser = auth.currentUser;
       const authorName = currentUser?.email?.split('@')[0] || "匿名踊り子";
 
       // スコア・カウンタの初期化はクライアントで改ざんできないよう
       // Cloud Functions(publishPost)側で行う
-      const publishPost = httpsCallable(functions, 'publishPost');
-      await publishPost({
-        title: postTitle,
-        authorName,
-        videoUrl: url,
-        tags: postTags,
-      });
+      await publishPost({ title: postTitle, authorName, videoUrl, tags: postTags });
       setIsPostModalOpen(false);
       setPostTitle(''); setPostVideoUri(null); setPostTags([]);
       Alert.alert("成功", "動画を投稿しました！");
@@ -187,11 +183,14 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
   const navigation = useNavigation<any>();
   const [tab, setTab] = useState<'instructor' | 'normal'>('instructor');
   const [text, setText] = useState('');
-  const [comments, setComments] = useState<CommentData[]>([]);
+  const [comments, setComments] = useState<PostComment[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'posts', post.id, 'comments'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (s) => setComments(s.docs.map(d => ({ id: d.id, ...d.data() } as CommentData))));
+    return subscribePostComments(
+      post.id,
+      setComments,
+      (error) => console.error('コメントの取得に失敗しました', error)
+    );
   }, [post.id]);
 
   const onSend = async () => {
@@ -200,26 +199,19 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     if (!currentUser) return;
     const userName = currentUser.email?.split('@')[0] || "匿名";
 
-    // 💡 commentCountはCloud Functionsトリガ(onCommentWrite)が
+    // commentCountはCloud Functionsトリガ(onCommentWrite)が
     // count()集計で自動更新するため、ここでは触らない
-    await addDoc(collection(db, 'posts', post.id, 'comments'), {
-      userId: currentUser.uid, userName, text: text.trim(), type: tab, createdAt: serverTimestamp()
-    });
+    await addPostComment(post.id, { userId: currentUser.uid, userName, text: text.trim(), type: tab });
     setText('');
   };
 
   const onLike = async () => {
     const currentUser = auth.currentUser;
     if (!currentUser) return;
-    const likeRef = doc(db, 'posts', post.id, 'likes', currentUser.uid);
     try {
       // likeCountはCloud Functionsトリガ(onLikeWrite)がcount()集計で
       // 自動更新するため、ここではlikesドキュメントの作成のみ行う
-      await runTransaction(db, async (transaction) => {
-        const likeSnap = await transaction.get(likeRef);
-        if (likeSnap.exists()) return; // 二重いいねを防ぐ
-        transaction.set(likeRef, { userId: currentUser.uid, createdAt: serverTimestamp() });
-      });
+      await likePost(post.id, currentUser.uid);
     } catch (e) {
       Alert.alert("失敗", "拍手の送信に失敗しました");
     }
@@ -238,7 +230,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
         <View style={styles.metaSection}>
           <View style={styles.scoreBadgeLarge}><Award size={20} color="#FACC15" /><Text style={styles.scoreTextLarge}>AI採点 {post.score}点</Text></View>
 
-          {/* 💡 目標4: 踊り子の名前をタップしてプロフィール画面へ飛ぶ */}
+          {/* 踊り子の名前をタップしてプロフィール画面へ遷移する */}
           <TouchableOpacity
             onPress={() => navigation.navigate('UserProfile', {
                 userId: post.userId,

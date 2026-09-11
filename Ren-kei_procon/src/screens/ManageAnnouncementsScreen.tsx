@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { ChevronLeft, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { db, functions } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { subscribeAnnouncements, createAnnouncement } from '../repositories/ren';
+import { Announcement } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 
 const COLORS = {
@@ -13,14 +12,6 @@ const COLORS = {
   textMuted: '#64748B',
   border: '#E2E8F0',
 };
-
-// docs/design/data-model.md 3.11章(仕様書9.3 Announcements)
-interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: any;
-}
 
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
@@ -41,11 +32,10 @@ export default function ManageAnnouncementsScreen() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'ren', renId, 'announcements'), orderBy('createdAt', 'desc'));
-    return onSnapshot(
-      q,
-      (snap) => {
-        setAnnouncements(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Announcement)));
+    return subscribeAnnouncements(
+      renId,
+      (list) => {
+        setAnnouncements(list);
         setLoading(false);
       },
       (error) => {
@@ -62,8 +52,7 @@ export default function ManageAnnouncementsScreen() {
     }
     setSending(true);
     try {
-      const createAnnouncement = httpsCallable(functions, 'createAnnouncement');
-      await createAnnouncement({ renId, title: title.trim(), content: content.trim() });
+      await createAnnouncement(renId, { title: title.trim(), content: content.trim() });
       setTitle('');
       setContent('');
       Alert.alert('完了', 'お知らせを配信しました');

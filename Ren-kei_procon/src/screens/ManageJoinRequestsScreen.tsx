@@ -3,9 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Act
 import { ChevronLeft, X, User as UserIcon, MessageSquare } from 'lucide-react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { db, functions } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, where, orderBy, doc, getDoc, getDocs, limit } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import {
+  subscribeRenJoinRequests,
+  updateJoinRequestStatus,
+} from '../repositories/joinRequests';
+import { fetchUserProfile } from '../repositories/users';
+import { fetchPostsByUser } from '../repositories/posts';
+import { JoinRequest, Post, UserProfile } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 
 const COLORS = {
@@ -23,30 +27,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'rejected', label: '却下' },
 ];
 
-// docs/design/data-model.md 3.10章
-interface JoinRequest {
-  id: string;
-  userId: string;
-  renId: string;
-  message: string;
-  status: Tab;
-  createdAt: any;
-}
-
-// docs/design/data-model.md 3.1章
-interface Applicant {
-  name: string;
-  nickname?: string;
-}
-
-// docs/design/data-model.md 3.3章(投稿)
-interface ApplicantPost {
-  id: string;
-  title: string;
-  videoUrl: string;
-  score: number;
-}
-
 export default function ManageJoinRequestsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -59,30 +39,26 @@ export default function ManageJoinRequestsScreen() {
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const [detailRequest, setDetailRequest] = useState<JoinRequest | null>(null);
-  const [applicant, setApplicant] = useState<Applicant | null>(null);
-  const [applicantPosts, setApplicantPosts] = useState<ApplicantPost[]>([]);
+  const [applicant, setApplicant] = useState<UserProfile | null>(null);
+  const [applicantPosts, setApplicantPosts] = useState<Post[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    const q = query(
-      collection(db, 'joinRequests'),
-      where('renId', '==', renId),
-      where('status', '==', tab),
-      orderBy('createdAt', 'desc')
-    );
-    return onSnapshot(
-      q,
-      (snap) => {
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as JoinRequest));
+    return subscribeRenJoinRequests(
+      renId,
+      tab,
+      (list) => {
         setRequests(list);
         setLoading(false);
         list.forEach((req) => {
           if (applicantNames[req.userId]) return;
-          getDoc(doc(db, 'users', req.userId))
-            .then((s) => {
-              const data = s.data();
-              setApplicantNames((prev) => ({ ...prev, [req.userId]: data?.nickname || data?.name || '不明なユーザー' }));
+          fetchUserProfile(req.userId)
+            .then((profile) => {
+              setApplicantNames((prev) => ({
+                ...prev,
+                [req.userId]: profile?.nickname || profile?.name || '不明なユーザー',
+              }));
             })
             .catch(() => undefined);
         });
@@ -102,13 +78,8 @@ export default function ManageJoinRequestsScreen() {
     setApplicantPosts([]);
     setLoadingDetail(true);
     try {
-      const userSnap = await getDoc(doc(db, 'users', req.userId));
-      setApplicant(userSnap.exists() ? (userSnap.data() as Applicant) : null);
-
-      const postsSnap = await getDocs(
-        query(collection(db, 'posts'), where('userId', '==', req.userId), orderBy('createdAt', 'desc'), limit(6))
-      );
-      setApplicantPosts(postsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ApplicantPost)));
+      setApplicant(await fetchUserProfile(req.userId));
+      setApplicantPosts(await fetchPostsByUser(req.userId, 6));
     } catch (error) {
       console.error('申請者情報の取得に失敗しました', error);
     } finally {
@@ -125,8 +96,7 @@ export default function ManageJoinRequestsScreen() {
   const handleDecision = async (requestId: string, action: 'approve' | 'reject') => {
     setProcessingId(requestId);
     try {
-      const updateJoinRequestStatus = httpsCallable(functions, 'updateJoinRequestStatus');
-      await updateJoinRequestStatus({ requestId, action });
+      await updateJoinRequestStatus(requestId, action);
       Alert.alert('完了', action === 'approve' ? '参加を承認しました' : '申請を却下しました');
       closeDetail();
     } catch (error: any) {

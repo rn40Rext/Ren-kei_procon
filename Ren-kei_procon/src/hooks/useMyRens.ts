@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { collectionGroup, query, where, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../config/firebaseConfig';
+import { auth } from '../config/firebaseConfig';
+import { subscribeMyMemberships } from '../repositories/ren';
+import { RenMemberRole } from '../types/firestore';
 
 // docs/design/data-model.md 3.8章
 export interface MyRen {
@@ -10,7 +11,7 @@ export interface MyRen {
   location: string;
   iconUrl: string;
   memberCount: number;
-  role: 'member' | 'admin';
+  role: RenMemberRole;
 }
 
 /**
@@ -29,33 +30,20 @@ export function useMyRens() {
       return;
     }
 
-    // members はcollectionGroupクエリ(要: 複合インデックス)。
-    const q = query(
-      collectionGroup(db, 'members'),
-      where('userId', '==', currentUser.uid),
-      where('status', '==', 'active')
-    );
-
-    return onSnapshot(
-      q,
-      async (snap) => {
-        const results = await Promise.all(
-          snap.docs.map(async (memberDoc) => {
-            const renId = memberDoc.ref.parent.parent?.id ?? '';
-            const renSnap = await getDoc(doc(db, 'ren', renId));
-            const renData = renSnap.exists() ? renSnap.data() : null;
-            return {
-              renId,
-              name: renData?.name ?? renId,
-              description: renData?.description ?? '',
-              location: renData?.location ?? '',
-              iconUrl: renData?.iconUrl ?? '',
-              memberCount: renData?.memberCount ?? 0,
-              role: memberDoc.data().role,
-            } as MyRen;
-          })
+    return subscribeMyMemberships(
+      currentUser.uid,
+      (memberships) => {
+        setMyRens(
+          memberships.map(({ renId, role, ren }) => ({
+            renId,
+            name: ren?.name ?? renId,
+            description: ren?.description ?? '',
+            location: ren?.location ?? '',
+            iconUrl: ren?.iconUrl ?? '',
+            memberCount: ren?.memberCount ?? 0,
+            role,
+          }))
         );
-        setMyRens(results);
         setLoading(false);
       },
       (error) => {

@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { ChevronLeft, ChevronRight, Shield, User as UserIcon } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { db, auth, functions } from '../config/firebaseConfig';
-import { collection, onSnapshot, query, where, doc, getDoc } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
+import { auth } from '../config/firebaseConfig';
+import { subscribeActiveMembers, updateMemberRole, removeMember } from '../repositories/ren';
+import { fetchUserProfile } from '../repositories/users';
+import { RenMember } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 
 const COLORS = {
@@ -14,14 +15,6 @@ const COLORS = {
   border: '#E2E8F0',
   danger: '#EF4444',
 };
-
-// docs/design/data-model.md 3.9章
-interface Member {
-  uid: string;
-  role: 'member' | 'admin';
-  status: 'active' | 'left';
-  joinedAt: any;
-}
 
 interface Profile {
   name: string;
@@ -43,28 +36,27 @@ export default function MemberManagementScreen() {
   const { renId } = route.params;
   const currentUid = auth.currentUser?.uid;
 
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<RenMember[]>([]);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [loading, setLoading] = useState(true);
   const [processingUid, setProcessingUid] = useState<string | null>(null);
-  const [confirmingMember, setConfirmingMember] = useState<Member | null>(null);
+  const [confirmingMember, setConfirmingMember] = useState<RenMember | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    const q = query(collection(db, 'ren', renId, 'members'), where('status', '==', 'active'));
-    return onSnapshot(
-      q,
-      (snap) => {
-        const list = snap.docs.map((d) => ({ uid: d.id, ...d.data() } as Member));
+    return subscribeActiveMembers(
+      renId,
+      (snapshotMembers) => {
+        const list = [...snapshotMembers];
         list.sort((a, b) => (a.role === b.role ? 0 : a.role === 'admin' ? -1 : 1));
         setMembers(list);
         setLoading(false);
         list.forEach((m) => {
           if (profiles[m.uid]) return;
-          getDoc(doc(db, 'users', m.uid))
-            .then((s) => {
-              if (s.exists()) {
-                setProfiles((prev) => ({ ...prev, [m.uid]: s.data() as Profile }));
+          fetchUserProfile(m.uid)
+            .then((profile) => {
+              if (profile) {
+                setProfiles((prev) => ({ ...prev, [m.uid]: profile as Profile }));
               }
             })
             .catch(() => undefined);
@@ -79,12 +71,11 @@ export default function MemberManagementScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renId]);
 
-  const handleToggleRole = async (member: Member) => {
+  const handleToggleRole = async (member: RenMember) => {
     const nextRole = member.role === 'admin' ? 'member' : 'admin';
     setProcessingUid(member.uid);
     try {
-      const updateMemberRole = httpsCallable(functions, 'updateMemberRole');
-      await updateMemberRole({ renId, uid: member.uid, role: nextRole });
+      await updateMemberRole(renId, member.uid, nextRole);
     } catch (error: any) {
       if (error?.code === 'functions/failed-precondition') {
         Alert.alert('お知らせ', '最後の管理者を降格することはできません');
@@ -103,8 +94,7 @@ export default function MemberManagementScreen() {
     setConfirmingMember(null);
     setProcessingUid(member.uid);
     try {
-      const removeMember = httpsCallable(functions, 'removeMember');
-      await removeMember({ renId, uid: member.uid });
+      await removeMember(renId, member.uid);
     } catch (error: any) {
       if (error?.code === 'functions/failed-precondition') {
         Alert.alert('お知らせ', '最後の管理者を除名することはできません');

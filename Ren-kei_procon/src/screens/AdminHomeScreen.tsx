@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone, CalendarDays } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { db } from '../config/firebaseConfig';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { subscribePendingJoinRequestCount } from '../repositories/joinRequests';
 import { useAdminRens } from '../hooks/useAdminRens';
 import BottomNav from '../components/BottomNav';
 
@@ -28,14 +27,9 @@ export default function AdminHomeScreen() {
 
   useEffect(() => {
     if (!selectedRenId) return;
-    const q = query(
-      collection(db, 'joinRequests'),
-      where('renId', '==', selectedRenId),
-      where('status', '==', 'pending')
-    );
-    return onSnapshot(
-      q,
-      (snap) => setPendingCount(snap.size),
+    return subscribePendingJoinRequestCount(
+      selectedRenId,
+      setPendingCount,
       (error) => console.error('未対応の参加リクエスト件数の取得に失敗しました', error)
     );
   }, [selectedRenId]);

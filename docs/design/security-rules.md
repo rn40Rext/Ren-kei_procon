@@ -407,6 +407,15 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 
 エミュレータ（Firestore + Functions + Auth）で `updateMemberRole`・`removeMember` の実際の呼び出しを確認済み（昇格・降格、残り管理者がいる場合の降格・除名の成功、最後の管理者の降格・除名の拒否(`INVALID_STATUS_TRANSITION`)、除名後の `memberCount` 再集計、他連の管理者による操作拒否）。
 
+### #28 実装時の差分（2026-09-11時点）
+
+- `GroupScreen.tsx` を「所属している連のグループ」の1行スタブ（実際にはローカル state のみで完結する連作成フォームだった）から、実際の U-08 マイ連画面に置き換えた。所属連の情報・活動情報・お知らせ・自分の役割を表示し、複数連所属時はタブで切り替える。既存の連作成（`createRen` 呼び出し）機能はモーダルとして残し、機能を落とさないようにした。
+- `src/hooks/useMyRens.ts`（新規）: `useAdminRens()`（#29）と同様に `collectionGroup('members')` を使うが、`role` の絞り込みが無い点が異なる（管理者に限らず所属している全ての連を返す）。この形の等価条件（`userId`+`status`のみ、`role`を挟まない）は既存の `members(userId, role, status)` インデックスでは賄えないため、`firestore.indexes.json` に `members(userId, status)`（`COLLECTION_GROUP`）を追加した。
+- `ren/{renId}/activities`・`announcements` の読み取りは元々 `allow read: if isSignedIn();` のままで足りるため、Rules 変更は無し。#34（お知らせ・活動情報の管理画面/FN-06）が未実装のため、実際にデータを作成する手段が無く、現状は空状態（「まだありません」）の表示のみ確認できる。
+- 受け入れ条件の「メンバー一覧（人数、自分の役割）」は、`ren.memberCount` と自分の `role` の表示のみとした。メンバー個々の詳細な一覧は既に管理者向けの `MemberManagementScreen`（#33）が担っており、一般メンバー向けに別の一覧UIを重複実装しなかった。
+
+エミュレータ（Firestore + Auth、クライアントSDK）で `useMyRens` 相当の `collectionGroup` クエリ（複数連所属時の件数、所属していないユーザーは0件）と、活動情報のstartAt昇順・お知らせのcreatedAt降順の並び順を確認済み。
+
 ## 7. 適用手順
 
 1. 上記 Rules を `firestore.rules` / `storage.rules` へ反映（サンプルの `restaurants` は削除）

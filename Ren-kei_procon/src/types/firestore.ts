@@ -52,6 +52,9 @@ export interface PostComment {
   userName: string;
   text: string;
   type: CommentType;
+  // type:'instructor'の場合のみ設定。「どの連の管理者としての発言か」を
+  // 記録する(#31)。type:'normal'では無い
+  renId?: string;
   createdAt?: FirestoreDate;
 }
 

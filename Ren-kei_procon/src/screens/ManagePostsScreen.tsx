@@ -83,7 +83,15 @@ export default function ManagePostsScreen() {
   }, [posts, keyword, sortMode, hasAdviceMap]);
 
   const handleSendAdvice = () => {
-    Alert.alert('お知らせ', 'アドバイス送信機能(R-04)は準備中です');
+    if (!selectedPost) return;
+    setSelectedPost(null);
+    navigation.navigate('AdviceCompose', {
+      postId: selectedPost.id,
+      renId,
+      postTitle: selectedPost.title,
+      authorName: selectedPost.authorName,
+      videoUrl: selectedPost.videoUrl,
+    });
   };
 
   return (

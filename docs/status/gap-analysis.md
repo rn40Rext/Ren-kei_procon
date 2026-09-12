@@ -108,11 +108,10 @@ UI 側は `CommunityScreen.tsx` が「AI {score}点」「AI採点 {score}点」�
 
 ## 5. セキュリティ上の差分
 
-前回調査時点の S-1〜S-6 は解消済みです。**残っているのは次の 4 点です。**
+前回調査時点の S-1〜S-6 は解消済みです。**残っているのは次の 3 点です。**
 
 | # | 内容 | 状態 |
 | --- | --- | --- |
-| S-8 | **指導者コメント（`type: 'instructor'`）を誰でも作成できる。** `firestore.rules` は `type in ['instructor', 'normal']` しか見ていない | 未対応（[#31](../../../issues/31)）。`tests/rules/posts.rules.test.mjs` の該当テストは skip されており、スキップ理由「連機能が未実装だから」はすでに成立していない |
 | S-9 | 投稿動画の Storage パスが `videos/{Date.now()}.mp4` で所有者情報を含まない。所有者ベースの保護ができない | 未対応（[#41](../../../issues/41)） |
 | S-10 | Storage の `contentType` 検証が無い（サイズ上限のみ） | 意図的な見送り。React Native から正しい値が送られるか実機未検証のため（[#40](../../../issues/40) にコメント済み） |
 | S-11 | 本番プロジェクト `ren-kei` に最新の Rules が反映されているか未確認 | 未確認。プロジェクトへのアクセス権を持つアカウントでのみ確認できる（[#40](../../../issues/40)） |
@@ -122,6 +121,7 @@ UI 側は `CommunityScreen.tsx` が「AI {score}点」「AI採点 {score}点」�
 - ✅ `storage.rules` の全開放 → 認証必須 + 所有者ベース + デフォルト拒否（[#50](../../../issues/50) / [#40](../../../issues/40)）
 - ✅ Firestore のサンプル Rules（`restaurants` / `ratings`）→ 全コレクションの CRUD 制御（[#40](../../../issues/40)）
 - ✅ `users.role` の自己昇格防止（[#39](../../../issues/39)）
+- ✅ 指導者コメント（`type: 'instructor'`）を誰でも作成できる問題 → `renId` + `isRenAdmin(renId)` の検証を追加（[#31](../../../issues/31)）。`tests/rules/posts.rules.test.mjs` のskipテストも有効化済み
 - ✅ スコアのクライアント書き込み → `posts` の `create` を Rules で禁止し Functions 経由に一本化（[#47](../../../issues/47)）
 - ✅ コメント権限をコメント自身の `userId` で判定（[#40](../../../issues/40)）
 - ✅ 連 A の管理者が連 B を操作できないことを Rules・Functions の両方で検証（[#29](../../../issues/29)）
@@ -167,16 +167,15 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | Videos と Posts の分離 | 別 Entity。練習動画は private、投稿は public | `posts` は分離済み。ただし `videos` を作る実装がまだ無い | ✅ 仕様書に合わせる方針で進行中（[#41](../../../issues/41) / [#47](../../../issues/47) の残作業） |
 | いいねの持ち方 | Likes Entity | `posts/{id}/likes/{uid}` | ✅ 解消済み |
 | 所属連の持ち方 | `Users.ren` と RenMembers が併存（TBD-11） | RenMembers に一本化 | ✅ 決定済み（[data-model.md](../design/data-model.md)） |
-| コメント種別 | `normal` / `instructor` | 同じ | ✅ 解消済み。ただし権限検証は未実装 |
+| コメント種別 | `normal` / `instructor` | 同じ | ✅ 解消済み。権限検証も実装済み（[#31](../../../issues/31)） |
 | 1 対 1 チャット | 記載なし | 実装済み。Rules で当事者のみに制限 | **プロトタイプ限定機能として残す**。v0.4 で正式化を判断（N-1） |
-| お知らせ・活動情報の公開対象 | TBD-15 | ログイン済みなら誰でも read できる | **未決定**。連メンバー限定にするかを [#34](../../../issues/34) で決める必要がある |
+| お知らせ・活動情報の公開対象 | TBD-15 | ログイン済みなら誰でも read できる | ✅ **現状維持で決定**（[#34](../../../issues/34)）。将来メンバー限定メッセージ機能を別途検討 |
 | 連アイコンの更新経路 | 記載なし | Storage Cross-Service Rules が本番で不安定だったため、Cloud Functions（Admin SDK）経由に変更 | 実装側の判断。[storage.rules](../../storage.rules) にコメントとして記録済み |
 
 ## 8. 次のアクション
 
 1. **[#58](../../../issues/58) AI 採点がモックである旨を UI に明示する** — 発表・デモで最もリスクが高い。実装コストは小さい
 2. **[#13](../../../issues/13) MediaPipe の組み込み方式を決める（TBD-01）** — クリティカルパスの先頭。ここが決まらないと AI 系 18 件が動かない
-3. **[#31](../../../issues/31) 指導者コメントの権限検証** — S-8。連機能が揃った今、Rules を締められる
-4. **[#40](../../../issues/40) の本番反映確認** — S-11
+3. **[#40](../../../issues/40) の本番反映確認** — S-11
 
 優先順位とマイルストーンは [roadmap.md](roadmap.md) を参照してください。

@@ -19,6 +19,7 @@ import {
   publishPost,
 } from '../repositories/posts';
 import { Post, PostComment } from '../types/firestore';
+import { useAdminRens } from '../hooks/useAdminRens';
 import BottomNav from '../components/BottomNav';
 
 const { width } = Dimensions.get('window');
@@ -184,6 +185,11 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
   const [tab, setTab] = useState<'instructor' | 'normal'>('instructor');
   const [text, setText] = useState('');
   const [comments, setComments] = useState<PostComment[]>([]);
+  const [sending, setSending] = useState(false);
+  const { adminRens } = useAdminRens();
+  // 指導者コメント(師匠の教え)は連管理者のみ投稿できる(#31)。複数連の
+  // 管理者を兼任している場合は、暫定的に最初の連の管理者として投稿する
+  const canPostInstructor = adminRens.length > 0;
 
   useEffect(() => {
     return subscribePostComments(
@@ -197,12 +203,27 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     if (!text.trim()) return;
     const currentUser = auth.currentUser;
     if (!currentUser) return;
+    if (tab === 'instructor' && !canPostInstructor) return;
     const userName = currentUser.email?.split('@')[0] || "匿名";
 
-    // commentCountはCloud Functionsトリガ(onCommentWrite)が
-    // count()集計で自動更新するため、ここでは触らない
-    await addPostComment(post.id, { userId: currentUser.uid, userName, text: text.trim(), type: tab });
-    setText('');
+    setSending(true);
+    try {
+      // commentCountはCloud Functionsトリガ(onCommentWrite)が
+      // count()集計で自動更新するため、ここでは触らない
+      await addPostComment(post.id, {
+        userId: currentUser.uid,
+        userName,
+        text: text.trim(),
+        type: tab,
+        renId: tab === 'instructor' ? adminRens[0].renId : undefined,
+      });
+      setText('');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('失敗', 'コメントの送信に失敗しました');
+    } finally {
+      setSending(false);
+    }
   };
 
   const onLike = async () => {
@@ -260,10 +281,18 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
         </View>
       </ScrollView>
 
-      <View style={styles.inputDock}>
-        <TextInput style={styles.textInput} placeholder="感想やアドバイスを入力..." value={text} onChangeText={setText} />
-        <TouchableOpacity style={styles.sendBtn} onPress={onSend}><Send color="#fff" size={20} /></TouchableOpacity>
-      </View>
+      {tab === 'instructor' && !canPostInstructor ? (
+        <View style={styles.inputDockDisabled}>
+          <Text style={styles.inputDockDisabledText}>指導者コメントは連の管理者のみ投稿できます</Text>
+        </View>
+      ) : (
+        <View style={styles.inputDock}>
+          <TextInput style={styles.textInput} placeholder="感想やアドバイスを入力..." value={text} onChangeText={setText} />
+          <TouchableOpacity style={styles.sendBtn} onPress={onSend} disabled={sending}>
+            {sending ? <ActivityIndicator color="#fff" size="small" /> : <Send color="#fff" size={20} />}
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -344,4 +373,6 @@ const styles = StyleSheet.create({
   inputDock: { flexDirection: 'row', padding: 15, borderTopWidth: 1, borderColor: '#eee', backgroundColor: '#fff' },
   textInput: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 25, paddingHorizontal: 20, height: 45 },
   sendBtn: { backgroundColor: '#2563EB', width: 45, height: 45, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
+  inputDockDisabled: { padding: 15, borderTopWidth: 1, borderColor: '#eee', backgroundColor: '#F8FAFC' },
+  inputDockDisabledText: { textAlign: 'center', fontSize: 12, color: '#64748B' },
 });

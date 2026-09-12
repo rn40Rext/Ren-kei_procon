@@ -51,9 +51,18 @@ service cloud.firestore {
 
       match /comments/{commentId} {
         allow read: if request.auth != null;
+        // type:'instructor'(師匠の教え)はrenIdで「どの連の管理者としての
+        // 発言か」を検証する(#31)。isRenAdmin(renId)は呼び出し本人が
+        // そのrenIdの管理者かどうかを見るため、他人の連を騙ることはできない。
         allow create: if request.auth != null
                       && request.resource.data.userId == request.auth.uid
-                      && request.resource.data.type in ['instructor', 'normal'];
+                      && request.resource.data.type in ['instructor', 'normal']
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() >= 1
+                      && request.resource.data.text.size() <= 1000
+                      && (request.resource.data.type == 'normal'
+                            || (request.resource.data.renId is string
+                                  && isRenAdmin(request.resource.data.renId)));
         // 権限は「投稿者」ではなく「コメント自身のuserId」で判定する(仕様書10.3)。
         // 削除・編集UIは未実装だが、Rules上は本人のみ許可しておく。
         allow update, delete: if request.auth != null

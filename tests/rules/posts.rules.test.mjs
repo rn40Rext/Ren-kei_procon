@@ -16,6 +16,9 @@ beforeEach(async () => {
     await ctx.firestore().doc("posts/p1").set({
       userId: "alice", title: "稽古の成果", likeCount: 0, commentCount: 0, createdAt: new Date(),
     });
+    await ctx.firestore().doc("ren/r1/members/carol").set({
+      userId: "carol", role: "admin", status: "active", joinedAt: new Date(),
+    });
   });
 });
 
@@ -89,8 +92,7 @@ test("[正常系] コメント本人は自分のコメントを削除できる",
 });
 
 test(
-  "[本設計の追加分] 管理者でないユーザーはtype:'instructor'のコメントを作成できない",
-  { skip: "連機能(ren/members)が未実装で誰もisRenAdmin()になれないため、今締めると「師匠の教え」機能が誰も使えなくなる。連機能実装時にチームで対応することを決定済み(docs/design/security-rules.md参照)。現状は誰でも作成できる。" },
+  "[#31] 管理者でないユーザーはtype:'instructor'のコメントを作成できない",
   async () => {
     const bob = testEnv.authenticatedContext("bob").firestore();
     await assertFails(
@@ -100,3 +102,44 @@ test(
     );
   }
 );
+
+test("[#31] 連の管理者は自分の連のrenIdでtype:'instructor'のコメントを作成できる", async () => {
+  const carol = testEnv.authenticatedContext("carol").firestore();
+  await assertSucceeds(
+    carol.doc("posts/p1/comments/instr2").set({
+      userId: "carol", userName: "Carol", renId: "r1", text: "足の運びに気をつけて", type: "instructor", createdAt: new Date(),
+    })
+  );
+});
+
+test("[#31] 連の管理者でも他連のrenIdを騙ってtype:'instructor'のコメントを作成できない", async () => {
+  const carol = testEnv.authenticatedContext("carol").firestore();
+  await assertFails(
+    carol.doc("posts/p1/comments/instr3").set({
+      userId: "carol", userName: "Carol", renId: "r2", text: "教え", type: "instructor", createdAt: new Date(),
+    })
+  );
+});
+
+test("[#31] type:'instructor'はrenIdが無いと作成できない", async () => {
+  const carol = testEnv.authenticatedContext("carol").firestore();
+  await assertFails(
+    carol.doc("posts/p1/comments/instr4").set({
+      userId: "carol", userName: "Carol", text: "教え", type: "instructor", createdAt: new Date(),
+    })
+  );
+});
+
+test("[#31] コメント本文は1〜1000文字を超えると作成できない", async () => {
+  const bob = testEnv.authenticatedContext("bob").firestore();
+  await assertFails(
+    bob.doc("posts/p1/comments/empty").set({
+      userId: "bob", userName: "Bob", text: "", type: "normal", createdAt: new Date(),
+    })
+  );
+  await assertFails(
+    bob.doc("posts/p1/comments/toolong").set({
+      userId: "bob", userName: "Bob", text: "あ".repeat(1001), type: "normal", createdAt: new Date(),
+    })
+  );
+});

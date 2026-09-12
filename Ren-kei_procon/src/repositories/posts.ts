@@ -62,18 +62,21 @@ export function subscribePostComments(
 }
 
 /**
- * コメント(師匠の教え/応援)を投稿する。
+ * コメント(師匠の教え/応援)を投稿する。type:'instructor'の場合はrenIdが必須
+ * (「どの連の管理者としての発言か」の記録。firestore.rulesがrenIdに対する
+ * isRenAdmin()を検証するため、管理者でなければ拒否される。#31)。
  * commentCountはCloud Functionsトリガ(onCommentWrite)がcount()集計で更新するため触らない。
  */
 export async function addPostComment(
   postId: string,
-  input: { userId: string; userName: string; text: string; type: CommentType }
+  input: { userId: string; userName: string; text: string; type: CommentType; renId?: string }
 ): Promise<void> {
   await addDoc(collection(db, 'posts', postId, 'comments'), {
     userId: input.userId,
     userName: input.userName,
     text: input.text,
     type: input.type,
+    ...(input.renId ? {renId: input.renId} : {}),
     createdAt: serverTimestamp(),
   });
 }

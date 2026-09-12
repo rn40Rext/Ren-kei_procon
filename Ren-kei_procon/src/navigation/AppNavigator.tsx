@@ -25,6 +25,7 @@ import MemberManagementScreen from "../screens/MemberManagementScreen";
 import ManageAnnouncementsScreen from "../screens/ManageAnnouncementsScreen";
 import ManageActivitiesScreen from "../screens/ManageActivitiesScreen";
 import ManagePostsScreen from "../screens/ManagePostsScreen";
+import AdviceComposeScreen from "../screens/AdviceComposeScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -47,6 +48,7 @@ export type RootStackParamList = {
   ManageAnnouncements: { renId: string };
   ManageActivities: { renId: string };
   ManagePosts: { renId: string };
+  AdviceCompose: { postId: string; renId: string; postTitle: string; authorName: string; videoUrl: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -96,6 +98,7 @@ export default function AppNavigator() {
           <Stack.Screen name="ManageAnnouncements" component={ManageAnnouncementsScreen} />
           <Stack.Screen name="ManageActivities" component={ManageActivitiesScreen} />
           <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
+          <Stack.Screen name="AdviceCompose" component={AdviceComposeScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

@@ -124,7 +124,7 @@
 | `createdAt` | Timestamp | ✓ | |
 | `updatedAt` | Timestamp | — | |
 
-> 現行実装は `type: 'advice' \| 'comment'` を使っています。`'advice' → 'instructor'`、`'comment' → 'normal'` へ読み替えます。
+> **#31時点の実装確認**: 実装は既に `type: 'instructor' | 'normal'` を使っており、本章が指摘していた `'advice'/'comment'` からの読み替えは不要だった(この一文自体が実態と乖離していたため削除する)。
 
 ### 3.5 `posts/{postId}/likes/{uid}`
 

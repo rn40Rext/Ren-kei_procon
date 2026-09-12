@@ -40,6 +40,14 @@ export async function fetchPostsByUser(userId: string, max: number): Promise<Pos
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
 }
 
+/** 投稿に指導者コメント(type: 'instructor')が1件でも付いているか(R-02の「未アドバイス優先」並び替えで使う)。 */
+export async function hasInstructorAdvice(postId: string): Promise<boolean> {
+  const snap = await getDocs(
+    query(collection(db, 'posts', postId, 'comments'), where('type', '==', 'instructor'), limit(1))
+  );
+  return !snap.empty;
+}
+
 export function subscribePostComments(
   postId: string,
   onData: (comments: PostComment[]) => void,

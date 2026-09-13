@@ -42,7 +42,7 @@ If you check for ren admin using only `users.role`, **an admin of ren A can modi
 
 The goal is for writes to `analysisResults` / `growthRecords` to be denied to all clients in Rules, with only Cloud Functions (the Admin SDK does not go through Rules) writing them. The client sends aggregate values, and `totalScore` is computed on the server.
 
-**At the Prototype stage, client-side computation is acceptable.** But move it before public release ([#35](../../../../issues/35)). If you do not move it, users can rewrite their own scores.
+This is implemented: FN-01 `finalizeBasicAnalysis` computes `totalScore` from the client's aggregates ([#35](../../../../issues/35)); `Ren-kei_procon/src/features/rules/session.ts` builds the payload and never includes `totalScore`. Keep it that way.
 
 ## Firestore naming and structure
 
@@ -69,7 +69,11 @@ For likes, use the uid as the document ID, like `posts/{postId}/likes/{uid}`, an
 
 ## Indexes
 
-`firestore.indexes.json` is currently empty. When you write a new query, add the composite indexes it needs. The required list is in chapter 4 of [docs/design/data-model.md](../../docs/design/data-model.md).
+When you write a new query, add the composite indexes it needs to `firestore.indexes.json`. The required list is in chapter 4 of [docs/design/data-model.md](../../docs/design/data-model.md).
+
+## Firebase Emulator Suite
+
+`EXPO_PUBLIC_USE_FIREBASE_EMULATOR=true npx expo start --web` connects the web app to the emulators (ports in `firebase.json`). Start them with `firebase emulators:start --only auth,firestore,storage,functions --project demo-renkei` after `cd functions && npm run build`. Use this to verify U-02 → FN-01 → U-03 without touching production data.
 
 ## Secrets
 

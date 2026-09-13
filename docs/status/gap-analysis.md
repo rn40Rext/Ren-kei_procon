@@ -1,6 +1,6 @@
 # 仕様書 v0.3 と実装の差分（ギャップ分析）
 
-> 調査日: 2026-09-11 / 対象コミット: `d65bdfb`（`refactor/repositories-layer`。`main` は `5d9e796`）
+> 調査日: 2026-09-13（AI 解析①②の実装を反映）/ 前回: 2026-09-11 `d65bdfb`
 > 比較対象: [仕様書 v0.3](../spec/README.md) ↔ `Ren-kei_procon/src/` `functions/src/` `firestore.rules` `storage.rules` の実装
 
 > ⚠️ **「差分がある」は「実装が間違っている」とは限りません。** 仕様書 v0.3 はチームで合意した確定仕様ではなく、既存資料からの推測で組み立てた文書です（[../spec/README.md](../spec/README.md) の「この文書の位置づけ」）。
@@ -15,7 +15,7 @@
 
 **2026-09-08 以降に、連（Ren）機能・連管理者機能・Security Rules・Cloud Functions 基盤がまとめて実装されました。** 前回調査（2026-09-03 / `d8f683e`）から状況が大きく変わっています。
 
-一方で、**仕様書の中核である AI 解析①②（姿勢推定・Rule Engine・スタイル類似度）と成長記録は、依然としてコードが 1 行も存在しません。**
+**2026-09-13 に AI 解析①（姿勢推定・正規化・Rule Engine・リアルタイム UI・FN-01 によるスコア確定）と AI 解析②（ベースライン Embedding・FN-02/07/08/09・ランキング UI）を実装しました。** 乱数の「AI採点」は廃止され、投稿のスコアは `analysisResults.totalScore` 由来か「未採点」のどちらかです。残る大きな未実装は成長曲線（U-10）・通知・ネイティブ（iOS/Android）でのリアルタイム判定、そして**実地データによる閾値確定と妥当性確認**です。
 
 | 領域 | 仕様書 | 実装 | 達成度 |
 | --- | --- | --- | --- |
@@ -25,10 +25,10 @@
 | 連機能（REN-01〜03 / U-07・U-08） | 検索・参加申請・マイ連 | ✅ 連詳細・参加リクエスト・マイ連が動作 | ■■■■■ 100% |
 | 連管理者（R-01〜R-08） | 8 画面 | 🔶 R-01/05/06/07/08 実装済み。**R-02/R-03/R-04 が未実装** | ■■■□□ 60% |
 | Security Rules（10章） | コレクション別 CRUD 制御 | ✅ 包括版を実装、Rules Unit Test 46 件が通る | ■■■■□ 85% |
-| Cloud Functions（FN-01〜07） | 7 関数 | 🔶 FN-03（縮小版）/04/05/06 と連系の追加関数・トリガ 4 本 | ■■■□□ 50% |
-| 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ❌ **カメラプレビューのみ。採点は乱数** | ■□□□□ 5% |
-| スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | 🔶 バックエンド（FN-02/07/08/09・ベースラインエンコーダ）と UI は実装済み。**姿勢系列の入力（AI①）と実データ検証が未了のため非公開** | ■■■□□ 60% |
-| 成長記録（HIST-01） | GrowthRecords + 成長曲線 | ❌ 未着手。`VideoListScreen` はスタブのまま | □□□□□ 0% |
+| Cloud Functions（FN-01〜09） | 7 関数 + 追加 2 | ✅ FN-01/02/03（縮小版）/04/05/06/07/08/09 とトリガ 5 本 | ■■■■□ 90% |
+| 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ✅ **Web 版**でリアルタイム判定（RULE-01〜07）・LIVE SCORE・FN-01 でスコア確定・履歴保存。ネイティブは未対応（TBD-01 方式 A）。**閾値は暫定・実地検証未実施** | ■■■■□ 80% |
+| スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ✅ バックエンドと UI。姿勢系列は AI① が生成。**実データ検証（8.6 の 1・6・7）が未実施のため「検証中・参考値」表示** | ■■■■□ 75% |
+| 成長記録（HIST-01） | GrowthRecords + 成長曲線 | 🔶 `growthRecords` は FN-01 が作成。U-10 のグラフ画面は未実装、`VideoListScreen` はスタブ | ■■□□□ 40% |
 | 通知（NOTI-01） | Notifications | ❌ 未着手（Rules に受け皿があるだけ） | □□□□□ 0% |
 
 ## 2. 機能 ID 別の詳細
@@ -38,12 +38,12 @@
 | AUTH-01 | 新規登録 | ✅ | `LoginScreen.tsx`。`users/{uid}` を `role: 'user'` で作成する |
 | AUTH-02 | ログイン | ✅ | `LoginScreen.tsx` + `AppNavigator.tsx` の `onAuthStateChanged` |
 | USER-01 | プロフィール閲覧/編集 | ✅ | `MypageScreen.tsx`。nickname / profile / danceStyle / icon を編集可能。`role` は Rules で保護され変更不可 |
-| PRACTICE-01 | カメラ撮影 | 🔶 | `CameraScreen.tsx` は `expo-camera` のプレビューと「採点終了」ボタンのみ。**録画も保存もしていない** |
-| PRACTICE-02 | リアルタイム判定 | ❌ | 姿勢推定ライブラリが未導入（TBD-01 未決定） |
-| PRACTICE-03 | ゲームスコア | ❌ | — |
-| PRACTICE-04 | 解析結果 | ❌ | `ResultScreen.tsx` は「ここに採点結果が表示されます」の固定文言 |
-| PRACTICE-05 | 保存 | ❌ | `analysisResults` / `growthRecords` にドキュメントを書く実装が無い（Rules と型の受け皿のみ） |
-| STYLE-01/02 | 連スタイル類似度 | 🔶 | エンコーダ（`functions/src/style/`）・FN-02/07/08/09・ランキング画面（`StyleResultScreen.tsx`）を実装。**依存する姿勢系列の生成（AI① [#13](../../../issues/13)/[#14](../../../issues/14)）が未実装**で実データを流せず、仕様書 8.6 の検証 1・6・7 が未実施。UI はフラグで非公開 |
+| PRACTICE-01 | カメラ撮影 | ✅ | `PoseCameraView.web.tsx`（getUserMedia + MediaRecorder で録画）。保存済み動画の入力も可。ネイティブは `PoseCameraView.tsx` がプレビューと案内のみ |
+| PRACTICE-02 | リアルタイム判定 | ✅ | `features/pose/`（MediaPipe Tasks WASM・平滑化・正規化）+ `features/rules/`（RULE-01〜06 の状態機械、RULE-07 は自己相関）。full/GPU で 58fps（[ai-basic-motion.md 3章](../design/ai-basic-motion.md)） |
+| PRACTICE-03 | ゲームスコア | ✅ | `rules/gameScore.ts`。GREAT 100 / GOOD 60 / MISS 0、5 コンボごとに倍率（暫定・TBD-06） |
+| PRACTICE-04 | 解析結果 | ✅ | `ResultScreen.tsx`。総合・項目別・AI コメント・LIVE SCORE を別枠表示 |
+| PRACTICE-05 | 保存 | ✅ | `videos` + Storage（動画・姿勢系列）→ FN-01 が `analysisResults` / `growthRecords` を作成 |
+| STYLE-01/02 | 連スタイル類似度 | 🔶 | エンコーダ・FN-02/07/08/09・`StyleResultScreen.tsx`。姿勢系列は AI① が生成するようになった。**仕様書 8.6 の検証 1・6・7（実データ）が未実施**のため「検証中・参考値」の帯付きで表示 |
 | COMM-01 | 投稿一覧 | ✅ | `CommunityScreen.tsx`（`posts` を購読） |
 | COMM-02 | 投稿作成 | 🔶 | `publishPost`（Cloud Functions）経由。ただし**練習動画 `videos` を作らずに直接 `posts` を作る縮小版**（[#47](../../../issues/47)） |
 | COMM-03 | 投稿詳細 | ✅ | `CommunityScreen.tsx` 内の `PostDetailScreen` |
@@ -79,32 +79,26 @@
 | JoinRequests | ✅ `joinRequests/{id}` | 状態遷移は Functions 経由に一本化 |
 | Announcements | ✅ `ren/{renId}/announcements` | — |
 | RenActivities | ✅ `ren/{renId}/activities` | — |
-| AnalysisResults | ❌ | Rules のみ。**スコアは `posts.score` に乱数で入っている** |
-| GrowthRecord(s) | ❌ | Rules のみ |
+| AnalysisResults | ✅ `analysisResults/{uid}_{clientRequestId}` | FN-01 のみが書く。`posts.score` はここからの非正規化コピー（乱数モックは廃止） |
+| GrowthRecord(s) | ✅ `users/{uid}/growthRecords/{analysisId}` | FN-01 が作成。表示（U-10）は未実装 |
 | Notifications | ❌ | Rules のみ |
-| RenStyleReferences / RenStyleProfiles / StyleAnalysisResults | ❌ | Rules のみ |
+| RenStyleReferences / RenStyleProfiles / StyleAnalysisResults | ✅ | FN-08 / FN-07 / FN-02 が書く |
+| AnalysisRules | ✅ `analysisRules/{ruleId}` | read 専用。`functions npm run seed:rules` で投入 |
 | （仕様書外） | ➕ `chats/{chatId}/messages` | 仕様書に存在しない 1 対 1 チャット。Rules は当事者 2 人のみに制限済み |
 
 ## 4. AI 採点の実態
 
-**仕様書 7 章の姿勢推定・正規化・7 つの判定ルール・状態遷移・スコア分離は、いずれも未実装です。** 現在スコアを決めているのは次の 1 行です。
+**2026-09-13 時点: 仕様書 7 章の姿勢推定・正規化・7 つの判定ルール・状態遷移・スコア分離はすべて実装されています**（[ai-basic-motion.md 12章](../design/ai-basic-motion.md)）。`publishPost` の乱数（`Math.random()`）は廃止し、投稿のスコアは `analysisResults.totalScore` の非正規化コピーか、無ければ「未採点」表示です（[#58](../../../issues/58)）。
 
-```ts
-// functions/src/community/publishPost.ts:85
-score: Math.floor(Math.random() * 20) + 80,
-```
+**それでも「AI が正しい」とは言えない点**（デモ・発表で補足すべきこと）:
 
-前回調査ではクライアント（`CommunityScreen.tsx`）が乱数を書いていました。[#47](../../../issues/47) で Cloud Functions へ移りましたが、**乱数であること自体は変わっていません。** 改ざんはできなくなった一方で、サーバが出した値に見えるぶん**むしろ本物らしく見える**点に注意が必要です。
+- **閾値はすべて暫定**（TBD-02）。仕様書 7.4 の「連の指導者確認後に確定」は未実施。数値の根拠は設計上の初期値で、実地データでの較正はこれから。
+- **指導者が OK/NG と判断した動画での妥当性確認は未実施**（エピック #5 の完了条件の 1 つ）。合成データのテスト（33 件）で確認できるのは「設計どおりに状態機械が動く」ことまで。
+- **リアルタイム判定は Web 版（ブラウザ）のみ**。iOS / Android アプリではネイティブの姿勢推定（TBD-01 方式 A）が未着手で、案内表示になる。
+- **サーバは集計値を信頼している**。クライアントが `totalScore` を書けないことは保証するが、集計値の改ざんは防げない（サーバ側再解析は未決定事項）。
+- AI②（連スタイル類似度）は **「検証中・参考値」の帯付き**。仕様書 8.6 の実データ検証（1・6・7）が未実施。
 
-UI 側は `CommunityScreen.tsx` が「AI {score}点」「AI採点 {score}点」と表示しており、**画面を見る限り AI が動いているように見えます**（[#58](../../../issues/58) が未対応）。デモ・発表では必ず口頭で補足してください。
-
-不足しているもの:
-
-- 姿勢推定ライブラリ（MediaPipe / TFLite）の導入（TBD-01）
-- 座標正規化（bodyScale による体格・距離の吸収）
-- Rule Engine（RULE-01〜07）と状態機械
-- Game Score / Analysis Score の分離
-- 判定閾値の管理とバージョニング（`analysisVersion`）
+参考: オフライン採点エンジン `renkei_project_10/`（Python・8 軸）を実写の阿波踊り動画（Wikimedia Commons、群舞の正面撮影 46 秒）に通した結果は総合 37.7（腰の低さ 71 / リズム 0 / なんばは参考値）。群舞で 1 人の追跡が安定しない条件なので数値そのものに意味は無いが、**mediapipe 0.10.14 で端から端まで動く**ことは確認した（0.10.2x は macOS で起動直後に落ちる）。
 
 ## 5. セキュリティ上の差分
 
@@ -164,7 +158,10 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 
 | 論点 | 仕様書 | 実装 | 判断 |
 | --- | --- | --- | --- |
-| Videos と Posts の分離 | 別 Entity。練習動画は private、投稿は public | `posts` は分離済み。ただし `videos` を作る実装がまだ無い | ✅ 仕様書に合わせる方針で進行中（[#41](../../../issues/41) / [#47](../../../issues/47) の残作業） |
+| Videos と Posts の分離 | 別 Entity。練習動画は private、投稿は public | `posts` は分離済み。`videos` は練習終了時に作成され、U-03 からの投稿で `videoId` が紐付く。ギャラリーから直接選んだ投稿は `videoId` 無し | ✅ ほぼ解消。残りは `publishPost` の `analysisStatus` 検証（[#47](../../../issues/47)） |
+| リアルタイム判定の実行場所 | クライアント優先（3.2）。方式は TBD-01 | **Expo Web + MediaPipe Tasks（WASM）**。ネイティブは未対応 | ✅ 決定済み（[ai-basic-motion.md 3章](../design/ai-basic-motion.md)）。実機アプリで必要になったら方式 A を追加 |
+| リズムの周期推定 | FFT を想定（7.8） | 自己相関（8 秒窓で分解能が足りるため）。オフライン版は FFT | ✅ 実装側の判断を設計に記録（[ai-basic-motion.md 8章](../design/ai-basic-motion.md)）。仕様書は「案」なので矛盾ではない |
+| Analysis Score の対象項目 | 4 項目（手・腰・停止・リズム）（7.7） | 同じ 4 項目の単純平均。RULE-05/06 は項目別に出すが総合に含めない | ✅ 仕様書どおり。重みは TBD-05 |
 | いいねの持ち方 | Likes Entity | `posts/{id}/likes/{uid}` | ✅ 解消済み |
 | 所属連の持ち方 | `Users.ren` と RenMembers が併存（TBD-11） | RenMembers に一本化 | ✅ 決定済み（[data-model.md](../design/data-model.md)） |
 | コメント種別 | `normal` / `instructor` | 同じ | ✅ 解消済み。権限検証も実装済み（[#31](../../../issues/31)） |
@@ -174,8 +171,10 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 
 ## 8. 次のアクション
 
-1. **[#58](../../../issues/58) AI 採点がモックである旨を UI に明示する** — 発表・デモで最もリスクが高い。実装コストは小さい
-2. **[#13](../../../issues/13) MediaPipe の組み込み方式を決める（TBD-01）** — クリティカルパスの先頭。ここが決まらないと AI 系 18 件が動かない
-3. **[#40](../../../issues/40) の本番反映確認** — S-11
+1. **閾値の確定（TBD-02）と実地の妥当性確認** — 連の指導者が OK/NG と判断した動画を集め、`analysisResults.rawMetrics` と `renkei_project_10/calibrate.py` の実測から `analysisRules` を更新する。エピック #5 の完了条件で唯一残っている項目
+2. **AI② の実データ検証（8.6 の 1・6・7）** — 2〜3 連 × 熟練者 3 名の参照動画（同意付き）と 5 人 × 3 テイク。`export_pose_series.py` → FN-08 で登録できる
+3. **本番への反映** — `firebase deploy --only functions,firestore:rules,firestore:indexes,storage` と `functions npm run seed:rules`（承認が必要）
+4. **U-10 成長曲線（[#37](../../../issues/37)）** — `growthRecords` は溜まり始めるので表示だけが足りない
+5. **[#40](../../../issues/40) の本番反映確認** — S-11
 
 優先順位とマイルストーンは [roadmap.md](roadmap.md) を参照してください。

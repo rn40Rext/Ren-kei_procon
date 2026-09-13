@@ -29,8 +29,11 @@ Firebase を中心とする構成では、すべてを REST API 化する必要�
 functions/src/
 ├── index.ts                    各関数の export のみ
 ├── analysis/
-│   ├── finalizeBasicAnalysis.ts   FN-01
-│   └── analyzeStyle.ts            FN-02
+│   ├── finalizeBasicAnalysis.ts   FN-01（実装済み）
+│   ├── score.ts                   Analysis Score の純関数（テスト: test/score.test.ts）
+│   └── analyzeStyle.ts            FN-02（実装済み）
+├── scripts/
+│   └── seedAnalysisRules.ts       analysisRules の初期投入（npm run seed:rules）
 ├── community/
 │   └── publishPost.ts             FN-03
 ├── ren/
@@ -107,6 +110,7 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 | コード | `HttpsError` code | 意味 | 発生元 |
 | --- | --- | --- | --- |
 | `POSE_SERIES_NOT_FOUND` | `failed-precondition` | 動画に対応する姿勢系列 JSON が Storage に無い | FN-02, FN-08 |
+| `POSE_SERIES_INSUFFICIENT` | `failed-precondition` | 姿勢系列はあるが全身が映った有効フレームが 30 未満で Embedding を作れない（撮り直しで直る） | FN-02 |
 | `STYLE_REFERENCE_NOT_FOUND` | `failed-precondition` / `not-found` | 承認済みの参照が 0 件、または対象の参照が無い | FN-07, FN-09 |
 | `STYLE_PROFILE_NOT_READY` | `failed-precondition` | 比較できる連の代表 Embedding が 1 件も無い | FN-02 |
 | `INVALID_ARGUMENT:<引数名>` | `invalid-argument` | 引数が不正（どの引数かを `:` の後に付ける） | 全関数 |
@@ -185,7 +189,15 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 - `events` の件数上限（例 5,000 件）を超えたら `invalid-argument`
 - スコア算出式は [ai-basic-motion.md 9章](ai-basic-motion.md#9-analysis-score仕様書-77) に従う
 
-> クライアントから送られる `metrics` 自体は改ざんされ得ます。完全な防止には動画のサーバ側再解析が必要ですが、コストが高いためプロトタイプでは行いません。**「クライアントが totalScore を直接書けない」ことを最低ラインとし、将来的にサーバ側サンプリング再解析を検討**します（未決定事項）。
+> クライアントから送られる `metrics` 自体は改ざんされ得ます。完全な防止には動画のサーバ側再解析が必要ですが、コストが高いためプロトタイプでは行いません。**「クライアントが totalScore を直接書けない」ことを最低ラインとし、将来的にサーバ側サンプリング再解析を検討**します（未決定事項。候補は `renkei_project_10/` の Python 8 軸採点を Cloud Run に載せる案。[ai-basic-motion.md 12.3](ai-basic-motion.md)）。
+
+**実装（2026-09-13、[#20](../../../issues/20) / [#35](../../../issues/35)）**: `functions/src/analysis/finalizeBasicAnalysis.ts` + `score.ts`
+
+- 算出式は [ai-basic-motion.md 9章](ai-basic-motion.md#9-analysis-score仕様書-77)。項目別に `handPositionScore` / `basePostureScore` も返すが総合には入れない（TBD-05）。
+- **冪等性**: `analysisId = {uid}_{clientRequestId}`（`clientRequestId` は `^[A-Za-z0-9_-]{8,128}$`）。同じ ID の再送は既存の結果を返し、レスポンスに `duplicate: true` が付く。
+- 検証: `videos.userId == uid`（違えば `FORBIDDEN`）、`events` 5,000 件超・成功数が試行数を超える集計・不正な `danceType` / `scorePart` は `invalid-argument`（`INVALID_ARGUMENT:<引数名>`）。クライアントが `totalScore` を含めても無視する。
+- 保存: `analysisResults`（`rawMetrics` に集計値・リズム・イベント件数・踊り種別・部位・所要時間）、`users/{uid}/growthRecords/{analysisId}`、`videos.analysisStatus = 'completed'` / `latestAnalysisId` を 1 トランザクションで書く。
+- 動作確認: `cd functions && npm run verify:emulator`（保存・冪等・他人の動画拒否・不正集計の却下）。
 
 ---
 
@@ -258,8 +270,9 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 > - **Request**: `videoId` を受け取らず、代わりにクライアントが Storage へアップロード済みの `videoUrl` と `authorName` を直接渡す（`{ title, description?, tags?, videoUrl, authorName }`）
 > - **videoId / analysisStatus の検証は行わない**（対象の `videos` ドキュメントが存在しないため）
 > - `videos.visibility` の更新、`downloadUrl` の発行は行わない（`videoUrl` はクライアントがアップロード時に取得した URL をそのまま使う）
-> - スコアは AI 採点（FN-01）が未実装のため、Functions 側で暫定的にモック値（`Math.random()` ベース）を発行する。クライアントから直接指定はできない
+> - ~~スコアは AI 採点（FN-01）が未実装のため、Functions 側で暫定的にモック値（`Math.random()` ベース）を発行する~~ → **2026-09-13 に廃止（[#58](../../../issues/58)）**。`videoId` を受け取ったときは所有者を検証し、`videos.latestAnalysisId` → `analysisResults.totalScore` を `posts.score` へ非正規化コピーし、`videos.visibility` を `'public'` にする（同一トランザクション）。`videoId` が無い投稿（ギャラリーから直接選んだ動画）は `score` を持たず、クライアントは「未採点」と表示する。**乱数のスコアはもう発行しない。**
 > - 満たしている点: `title`/`description`/`tags` の検証、`likeCount`/`commentCount` の 0 初期化、クライアントによる `posts` への直接書き込み禁止（Firestore Rules で `posts.create` を拒否し Cloud Functions 経由に限定）
+> - 残る差分: `analysisStatus == 'completed'` の検証（`POST_VIDEO_NOT_PUBLICABLE`）と `downloadUrl` の発行は未実装。U-03 からの投稿は `analysisStatus == 'completed'` の動画しか来ないが、Functions 側では検証していない
 >
 > FN-01・#41（`videos.visibility`/`analysisStatus` 導入）の実装後、本来の設計（`videoId` ベース・トランザクション化・`downloadUrl` 発行）に置き換える。
 

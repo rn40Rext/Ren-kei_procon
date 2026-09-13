@@ -176,7 +176,7 @@ Embedding の再計算には元の landmark 時系列が必要です（版を上
 
 形式は `{ formatVersion: "pose-series-v1", frames: [{ timestampMs, landmarks: [{x, y, z?, visibility}] }] }` です（`functions/src/style/pose.ts`）。
 
-> 生成はクライアント側の MediaPipe パイプライン（AI①、[#13](../../../issues/13)〜[#14](../../../issues/14)）の担当で、**まだ実装されていません**。そのため現時点で FN-02 を実運用データに対して通すことはできません（7章）。
+> 生成はクライアント側の MediaPipe パイプライン（AI①）が担当する。**2026-09-13 に実装済み**: `Ren-kei_procon/src/features/pose/poseSeries.ts` の `PoseSeriesRecorder` が練習中の姿勢を 15fps に間引いて記録し、終了時に `repositories/videos.ts` の `uploadPoseSeries()` が `users/{uid}/videos/{videoId}.pose.json` へ置いて `videos.poseSeriesPath` を更新する。連の参照動画は `renkei_project_10/export_pose_series.py` で動画から同形式の JSON を作れる。
 
 ### バージョン整合
 
@@ -219,13 +219,15 @@ cd functions && npm run verify:emulator   # FN-02/07/08/09 の動作確認
 
 ### 公開の可否
 
-検証 1・6・7 が未実施のため、**UI はフラグで閉じています**（`STYLE_SIMILARITY_UI_ENABLED = false`、[`Ren-kei_procon/src/features/style/featureFlags.ts`](../../Ren-kei_procon/src/features/style/featureFlags.ts)）。実データで 1・6・7 を測定し、合格基準を満たしたときにフラグを開けます。満たせない場合は 9 章の縮退案 B へ切り替えます。
+検証 1・6・7 は未実施です。当初（2026-09-04）は UI をフラグで閉じていましたが、**2026-09-13 に「検証中・参考値」の帯を付けて表示する方針に変えました**（`STYLE_SIMILARITY_UI_ENABLED = true` / `STYLE_SIMILARITY_VALIDATED = false`、[`featureFlags.ts`](../../Ren-kei_procon/src/features/style/featureFlags.ts)）。理由: 非表示のままではデモも、検証に必要な実データの収集（ユーザー動画の姿勢系列は AI① の実装で作れるようになった）も進まないため。「モックを実物のように見せない」という安全境界は、画面上部の「検証中の機能です。…結果は参考値です」の明示で守ります。実データで 1・6・7 を満たしたら `STYLE_SIMILARITY_VALIDATED` を true にして帯を外します。満たせない場合は 9 章の縮退案 B へ切り替えます。
+
+U-03（解析結果）から「動きの類似度を見る」で遷移できます。ランキングの各連からは連を探す画面（U-07 `Request`）へ移動できます（特定の連を開いた状態にする引数は未対応）。
 
 ### 実測に必要なもの
 
 | 必要なもの | 用途 |
 | --- | --- |
-| クライアントの姿勢系列出力（[#13](../../../issues/13) / [#14](../../../issues/14)） | 実動画から `*.pose.json` を作る |
+| ~~クライアントの姿勢系列出力~~ ✅ 実装済み（AI①、`PoseSeriesRecorder`）。連の参照動画は `renkei_project_10/export_pose_series.py` | 実動画から `*.pose.json` を作る |
 | 連 2〜3 連 × 熟練者 3 名以上の参照動画（同意付き） | 代表 Embedding |
 | 5 人 × 3 テイクの一般ユーザー動画 | 検証 1 |
 | 同一人物が別の連の動きを模倣した動画 | 検証 7 |

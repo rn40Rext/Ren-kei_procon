@@ -10,8 +10,8 @@
 | 画面 ID | 画面名 | 実装ファイル | 実装状況 | 呼び出す API / データ |
 | --- | --- | --- | --- | --- |
 | U-01 | ホーム / 認証 | [LoginScreen.tsx](../../Ren-kei_procon/src/screens/LoginScreen.tsx)<br>[HomeScreen.tsx](../../Ren-kei_procon/src/screens/HomeScreen.tsx) | ✅ 実装済み | Firebase Auth |
-| U-02 | 踊り解析 | [ScoringScreen.tsx](../../Ren-kei_procon/src/screens/ScoringScreen.tsx)<br>[CameraScreen.tsx](../../Ren-kei_procon/src/screens/CameraScreen.tsx) | 🔶 骨組みのみ | MediaPipe, Rule Engine, Storage |
-| U-03 | 解析結果 | [ResultScreen.tsx](../../Ren-kei_procon/src/screens/ResultScreen.tsx) | ❌ プレースホルダー | FN-01 |
+| U-02 | 踊り解析 | [ScoringScreen.tsx](../../Ren-kei_procon/src/screens/ScoringScreen.tsx)<br>[CameraScreen.tsx](../../Ren-kei_procon/src/screens/CameraScreen.tsx)<br>[PoseCameraView.web.tsx](../../Ren-kei_procon/src/components/PoseCameraView.web.tsx) | ✅ 実装済み（#13〜#19。**Web 版のみ**リアルタイム判定。ネイティブは案内表示） | MediaPipe Tasks（WASM）, Rule Engine, `analysisRules`, Storage, FN-01 |
+| U-03 | 解析結果 | [ResultScreen.tsx](../../Ren-kei_procon/src/screens/ResultScreen.tsx) | ✅ 実装済み（#20） | `analysisResults` 購読 → `StyleResult` / `Community`（`shareVideoId`） |
 | U-04 | コミュニティ | [CommunityScreen.tsx](../../Ren-kei_procon/src/screens/CommunityScreen.tsx) | ✅ 実装済み | `posts` 購読 |
 | U-05 | 投稿詳細 | 同上（`VideoDetailScreen` として内包） | ✅ 実装済み | `comments`, `likes` |
 | U-06 | 投稿作成 | 同上（モーダル） | 🔶 直接書き込み | FN-03 へ移行 |
@@ -55,19 +55,11 @@
 
 ### 登録済み（ログイン後）
 
-`Home` / `Community` / `Scoring` / `Mypage` / `VideoList` / `Group` / `ContactInfo` / `Setting` / `StyleResult`
+`Home` / `Community` / `Scoring` / `Mypage` / `VideoList` / `Group` / `ContactInfo` / `Setting` / `Camera` / `Result` / `Request` / `UserProfile` / `Chat` / `StyleResult` / 管理者系（`AdminHome` 〜 `AdviceCompose`）
 
-### 未登録なのに `navigate()` されている ⚠️
+### 未登録なのに `navigate()` されている
 
-| 遷移先 | 呼び出し元 | 結果 |
-| --- | --- | --- |
-| `Camera` | [ScoringScreen.tsx:114](../../Ren-kei_procon/src/screens/ScoringScreen.tsx#L114) | 実行時エラー |
-| `Result` | [CameraScreen.tsx:56](../../Ren-kei_procon/src/screens/CameraScreen.tsx#L56) | 実行時エラー |
-| `Request` | [HomeScreen.tsx:83](../../Ren-kei_procon/src/screens/HomeScreen.tsx#L83) | 実行時エラー |
-| `UserProfile` | [CommunityScreen.tsx:226](../../Ren-kei_procon/src/screens/CommunityScreen.tsx#L226) | 実行時エラー |
-| `Chat` | [UserProfileScreen.tsx:13](../../Ren-kei_procon/src/screens/UserProfileScreen.tsx#L13) | 実行時エラー |
-
-さらに `RootStackParamList` の型定義にも `Camera` / `Result` / `Request` が無いため、`ScoringScreen` や `CameraScreen` の `RouteProp<RootStackParamList, 'Camera'>` は型エラーになります（各画面が `useNavigation<any>()` で型検査を回避しているため気づきにくい状態）。
+✅ **解消済み（[#51](../../../issues/51)）。** `Camera` / `Result` / `Request` / `UserProfile` / `Chat` は登録され、`RootStackParamList` に型もある。2026-09-13 に `Camera` へ `baseBpm?`、`Result` へ `{ analysisId, videoId }`、`Community` へ `{ shareVideoId? } | undefined` のパラメータを追加した。残る `useNavigation<any>()` は `CommunityScreen.tsx` のみ（[docs/rules/coding.md](../rules/coding.md) 違反として TODO コメントあり）。
 
 ## 3. あるべきナビゲーション構成
 
@@ -114,9 +106,9 @@ export type RootStackParamList = {
   // 一般
   Home: undefined;
   Scoring: undefined;
-  Camera: { danceType: DanceType; scorePart: ScorePart };
+  Camera: { danceType: DanceType; scorePart: ScorePart; baseBpm?: number };
   Result: { analysisId: string; videoId: string };
-  Community: undefined;
+  Community: { shareVideoId?: string } | undefined;
   PostDetail: { postId: string };
   PostCreate: { videoId?: string };
   UserProfile: { userId: string; userName: string };

@@ -31,15 +31,18 @@ import StyleResultScreen from "../screens/StyleResultScreen";
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined; // 💡 ホームを追加
-  Community: undefined;
+  // shareVideoId: U-03 から「コミュニティへ投稿」で来たとき、その練習動画を投稿フォームに入れる
+  Community: { shareVideoId?: string } | undefined;
   Mypage: undefined;
   Scoring: undefined;
   VideoList: undefined;
   ContactInfo: undefined;
   Setting: undefined;
   Group: undefined;
-  Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole" };
-  Result: undefined;
+  // U-02 本体。baseBpm はリズム判定の基準テンポ(TBD-04 の暫定: ユーザー選択)
+  Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
+  // U-03 解析結果。FN-01 が確定した analysisResults を表示する
+  Result: { analysisId: string; videoId: string };
   Request: undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   // 連スタイル類似度の結果（AI機能②）。表示可否は

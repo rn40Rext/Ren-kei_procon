@@ -13,8 +13,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { getFunctions, httpsCallable } from "firebase/functions";
-import app, { db } from "../config/firebaseConfig";
+import { httpsCallable } from "firebase/functions";
+import { db, functions } from "../config/firebaseConfig";
 import type {
   AnalyzeStyleResponse,
   StyleAnalysisResult,
@@ -57,10 +57,12 @@ export async function requestStyleAnalysis(
   videoId: string,
   topN = 3,
 ): Promise<AnalyzeStyleResponse> {
+  // リージョン(asia-northeast1)とエミュレータ接続は firebaseConfig の functions に集約されている。
+  // getFunctions(app) を直接呼ぶと既定リージョン(us-central1)へ飛んで 404 になる
   const callable = httpsCallable<
     { videoId: string; topN: number },
     AnalyzeStyleResponse
-  >(getFunctions(app), "analyzeStyle");
+  >(functions, "analyzeStyle");
   const response = await callable({ videoId, topN });
   return response.data;
 }

@@ -8,6 +8,8 @@ import BottomNav from '../components/BottomNav';
 type DanceType = "male" | "female";
 type ScorePart = "feet" | "hands" | "whole";
 
+const BPM_OPTIONS = [96, 104, 112, 120, 128];
+
 type AnalysisScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList, 'Scoring'>;
 
@@ -15,6 +17,8 @@ export default function AnalysisScreen() {
 
   const [danceType, setDanceType] = useState<DanceType | null>(null);
   const [scorePart, setScorePart] = useState<ScorePart | null>(null);
+  // リズム判定の基準テンポ(TBD-04 の暫定決定: ユーザーが選ぶ。既定はさゝゆり連の実測 112 BPM)
+  const [baseBpm, setBaseBpm] = useState<number>(112);
 
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
 
@@ -83,6 +87,24 @@ export default function AnalysisScreen() {
           <Text>全体</Text>
         </TouchableOpacity>
 
+        <Text style={styles.sectionTitle}>
+          基準テンポ(BPM)
+        </Text>
+        <View style={styles.bpmRow}>
+          {BPM_OPTIONS.map((bpm) => (
+            <TouchableOpacity
+              key={bpm}
+              onPress={() => setBaseBpm(bpm)}
+              style={[styles.bpmButton, baseBpm === bpm && styles.selectedButton]}
+            >
+              <Text>{bpm}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.hint}>
+          お囃子のテンポに合わせて選びます。練習は本番より落としたテンポでも構いません。
+        </Text>
+
         <Text>
           選択中の踊り：
           {danceType === 'male'
@@ -114,6 +136,7 @@ export default function AnalysisScreen() {
               navigation.navigate('Camera', {
                 danceType,
                 scorePart,
+                baseBpm,
               });
 
             console.log('踊り:', danceType);
@@ -180,5 +203,27 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingBottom: 100,
+  },
+
+  bpmRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+
+  bpmButton: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+
+  hint: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 16,
   },
 })

@@ -28,6 +28,7 @@ import { styleErrorMessage } from "../features/style/errorMessages";
 import {
   REN_DETAIL_NAVIGATION_ENABLED,
   STYLE_SIMILARITY_UI_ENABLED,
+  STYLE_SIMILARITY_VALIDATED,
 } from "../features/style/featureFlags";
 
 type Navigation = NativeStackNavigationProp<
@@ -90,15 +91,21 @@ export default function StyleResultScreen() {
 
   const openRen = (item: StyleSimilarityItem) => {
     if (!REN_DETAIL_NAVIGATION_ENABLED) {
-      // 遷移先（連詳細 #26 / 参加リクエスト #27）が未実装のため、
-      // ここで navigate するとクラッシュする。
       Alert.alert(
         "準備中です",
         `${item.renName} の詳細・参加リクエスト画面は準備中です。`,
       );
       return;
     }
-    Alert.alert("準備中です", item.renName);
+    // 連を探す(U-07)へ。特定の連を開いた状態にする引数は未対応なので、連名を案内する
+    Alert.alert(
+      "連を探す画面へ移動します",
+      `「${item.renName}」を検索して詳細・参加リクエストへ進んでください。`,
+      [
+        { text: "キャンセル", style: "cancel" },
+        { text: "移動する", onPress: () => navigation.navigate("Request") },
+      ],
+    );
   };
 
   if (!STYLE_SIMILARITY_UI_ENABLED) {
@@ -134,6 +141,14 @@ export default function StyleResultScreen() {
         どの連の踊り方に近いかを示します。
         上手い・下手の評価ではありません。
       </Text>
+      {!STYLE_SIMILARITY_VALIDATED && (
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>
+            検証中の機能です。実際の踊り手の映像による妥当性確認（同一人物の別テイクで
+            同じ連が上位になるか等）がまだ済んでいないため、結果は参考値です。
+          </Text>
+        </View>
+      )}
 
       {running && (
         <View style={styles.centeredBlock}>

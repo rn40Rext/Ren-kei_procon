@@ -1,0 +1,119 @@
+{
+  "version": "v1",
+  "rules": [
+    {
+      "ruleId": "HAND_ABOVE_HEAD",
+      "name": "手の高さ",
+      "metric": "normalizedHandHeight",
+      "minValue": 0.05,
+      "idealMinValue": 0.12,
+      "holdDurationMs": 200,
+      "cooldownMs": 1500,
+      "missAfterMs": 4000,
+      "side": "both",
+      "improveMessage": "手を上げよう。頭の上まで",
+      "goodMessage": "手が上がっている",
+      "enabled": true,
+      "version": "v1"
+    },
+    {
+      "ruleId": "HAND_KEEP",
+      "name": "手のキープ",
+      "metric": "normalizedHandHeight",
+      "minValue": 0.05,
+      "idealMinValue": 0.12,
+      "holdDurationMs": 800,
+      "cooldownMs": 2500,
+      "missAfterMs": 0,
+      "side": "both",
+      "improveMessage": "手を上げたまま保とう",
+      "goodMessage": "キープできている",
+      "enabled": true,
+      "version": "v1"
+    },
+    {
+      "ruleId": "HIP_LOW",
+      "name": "腰の低さ",
+      "metric": "normalizedHipHeight",
+      "maxValue": 0.55,
+      "idealMaxValue": 0.48,
+      "conditions": [
+        { "metric": "kneeAngleDeg", "maxValue": 160, "idealMaxValue": 145 }
+      ],
+      "holdDurationMs": 500,
+      "cooldownMs": 2000,
+      "missAfterMs": 4000,
+      "releaseMarginRatio": 0.05,
+      "improveMessage": "腰を落とそう。膝をもう少し曲げて",
+      "goodMessage": "腰が低い",
+      "enabled": true,
+      "version": "v1"
+    },
+    {
+      "ruleId": "HAND_STOP",
+      "name": "手を止める",
+      "metric": "normalizedHandVelocity",
+      "maxValue": 0.3,
+      "idealMaxValue": 0.15,
+      "holdDurationMs": 250,
+      "cooldownMs": 2000,
+      "missAfterMs": 0,
+      "side": "both",
+      "improveMessage": "出した手をピタッと止めよう",
+      "goodMessage": "手が止まった",
+      "enabled": true,
+      "version": "v1"
+    },
+    {
+      "ruleId": "HAND_POSITION",
+      "name": "手の位置",
+      "metric": "normalizedHandHorizontalOffset",
+      "maxValue": 0.25,
+      "idealMaxValue": 0.15,
+      "conditions": [
+        { "metric": "normalizedHandHeight", "minValue": 0.0 }
+      ],
+      "holdDurationMs": 200,
+      "cooldownMs": 2000,
+      "missAfterMs": 0,
+      "side": "both",
+      "improveMessage": "手は頭の上あたりにまとめよう",
+      "goodMessage": "手の位置がよい",
+      "enabled": true,
+      "version": "v1"
+    },
+    {
+      "ruleId": "BASE_POSTURE",
+      "name": "基本姿勢維持",
+      "metric": "basePostureMargin",
+      "minValue": 0.0,
+      "idealMinValue": 0.05,
+      "holdDurationMs": 1000,
+      "cooldownMs": 3000,
+      "missAfterMs": 6000,
+      "improveMessage": "腰を落として上体を起こしたまま保とう",
+      "goodMessage": "基本姿勢を保てている",
+      "enabled": true,
+      "version": "v1"
+    },
+    {
+      "ruleId": "RHYTHM",
+      "name": "リズム",
+      "metric": "rhythmBpmErrorRatio",
+      "maxValue": 0.15,
+      "idealMaxValue": 0.07,
+      "improveMessage": "お囃子のテンポに合わせて腰を上下させよう",
+      "goodMessage": "リズムに乗れている",
+      "enabled": true,
+      "version": "v1"
+    }
+  ],
+  "rhythm": {
+    "baseBpm": 112,
+    "toleranceRatio": 0.15,
+    "windowMs": 8000,
+    "minWindowMs": 4000,
+    "bpmMin": 60,
+    "bpmMax": 240
+  }
+}

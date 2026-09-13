@@ -223,6 +223,16 @@ cd functions && npm run verify:emulator   # FN-02/07/08/09 の動作確認
 
 U-03（解析結果）から「動きの類似度を見る」で遷移できます。ランキングの各連からは連を探す画面（U-07 `Request`）へ移動できます（特定の連を開いた状態にする引数は未対応）。
 
+### 実測の手順
+
+参照動画とユーザー動画の姿勢系列を `refs/<renId>/*.pose.json` / `users/<personId>/<take>.pose.json` に置き、
+
+```bash
+cd functions && npm run validate:style -- --refs <refsDir> --users <usersDir> --expected expected.csv
+```
+
+で 8.6 の 1〜5（と expected.csv による 6/7）を計算し、上の表の形で出力する（`functions/src/scripts/validateStyle.ts`）。姿勢系列は U-02 が保存するもの（`users/{uid}/videos/{videoId}.pose.json`）か、`renkei_project_10/export_pose_series.py` で動画から作る。合成データで手順が通ることは確認済み（[#101](../../../issues/101)）。
+
 ### 実測に必要なもの
 
 | 必要なもの | 用途 |

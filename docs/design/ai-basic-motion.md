@@ -493,7 +493,7 @@ TBD-07（練習動画を常に保存するか）は**暫定的に「常に保存
 
 ### 12.3 残課題
 
-- **閾値の確定（TBD-02）**: 既定値はすべて暫定。`renkei_project_10/calibrate.py` の実測と `analysisResults.rawMetrics` を材料に指導者ヒアリングで決め、`analysisRules` を更新する。
+- **閾値の確定（TBD-02、[#100](../../../issues/100)）**: 既定値はすべて暫定。指導者が OK / NG を付けた動画の姿勢系列を `cd Ren-kei_procon && npm run calibrate -- --dir <dir> --labels labels.csv --out suggested.json` に流すと、アプリと同じ Rule Engine で判定した結果と、OK / NG 群を最もよく分ける閾値の候補（Youden の J）が出る（`src/features/rules/tools/calibrate.ts`）。`renkei_project_10/calibrate.py` の実測と `analysisResults.rawMetrics` も材料にし、採用は指導者と相談して `analysisRules` を更新する。
 - **ネイティブ対応（方式 A）**: `PoseDetector` のネイティブ実装。Rule Engine 側は変更不要。
 - **サーバ側の再解析**: 現状は FN-01 がクライアントの集計値を信頼する（docs/design/api-functions.md の注記どおり）。`renkei_project_10/` を Cloud Run に載せ、保存した動画 / 姿勢系列から 8 軸を再採点して `analysisResults` に添える案がある（TBD-12 と合わせて判断）。
 - **項目重み（TBD-05）**: 単純平均のまま。指導者評価との比較後に確定。

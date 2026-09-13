@@ -11,7 +11,8 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "verify:emulator": "npm run build && npx -y firebase-tools@latest emulators:exec --project demo-renkei --only firestore,storage,functions \"node lib/test/emulatorCheck.js\"",
-    "seed:rules": "npm run build && node lib/scripts/seedAnalysisRules.js"
+    "seed:rules": "npm run build && node lib/scripts/seedAnalysisRules.js",
+    "validate:style": "npm run build && node lib/scripts/validateStyle.js"
   },
   "engines": {
     "node": "24"

@@ -1,0 +1,4 @@
+numpy>=1.24
+# 実データ抽出に必要（採点コアの実行には不要）
+mediapipe>=0.10.9
+opencv-python>=4.8

@@ -26,6 +26,9 @@ export {onCommentWrite} from "./triggers/onCommentWrite";
 export {onMemberWrite} from "./triggers/onMemberWrite";
 export {onVideoDeleted} from "./triggers/onVideoDeleted";
 
+// AI機能① 基本動作トレーニング(#20 / #35): スコア確定はサーバで行う
+export {finalizeBasicAnalysis} from "./analysis/finalizeBasicAnalysis";
+
 // AI機能② 連スタイル類似度判定(#22〜#25)
 export {analyzeStyle} from "./analysis/analyzeStyle";
 export {rebuildRenStyleProfile} from "./style/rebuildRenStyleProfile";

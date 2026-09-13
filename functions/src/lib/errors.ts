@@ -19,6 +19,8 @@ export const ErrorCode = {
   // --- 仕様書13章にない拡張(追加理由はdocs/design/api-functions.md 2章) ---
   /** 動画に対応する姿勢系列がStorageに無い */
   POSE_SERIES_NOT_FOUND: "POSE_SERIES_NOT_FOUND",
+  /** 姿勢系列はあるが、全身が映っている有効フレームが足りずEmbeddingを作れない */
+  POSE_SERIES_INSUFFICIENT: "POSE_SERIES_INSUFFICIENT",
   /** 承認済みの参照Embeddingが0件(代表Embeddingを作れない) */
   STYLE_REFERENCE_NOT_FOUND: "STYLE_REFERENCE_NOT_FOUND",
   /** 比較できる連の代表Embeddingが1件も無い */
@@ -39,6 +41,7 @@ const HTTPS_ERROR_CODE: Record<ErrorCode, FunctionsErrorCode> = {
   INVALID_STATUS_TRANSITION: "failed-precondition",
   POST_VIDEO_NOT_PUBLICABLE: "failed-precondition",
   POSE_SERIES_NOT_FOUND: "failed-precondition",
+  POSE_SERIES_INSUFFICIENT: "failed-precondition",
   STYLE_REFERENCE_NOT_FOUND: "failed-precondition",
   STYLE_PROFILE_NOT_READY: "failed-precondition",
   INVALID_ARGUMENT: "invalid-argument",

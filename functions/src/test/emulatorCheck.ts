@@ -59,8 +59,7 @@ async function errorCodeOf(promise: Promise<unknown>): Promise<string> {
 }
 
 // 一定時間待つ
-const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * エミュレータ上の一連の確認を実行する。
@@ -77,11 +76,10 @@ async function main(): Promise<void> {
   const {db, storage} = require("../lib/firebase");
   const fixtures = require("./fixtures");
   const {analyzeStyle} = require("../analysis/analyzeStyle");
-  const {
-    rebuildRenStyleProfile,
-  } = require("../style/rebuildRenStyleProfile");
+  const {rebuildRenStyleProfile} = require("../style/rebuildRenStyleProfile");
   const {registerStyleReference} = require("../style/registerStyleReference");
   const {deleteStyleReference} = require("../style/deleteStyleReference");
+  const {finalizeBasicAnalysis} = require("../analysis/finalizeBasicAnalysis");
   /* eslint-enable @typescript-eslint/no-var-requires */
 
   const wrap = (fn: any) => functionsTest.wrap(fn);
@@ -128,10 +126,114 @@ async function main(): Promise<void> {
     {seed: 23, noise: 0.015},
   );
   // ユーザーは連 B の踊り方に近い動きをしている
-  await putSeries(
-    "users/user1/videos/videoUser1.pose.json",
-    fixtures.STYLE_B,
-    {seed: 24, noise: 0.02, scale: 0.75, speed: 1.1, mirror: true},
+  await putSeries("users/user1/videos/videoUser1.pose.json", fixtures.STYLE_B, {
+    seed: 24,
+    noise: 0.02,
+    scale: 0.75,
+    speed: 1.1,
+    mirror: true,
+  });
+
+  console.log("--- FN-01 finalizeBasicAnalysis ---");
+  await db.doc("videos/practice1").set({
+    userId: "user1",
+    visibility: "private",
+    analysisStatus: "uploaded",
+  });
+  const finalizeReq = {
+    videoId: "practice1",
+    clientRequestId: "req-0001-abcdef",
+    analysisVersion: "v1",
+    danceType: "male",
+    scorePart: "whole",
+    events: [
+      {ruleId: "HAND_ABOVE_HEAD", grade: "GREAT", timestampMs: 200, value: 0.2},
+      {
+        ruleId: "HAND_ABOVE_HEAD",
+        grade: "GOOD",
+        timestampMs: 1900,
+        value: 0.08,
+      },
+      {ruleId: "HAND_STOP", grade: "MISS", timestampMs: 4000, value: 0.9},
+    ],
+    metrics: {
+      HAND_ABOVE_HEAD: {attempts: 2, greatCount: 1, goodCount: 1, missCount: 0},
+      HIP_LOW: {
+        attempts: 0,
+        greatCount: 0,
+        goodCount: 0,
+        missCount: 0,
+        holdRatio: 0.5,
+      },
+      HAND_STOP: {attempts: 1, greatCount: 0, goodCount: 0, missCount: 1},
+    },
+    rhythm: {userBpm: 112, baseBpm: 112},
+    gameScore: 160,
+    maxCombo: 2,
+    durationMs: 5000,
+    // クライアントが送ってきても無視されること
+    totalScore: 100,
+  };
+  const fin = await callAs(finalizeBasicAnalysis, "user1", finalizeReq);
+  // 手 85 / 腰 50 / 停止 0 / リズム 100 → 平均 58.75 → 58.8
+  check(
+    Math.abs(fin.totalScore - 58.8) < 1e-9,
+    `totalScore はサーバが算出する(期待 58.8 / 実際 ${fin.totalScore})`,
+  );
+  check(fin.scores.hipHeightScore === 50, "項目別スコアが返る");
+  check(
+    fin.feedback.some(
+      (f: any) => f.type === "improve" && f.ruleId === "HAND_STOP",
+    ),
+    "改善点のフィードバックが付く",
+  );
+  const savedAnalysis = (
+    await db.doc(`analysisResults/${fin.analysisId}`).get()
+  ).data();
+  check(
+    savedAnalysis.totalScore === fin.totalScore &&
+      savedAnalysis.gameScore === 160 &&
+      savedAnalysis.analysisVersion === "v1",
+    "analysisResults に保存される(gameScore は別フィールド)",
+  );
+  const growth = (
+    await db.doc(`users/user1/growthRecords/${fin.analysisId}`).get()
+  ).data();
+  check(growth && growth.score === fin.totalScore, "growthRecords が作られる");
+  const practice = (await db.doc("videos/practice1").get()).data();
+  check(
+    practice.analysisStatus === "completed" &&
+      practice.latestAnalysisId === fin.analysisId,
+    "videos.analysisStatus が completed になる",
+  );
+  const again = await callAs(finalizeBasicAnalysis, "user1", finalizeReq);
+  check(
+    again.analysisId === fin.analysisId && again.duplicate === true,
+    "同じ clientRequestId の再送は同じ結果を返す(冪等)",
+  );
+  check(
+    (await errorCodeOf(callAs(finalizeBasicAnalysis, "user2", finalizeReq))) ===
+      "FORBIDDEN",
+    "他人の動画には結果を付けられない",
+  );
+  check(
+    (
+      await errorCodeOf(
+        callAs(finalizeBasicAnalysis, "user1", {
+          ...finalizeReq,
+          clientRequestId: "req-0002-abcdef",
+          metrics: {
+            HAND_ABOVE_HEAD: {
+              attempts: 1,
+              greatCount: 5,
+              goodCount: 0,
+              missCount: 0,
+            },
+          },
+        }),
+      )
+    ).startsWith("INVALID_ARGUMENT"),
+    "成功数が試行数を超える集計は却下される",
   );
 
   console.log("--- FN-08 registerStyleReference ---");
@@ -178,27 +280,31 @@ async function main(): Promise<void> {
     "連 B の管理者は連 A の参照を登録できない",
   );
   check(
-    (await errorCodeOf(
-      callAs(registerStyleReference, "adminA", {
-        renId: "renA",
-        videoId: "x",
-        poseSeriesPath: "ren/renB/styleReferences/refB1.pose.json",
-        consentObtained: true,
-        consentScope: "s",
-      }),
-    )).startsWith("INVALID_ARGUMENT"),
+    (
+      await errorCodeOf(
+        callAs(registerStyleReference, "adminA", {
+          renId: "renA",
+          videoId: "x",
+          poseSeriesPath: "ren/renB/styleReferences/refB1.pose.json",
+          consentObtained: true,
+          consentScope: "s",
+        }),
+      )
+    ).startsWith("INVALID_ARGUMENT"),
     "他連のパスを指定した参照登録は拒否される",
   );
   check(
-    (await errorCodeOf(
-      callAs(registerStyleReference, "adminA", {
-        renId: "renA",
-        videoId: "x",
-        poseSeriesPath: "ren/renA/styleReferences/refA1.pose.json",
-        consentObtained: false,
-        consentScope: "s",
-      }),
-    )).startsWith("INVALID_ARGUMENT"),
+    (
+      await errorCodeOf(
+        callAs(registerStyleReference, "adminA", {
+          renId: "renA",
+          videoId: "x",
+          poseSeriesPath: "ren/renA/styleReferences/refA1.pose.json",
+          consentObtained: false,
+          consentScope: "s",
+        }),
+      )
+    ).startsWith("INVALID_ARGUMENT"),
     "提供者の同意が無い参照は登録できない",
   );
 
@@ -239,10 +345,9 @@ async function main(): Promise<void> {
   check(analysis.status === "completed", "解析が完了する");
   check(
     analysis.results[0].renId === "renB",
-    `連 B の動きをした人は連 B が 1 位（実際: ${
-      analysis.results.map((r: any) => `${r.renId}=${r.similarity.toFixed(3)}`)
-        .join(", ")
-    }）`,
+    `連 B の動きをした人は連 B が 1 位（実際: ${analysis.results
+      .map((r: any) => `${r.renId}=${r.similarity.toFixed(3)}`)
+      .join(", ")}）`,
   );
   const saved = (
     await db.doc(`styleAnalysisResults/${analysis.styleAnalysisId}`).get()
@@ -290,10 +395,7 @@ async function main(): Promise<void> {
     unavailable === "STYLE_MODEL_UNAVAILABLE",
     "モデル利用不可なら STYLE_MODEL_UNAVAILABLE",
   );
-  check(
-    before === after,
-    "モデル利用不可のとき結果ドキュメントを作らない",
-  );
+  check(before === after, "モデル利用不可のとき結果ドキュメントを作らない");
 
   console.log("--- FN-09 deleteStyleReference とトリガ ---");
   await callAs(deleteStyleReference, "adminB", {

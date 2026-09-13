@@ -20,7 +20,7 @@ import {
   RenStyleProfile,
   StyleSimilarityItem,
 } from "../lib/types";
-import {getCurrentStyleEncoder} from "../style/encoder";
+import {StyleEncodeError, getCurrentStyleEncoder} from "../style/encoder";
 import {
   PoseSeriesNotFoundError,
   loadPoseSeries,
@@ -112,6 +112,15 @@ export const analyzeStyle = onCall(async (request) => {
   } catch (e) {
     if (e instanceof PoseSeriesNotFoundError) {
       return fail(ErrorCode.POSE_SERIES_NOT_FOUND, "failed-precondition");
+    }
+    if (e instanceof StyleEncodeError) {
+      // 全身が映った有効フレームが足りない。撮り直しで直る種類の失敗なので
+      // ANALYSIS_FAILED(時間をおいて再試行)とは分けて返す
+      logger.info("pose series insufficient for style embedding", {
+        videoId,
+        error: String(e),
+      });
+      return fail(ErrorCode.POSE_SERIES_INSUFFICIENT, "failed-precondition");
     }
     logger.error("failed to encode user video", {videoId, error: String(e)});
     return fail(ErrorCode.ANALYSIS_FAILED, "internal");

@@ -64,6 +64,8 @@ calibrate.py        # 実データから閾値を実測し、根拠をグラフ�
 
 ## 使い方（動画 1 本を採点する）
 ```bash
+pip install -r requirements.txt
+python download_model.py            # models/pose_landmarker_full.task を取得（1 回だけ）
 python score_video.py 踊りの動画.MOV
 ```
 抽出・検証・採点をまとめて実行して結果を表示する。
@@ -74,7 +76,34 @@ python score_video.py dance.MOV --save                  # 骨格を .npz に保�
 python score_video.py dance.MOV --crop 0.15 0.9 0 1.0   # 映り込みを除く
 python score_video.py dance.MOV --json                   # アプリ組み込み用
 ```
-モデルの場所は score_video.py の MODEL_PATH か --model で指定する。
+モデルの場所は `--model` か環境変数 `RENKEI_POSE_MODEL` で指定する
+（既定は `models/pose_landmarker_full.task`。`models/` は git 管理外）。
+
+### アプリ（AI②）向けの姿勢系列を書き出す
+```bash
+python export_pose_series.py 熟練者の動画.MOV -o ref.pose.json
+```
+`pose-series-v1` 形式の JSON（`functions/src/style/pose.ts` と同形）を出す。
+連の参照動画を登録するときは、これを Storage の
+`ren/{renId}/styleReferences/{referenceId}.pose.json` に置いて FN-08 を呼ぶ
+（`docs/design/api-functions.md`）。
+
+### アプリのリアルタイム判定との関係
+アプリ（`Ren-kei_procon/src/features/rules/`）はカメラ映像を **1 フレームずつ**
+RULE-01〜07 で判定し、終了後にサーバ（FN-01）が Analysis Score を確定する。
+このディレクトリの採点は **録り終えた動画 1 本** を 8 軸で採点する
+オフライン版で、閾値の較正・熟練者データの実測・指導者との突き合わせに使う。
+両者の軸の対応は `docs/design/ai-basic-motion.md` 6章の表を参照。
+
+### 「測れなかった」の扱い
+検出できなかった軸は 0 点ではなく `measured=False` になり、総合点・部位点・
+助言から除外して「測れなかった項目」として別枠で表示する
+（0 点として平均に入れると「検出できなかった」が「最低の出来」と同じ扱いになるため）。
+
+### macOS で mediapipe が落ちる場合
+`mediapipe` 0.10.2x 系は macOS(Apple Silicon)で
+`DrishtiMetalHelper ... Check failed: service_ Service is unavailable` を出して
+起動直後に落ちる。`requirements.txt` は動作を確認した 0.10.14 に固定している。
 
 ## 開発・較正用のツール
 ```bash
@@ -90,12 +119,11 @@ python draw_skeleton.py
 python calibrate.py
 
 # 4) 実データで採点
-#   pose_landmarker_full.task を DL してから:
-python -c "from renkei.pose_extractor import extract_pose; \
-from renkei import default_pipeline; \
-seq = extract_pose('dance.mp4','pose_landmarker_full.task'); \
-print(default_pipeline().run(seq).pretty())"
+python download_model.py
+python score_video.py dance.mp4
 ```
+`test_scorers.py` は良い例・悪い例の点差を assert する（悪い例が基準より
+2 点以上低くなければ終了コード 1）。CI で回せる。
 
 ## 次に足す軸（未実装）
 - **なんば検出**: 同側の手首/足首の前後変位の相関 ← 阿波踊り特化の目玉

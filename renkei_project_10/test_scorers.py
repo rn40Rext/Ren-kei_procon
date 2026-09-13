@@ -75,11 +75,24 @@ if __name__ == "__main__":
     base = pipe.run(make()).total
     print(f"{'条件':<24}{'総合':>7}{'上半身':>8}{'下半身':>8}  基準との差")
     print("-"*62)
+    failures = []
+    # 良い踊り（基準）は高得点、悪い例はいずれも基準より明確に低くなること
+    if base < 90:
+        failures.append(f"基準の総合点が低すぎる: {base:.1f}")
     for name, kw in cases:
         r = pipe.run(make(**kw))
         d = r.total - base
         print(f"{name:<24}{r.total:7.1f}{r.upper:8.1f}{r.lower:8.1f}  {d:+6.1f}")
+        if name != "良い踊り(基準)" and d > -2.0:
+            failures.append(f"{name}: 基準との差 {d:+.1f} が小さすぎる")
     print("\n" + "="*62)
     print("悪い例の詳細（手が下がっている）")
     print("="*62)
     print(pipe.run(make(hands_up=False)).pretty())
+
+    if failures:
+        print("\nFAILED:")
+        for f in failures:
+            print("  -", f)
+        raise SystemExit(1)
+    print("\nOK: 全ての悪い例が基準より低い")

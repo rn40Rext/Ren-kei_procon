@@ -25,8 +25,14 @@ import json
 import os
 import sys
 
-# ---- 既定のモデルパス（環境に合わせて書き換える）----------------------
-MODEL_PATH = r"C:\Users\micch\procon\pose_landmarker_full.task"
+# ---- 既定のモデルパス ----------------------------------------------------
+# 環境変数 RENKEI_POSE_MODEL があればそれを、無ければこのファイルと同じ場所の
+# models/pose_landmarker_full.task を使う（models/ は git 管理外。README 参照）。
+MODEL_PATH = os.environ.get(
+    "RENKEI_POSE_MODEL",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "models", "pose_landmarker_full.task"),
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -62,8 +68,9 @@ def check_inputs(args) -> bool:
         ok = False
     if not os.path.isfile(args.model):
         print(f"[エラー] モデルが見つかりません: {args.model}")
-        print("  pose_landmarker_full.task の場所を --model で指定するか、")
-        print("  score_video.py の MODEL_PATH を書き換えてください。")
+        print("  pose_landmarker_full.task の場所を --model か環境変数")
+        print("  RENKEI_POSE_MODEL で指定してください。取得は README の手順:")
+        print("    python download_model.py")
         ok = False
     return ok
 
@@ -86,7 +93,14 @@ def main() -> int:
     from renkei.pose_extractor import extract_pose
     from renkei.validate import describe_runs, validate
 
-    log = (lambda *a: None) if args.quiet else print
+    # --json のときは途中経過を stderr に出し、stdout を JSON だけにする
+    # （パイプで受ける側が JSON をそのまま読めるように）
+    if args.quiet:
+        log = lambda *a: None  # noqa: E731
+    elif args.json:
+        log = lambda *a: print(*a, file=sys.stderr)  # noqa: E731
+    else:
+        log = print
 
     crop = tuple(args.crop) if args.crop else None
     log(f"解析中: {os.path.basename(args.video)}")
@@ -139,8 +153,11 @@ def main() -> int:
             "profile": report.profile_name,
             "advice": report.advice(),
             "notes": report.notes(),
+            "unmeasured": report.unmeasured(),
             "axes": [
-                {"axis": r.axis, "part": r.part, "score": round(r.score, 1),
+                {"axis": r.axis, "part": r.part,
+                 "score": round(r.score, 1) if r.measured else None,
+                 "measured": r.measured,
                  "message": r.message, "metrics": r.metrics}
                 for r in report.breakdown
             ],

@@ -14,7 +14,7 @@ import numpy as np
 
 from ..features import interpolate_nans, joint_angle
 from ..landmarks import Lm, PoseSequence
-from .base import Part, ScoreResult, Scorer, linear_map
+from .base import Part, ScoreResult, Scorer, linear_map, unmeasured
 
 
 def _wrist_above_ratio(seq: PoseSequence, reference: Lm) -> tuple[float, dict]:
@@ -62,7 +62,7 @@ class HandHeightScorer(Scorer):
 
     def score(self, seq: PoseSequence) -> ScoreResult:
         if not seq.has_image_coords:
-            return ScoreResult(self.axis, 0.0,
+            return unmeasured(self.axis,
                                "画像座標が無いため手の高さを判定できません。",
                                {"keep_ratio": None}, self.part)
 
@@ -134,7 +134,7 @@ class ArmFormScorer(Scorer):
                 angles.append(a)
 
         if not angles:
-            return ScoreResult(self.axis, 0.0, "腕の形を検出できませんでした。",
+            return unmeasured(self.axis, "腕の形を検出できませんでした。",
                                {"elbow_angle_deg": None}, self.part)
 
         mean_angle = float(np.nanmean(angles))
@@ -185,7 +185,7 @@ class HandSpreadScorer(Scorer):
         med = float(np.nanmedian(ratio))
 
         if not np.isfinite(med):
-            return ScoreResult(self.axis, 0.0, "手の位置を検出できませんでした。",
+            return unmeasured(self.axis, "手の位置を検出できませんでした。",
                                {"spread_ratio": None}, self.part)
 
         s = linear_map(abs(med - self.target), self.tolerance, 0.0)
@@ -219,7 +219,7 @@ class HandEntryScorer(Scorer):
 
     def score(self, seq: PoseSequence) -> ScoreResult:
         if not seq.has_image_coords:
-            return ScoreResult(self.axis, 0.0,
+            return unmeasured(self.axis,
                                "画像座標が無いため手の出し方を判定できません。",
                                {"from_above_ratio": None}, self.part)
 
@@ -256,7 +256,7 @@ class HandEntryScorer(Scorer):
             samples += int(extending.sum())
 
         if not ratios:
-            return ScoreResult(self.axis, 0.0,
+            return unmeasured(self.axis,
                                "手の動きが小さく判定できませんでした。",
                                {"from_above_ratio": None, "view": view},
                                self.part)
@@ -274,23 +274,4 @@ class HandEntryScorer(Scorer):
         return ScoreResult(self.axis, s, msg,
                            {"from_above_ratio": round(ratio, 3),
                             "view": view, "axis": "xyz"[ax],
-                            "samples": samples}, self.part)
-
-        if not ratios:
-            return ScoreResult(self.axis, 0.0,
-                               "手の動きが小さく判定できませんでした。",
-                               {"from_above_ratio": None}, self.part)
-
-        ratio = float(np.mean(ratios))
-        s = linear_map(ratio, self.ZERO_MARK_RATIO, self.FULL_MARK_RATIO)
-
-        if s >= 70:
-            msg = "手を上から出せています。"
-        elif s >= 40:
-            msg = "手を出すとき、もう少し上から降ろすように。"
-        else:
-            msg = "手が下から出ています。一度上げてから前に出しましょう。"
-
-        return ScoreResult(self.axis, s, msg,
-                           {"from_above_ratio": round(ratio, 3),
                             "samples": samples}, self.part)

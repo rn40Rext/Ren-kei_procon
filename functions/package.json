@@ -4,12 +4,14 @@
     "lint": "eslint --ext .js,.ts .",
     "build": "tsc",
     "build:watch": "tsc --watch",
-    "test": "npm run build && node --test \"lib/test/**/*.test.js\"",
+    "test": "npm run build && node --test \"lib/test/*.test.js\"",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "verify:emulator": "npm run build && npx -y firebase-tools@latest emulators:exec --project demo-renkei --only firestore,storage,functions \"node lib/test/emulatorCheck.js\"",
+    "seed:rules": "npm run build && node lib/scripts/seedAnalysisRules.js"
   },
   "engines": {
     "node": "24"

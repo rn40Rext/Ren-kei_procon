@@ -1,4 +1,7 @@
 numpy>=1.24
-# 実データ抽出に必要（採点コアの実行には不要）
-mediapipe>=0.10.9
+# 実データ抽出に必要（採点コアの実行には不要）。
+# mediapipe は 0.10.14 に固定する。0.10.2x 系は macOS(Apple Silicon)で
+# 「DrishtiMetalHelper ... Check failed: service_ Service is unavailable」で
+# 起動直後に落ちる（2026-09-13 に確認。0.10.14 では動作）。
+mediapipe==0.10.14
 opencv-python>=4.8

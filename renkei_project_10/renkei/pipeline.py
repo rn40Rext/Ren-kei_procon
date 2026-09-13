@@ -41,18 +41,24 @@ class Report:
         指摘を最優先で見せると、誤った方向に練習させてしまう。
         """
         low = [r for r in self.breakdown
-               if r.score < threshold and r.metrics.get("reliable") is not False]
+               if r.measured and r.score < threshold
+               and r.metrics.get("reliable") is not False]
         low.sort(key=lambda r: r.score)
         return [r.message for r in low[:limit]]
 
     def notes(self) -> list[str]:
         """参考値扱いになった軸の説明。助言とは分けて表示する。"""
         return [f"{r.axis}: {r.message}" for r in self.breakdown
-                if r.metrics.get("reliable") is False]
+                if r.measured and r.metrics.get("reliable") is False]
+
+    def unmeasured(self) -> list[str]:
+        """測れなかった軸。0 点ではなく「対象外」として別枠で示す。"""
+        return [f"{r.axis}: {r.message}" for r in self.breakdown
+                if not r.measured]
 
     def praise(self, threshold: float = 80.0) -> list[str]:
         """できている軸。励ましの表示用。"""
-        good = [r for r in self.breakdown if r.score >= threshold]
+        good = [r for r in self.breakdown if r.measured and r.score >= threshold]
         good.sort(key=lambda r: -r.score)
         return [r.axis for r in good]
 
@@ -76,7 +82,10 @@ class Report:
                 continue
             lines.append(f"\n【{part}】")
             for r in axes:
-                lines.append(f"  {r.axis:<14} {r.score:5.1f}点  {r.message}")
+                if r.measured:
+                    lines.append(f"  {r.axis:<14} {r.score:5.1f}点  {r.message}")
+                else:
+                    lines.append(f"  {r.axis:<14}   --   {r.message}")
                 for k, v in r.metrics.items():
                     lines.append(f"      └ {k}: {v}")
         advice = self.advice()
@@ -93,6 +102,11 @@ class Report:
         if notes:
             lines.append("\n■ 参考値（正確に測れていない項目）")
             for n in notes:
+                lines.append(f"  ・{n}")
+        missing = self.unmeasured()
+        if missing:
+            lines.append("\n■ 測れなかった項目（点数には含めていません）")
+            for n in missing:
                 lines.append(f"  ・{n}")
         return "\n".join(lines)
 
@@ -126,6 +140,9 @@ class ScoringPipeline:
         重みを 1/4 に落として総合点への影響を抑える。
         測れていない可能性のある数値で点数を左右させないため。
         """
+        # 測れなかった軸(measured=False)は対象外。0 点として平均に入れると
+        # 「検出できなかった」が「最低の出来」と同じ扱いになってしまう。
+        results = [(r, w) for r, w in results if r.measured]
         if not results:
             return None
         adjusted = [
@@ -149,7 +166,8 @@ class ScoringPipeline:
             part_scores[part] = self._weighted(in_part)
             # その部位の軸がすべて参考値なら、部位ごと信頼できない
             part_reliable[part] = any(
-                r.metrics.get("reliable") is not False for r, _ in in_part)
+                r.measured and r.metrics.get("reliable") is not False
+                for r, _ in in_part)
 
         # --- 総合点 = 部位の重み付き平均（存在する部位だけで正規化）---
         # 参考値しかない部位は重みを 1/4 にして、測れていない軸で

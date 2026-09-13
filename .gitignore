@@ -69,3 +69,9 @@ node_modules/
 .dataconnect
 
 video/
+# Python (renkei_project_10)
+__pycache__/
+*.pyc
+renkei_project_10/models/
+*.task
+*_pose.npz

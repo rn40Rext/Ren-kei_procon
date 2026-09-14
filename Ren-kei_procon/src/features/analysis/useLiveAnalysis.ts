@@ -15,21 +15,23 @@ import { PoseSmoother, meanVisibility } from "../pose/preprocess";
 import { PoseSeriesRecorder } from "../pose/poseSeries";
 import { LM, Landmark, PoseFrame } from "../pose/types";
 import { PoseDetector, createPoseDetector } from "../pose/PoseDetector";
-import { bodyScale } from "../pose/normalize";
-import { hipCenterY } from "../pose/normalize";
+import { bodyScale, hipCenterY } from "../pose/normalize";
 import { GameScoreState, applyGrade, initialGameScore } from "../rules/gameScore";
 import { MetricsTracker } from "../rules/metrics";
 import { RhythmAnalyzer, RhythmEstimate } from "../rules/rhythm";
-import { RuleEvaluator, createEvaluators } from "../rules/ruleEngine";
+import { RuleEvaluator, createEvaluators, requiresLowerBody } from "../rules/ruleEngine";
 import { FinalizeRequest, ScorePart, SessionAggregator } from "../rules/session";
 import { DanceType, RuleEvent, RuleSnapshot } from "../rules/types";
 import { frameRules, RHYTHM_RULE_ID } from "../rules/definitions";
 import { LoadedRuleSet, loadRuleSet } from "../../repositories/analysisRules";
 import { finalizeBasicAnalysis, FinalizeResponse } from "../../repositories/analysis";
 import { createPracticeVideo, uploadPoseSeries, uploadPracticeVideo } from "../../repositories/videos";
-import { LIVE_WARNING_MESSAGES, LiveSnapshot, LiveStatus, LiveVideoSource, LiveWarning } from "./liveTypes";
+import { LIVE_WARNING_MESSAGES, LiveSnapshot, LiveStatus, LiveVideoSource, LiveWarning, framingMessage } from "./liveTypes";
+import { finalizeErrorMessage } from "./errorMessages";
 
-const KEY_LANDMARKS = [LM.NOSE, LM.L_SHOULDER, LM.R_SHOULDER, LM.L_HIP, LM.R_HIP, LM.L_KNEE, LM.R_KNEE, LM.L_ANKLE, LM.R_ANKLE];
+/** 検出信頼度を見る landmark。脚のルールを評価しないときは脚を数えない */
+const UPPER_LANDMARKS = [LM.NOSE, LM.L_SHOULDER, LM.R_SHOULDER, LM.L_WRIST, LM.R_WRIST, LM.L_HIP, LM.R_HIP];
+const FULL_LANDMARKS = [...UPPER_LANDMARKS, LM.L_KNEE, LM.R_KNEE, LM.L_ANKLE, LM.R_ANKLE];
 const UI_UPDATE_INTERVAL_MS = 100;
 const EVENT_DISPLAY_MS = 900;
 
@@ -112,6 +114,10 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   const lastUiMsRef = useRef(0);
   const lastTsRef = useRef(-1);
   const gaugesRef = useRef<RuleSnapshot[]>([]);
+  /** 選んだ部位のルールが脚を必要とするか(構図ガイドと信頼度判定に使う) */
+  const needsLowerBodyRef = useRef(true);
+  /** FN-01 だけ失敗したときの再試行用。動画と姿勢系列は保存済み */
+  const pendingRef = useRef<{ videoId: string; payload: FinalizeRequest } | null>(null);
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -230,16 +236,26 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     let primary: PoseFrame | null = null;
     if (primaryRaw) {
       primary = smootherRef.current.apply(primaryRaw);
-      if (bodyScale(primary) === null) warning = warning ?? "NOT_FULL_BODY";
-      else if (meanVisibility(primary, KEY_LANDMARKS) < 0.6) warning = warning ?? "LOW_LANDMARK_CONFIDENCE";
     } else {
       smootherRef.current.reset();
     }
-    warningRef.current = warning;
     source.draw?.(primary?.landmarks ?? null, detection.poses);
 
     const session = sessionRef.current;
     const values = primary ? trackerRef.current.update(primary) : trackerRef.current.update({ timestampMs: t, landmarks: [] });
+
+    // 構図の警告は「実際に評価するルールに必要な範囲」で判断する。
+    // 「手だけ」なら脚が枠外でも判定できるので、全身を求めない
+    const needsLower = needsLowerBodyRef.current;
+    if (primary) {
+      const scaleOk = values.bodyScale !== null && values.bodyScale !== undefined;
+      const lowerOk = !needsLower || (values.kneeAngleDeg !== null && values.kneeAngleDeg !== undefined);
+      if (!scaleOk || !lowerOk) warning = warning ?? "NOT_FULL_BODY";
+      else if (meanVisibility(primary, needsLower ? FULL_LANDMARKS : UPPER_LANDMARKS) < 0.6) {
+        warning = warning ?? "LOW_LANDMARK_CONFIDENCE";
+      }
+    }
+    warningRef.current = warning;
     const gauges: RuleSnapshot[] = [];
     for (const ev of evaluatorsRef.current) {
       const e = ev.evaluate(values, t);
@@ -306,7 +322,11 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     const ruleSet = ruleSetRef.current;
     const source = sourceRef.current;
     if (!ruleSet || !source || statusRef.current !== "ready") return;
-    evaluatorsRef.current = createEvaluators(frameRules(ruleSet), optionsRef.current.danceType);
+    const defs = frameRules(ruleSet);
+    const { danceType, scorePart } = optionsRef.current;
+    evaluatorsRef.current = createEvaluators(defs, danceType, scorePart);
+    needsLowerBodyRef.current = requiresLowerBody(defs, scorePart);
+    pendingRef.current = null;
     smootherRef.current.reset();
     trackerRef.current.reset();
     recorderRef.current.reset();
@@ -368,14 +388,40 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
         scorePart,
         game: gameRef.current,
       });
+      // ここから先が失敗しても、動画と姿勢系列は保存済み。
+      // 同じ payload(clientRequestId 込み)で再試行できるよう控えておく
+      pendingRef.current = { videoId, payload };
       const response = await finalizeBasicAnalysis(payload);
+      pendingRef.current = null;
       setStatus("done");
       return { videoId, analysisId: response.analysisId, response };
     } catch (e) {
-      setStatus("error", e instanceof Error ? e.message : String(e));
+      setStatus("error", finalizeErrorMessage(e));
       throw e;
     }
   }, [setStatus, stopLoop]);
+
+  /**
+   * FN-01 だけをやり直す。動画・姿勢系列は保存済みなので再アップロードしない。
+   * clientRequestId が同じなので、サーバ側で二重に結果が作られることはない(冪等)。
+   */
+  const retryFinalize = useCallback(async (): Promise<FinishResult> => {
+    const pending = pendingRef.current;
+    if (!pending) throw new Error("再試行できる採点がありません");
+    setStatus("finalizing");
+    try {
+      const response = await finalizeBasicAnalysis(pending.payload);
+      pendingRef.current = null;
+      setStatus("done");
+      return { videoId: pending.videoId, analysisId: response.analysisId, response };
+    } catch (e) {
+      setStatus("error", finalizeErrorMessage(e));
+      throw e;
+    }
+  }, [setStatus]);
+
+  /** 採点だけが未完了か(動画は保存済み)。UI の再試行ボタン表示に使う */
+  const canRetryFinalize = snapshot.status === "error" && pendingRef.current !== null;
 
   useEffect(() => {
     return () => {
@@ -385,10 +431,11 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     };
   }, [stopLoop]);
 
-  const warningMessage = useMemo(
-    () => (snapshot.warning ? LIVE_WARNING_MESSAGES[snapshot.warning] : null),
-    [snapshot.warning]
-  );
+  const warningMessage = useMemo(() => {
+    if (!snapshot.warning) return null;
+    if (snapshot.warning === "NOT_FULL_BODY") return framingMessage(needsLowerBodyRef.current);
+    return LIVE_WARNING_MESSAGES[snapshot.warning];
+  }, [snapshot.warning]);
 
-  return { snapshot, warningMessage, prepare, start, cancel, finish };
+  return { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize };
 }

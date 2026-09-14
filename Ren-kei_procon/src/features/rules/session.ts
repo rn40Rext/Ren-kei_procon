@@ -7,10 +7,10 @@
  * functions/src/analysis/finalizeBasicAnalysis.ts の Request と同形。
  */
 import { RhythmEstimate } from "./rhythm";
-import { DanceType, MetricValues, RuleEvent } from "./types";
+import { DanceType, MetricValues, RuleEvent, ScorePart } from "./types";
 import { GameScoreState } from "./gameScore";
 
-export type ScorePart = "feet" | "hands" | "whole";
+export type { ScorePart };
 
 export type RuleMetricSummary = {
   attempts: number;

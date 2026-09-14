@@ -6,6 +6,7 @@ import { LM, PoseFrame } from "../pose/types";
 import {
   bodyScale,
   kneeAngleDeg,
+  measureTorsoRatio,
   normalizedHandHeight,
   normalizedHandHorizontalOffset,
   normalizedHipHeight,
@@ -50,8 +51,12 @@ function meanOf(a: number | null, b: number | null): number | null {
  * 指標を計算する。全身が映っていない(bodyScale が取れない)ときは
  * すべて null になり、各ルールは NOT_READY になる。
  */
-export function computeMetrics(frame: PoseFrame, prev: PoseFrame | null): MetricValues {
-  const scale = bodyScale(frame);
+export function computeMetrics(
+  frame: PoseFrame,
+  prev: PoseFrame | null,
+  torsoRatio?: number
+): MetricValues {
+  const scale = bodyScale(frame, torsoRatio);
   const out: MetricValues = {
     bodyScale: scale,
     "normalizedHandHeight:left": null,
@@ -100,14 +105,28 @@ export const HAND_STOP_WINDOW_MS = 700;
 export class MetricsTracker {
   private prev: PoseFrame | null = null;
   private lastMotionMs: Record<"left" | "right", number> = { left: -Infinity, right: -Infinity };
+  /** 全身が映ったフレームから実測した「胴体長 ÷ 肩〜足首」。上半身だけの構図で使う */
+  private torsoRatio: number | undefined;
 
   reset(): void {
     this.prev = null;
     this.lastMotionMs = { left: -Infinity, right: -Infinity };
+    this.torsoRatio = undefined;
+  }
+
+  /** 実測できた体格比(デバッグ・表示用)。まだ全身が映っていなければ undefined */
+  get measuredTorsoRatio(): number | undefined {
+    return this.torsoRatio;
   }
 
   update(frame: PoseFrame): MetricValues {
-    const values = computeMetrics(frame, this.prev);
+    // 全身が映っているうちに体格比を実測しておく(移動平均で安定させる)。
+    // 後で足元が枠外に出ても、この比率で胴体長からスケールを推定できる
+    const measured = measureTorsoRatio(frame);
+    if (measured !== null) {
+      this.torsoRatio = this.torsoRatio === undefined ? measured : this.torsoRatio * 0.9 + measured * 0.1;
+    }
+    const values = computeMetrics(frame, this.prev, this.torsoRatio);
     for (const side of ["left", "right"] as const) {
       const key = `normalizedHandVelocity:${side}`;
       const v = values[key];

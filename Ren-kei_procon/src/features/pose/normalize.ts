@@ -32,10 +32,45 @@ function visible(...points: (Landmark | null)[]): boolean {
 }
 
 /**
- * 身長相当のスケール。全身が映っていなければ null(→ NOT_READY)。
- * 肩中心と足首中心の距離。
+ * 胴体長(肩中心〜腰中心の距離)。上半身だけ映っているときのスケール推定に使う。
  */
-export function bodyScale(f: PoseFrame): number | null {
+export function torsoLength(f: PoseFrame): number | null {
+  const ls = lm(f, LM.L_SHOULDER);
+  const rs = lm(f, LM.R_SHOULDER);
+  const lh = lm(f, LM.L_HIP);
+  const rh = lm(f, LM.R_HIP);
+  if (!ls || !rs || !lh || !rh) return null;
+  const shoulder = center(ls, rs);
+  const hip = center(lh, rh);
+  if (!visible(shoulder, hip)) return null;
+  const len = Math.hypot(shoulder.x - hip.x, shoulder.y - hip.y);
+  return len > 1e-6 ? len : null;
+}
+
+/**
+ * 胴体長 ÷ 肩〜足首 の既定比率。上半身しか映っていないときの推定に使う。
+ *
+ * 人体計測の標準的な比率(身長を 1 として 肩 0.82 / 腰 0.52 / 足首 0.04)から
+ * 胴体 0.30 ÷ 肩〜足首 0.78 ≒ 0.385 とした **概算**。個人差があるので、
+ * 全身が映ったフレームがあれば measureTorsoRatio() の実測値で上書きする。
+ */
+export const DEFAULT_TORSO_RATIO = 0.385;
+
+/**
+ * 全身が映っているフレームから「胴体長 ÷ 肩〜足首」の実測比を求める。
+ * 全身が映っていなければ null。
+ */
+export function measureTorsoRatio(f: PoseFrame): number | null {
+  const full = fullBodyScale(f);
+  const torso = torsoLength(f);
+  if (full === null || torso === null) return null;
+  const ratio = torso / full;
+  // 明らかに壊れた値(極端な前傾・検出ミス)は採らない
+  return ratio > 0.15 && ratio < 0.8 ? ratio : null;
+}
+
+/** 肩中心〜足首中心の距離。全身が映っていなければ null。 */
+export function fullBodyScale(f: PoseFrame): number | null {
   const ls = lm(f, LM.L_SHOULDER);
   const rs = lm(f, LM.R_SHOULDER);
   const la = lm(f, LM.L_ANKLE);
@@ -46,6 +81,27 @@ export function bodyScale(f: PoseFrame): number | null {
   if (!visible(shoulder, ankle)) return null;
   const scale = Math.hypot(shoulder.x - ankle.x, shoulder.y - ankle.y);
   return scale > 1e-6 ? scale : null;
+}
+
+/**
+ * 身長相当のスケール。これで割ることで体格差・撮影距離の影響を除く。
+ *
+ * 足首が見えていれば肩中心〜足首中心をそのまま使う。見えていない場合
+ * (「手だけ」の練習で上半身だけを映しているとき)は、胴体長から推定する。
+ * 推定に使う比率は torsoRatio(セッション中に全身が映ったときの実測値)、
+ * 無ければ DEFAULT_TORSO_RATIO。
+ *
+ * 上半身だけの構図でも手のルールを判定できるようにするための緩和で、
+ * 脚を使うルール(腰の低さ・基本姿勢)は別途 landmark が必要なので
+ * この緩和だけで誤判定が増えることはない。
+ */
+export function bodyScale(f: PoseFrame, torsoRatio?: number): number | null {
+  const full = fullBodyScale(f);
+  if (full !== null) return full;
+  const torso = torsoLength(f);
+  if (torso === null) return null;
+  const ratio = torsoRatio && torsoRatio > 0.15 && torsoRatio < 0.8 ? torsoRatio : DEFAULT_TORSO_RATIO;
+  return torso / ratio;
 }
 
 /**

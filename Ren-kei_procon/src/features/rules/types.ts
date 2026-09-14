@@ -9,6 +9,8 @@ export type RuleState = "NOT_READY" | "READY" | "HOLDING" | "SUCCESS" | "MISS";
 export type Grade = "GREAT" | "GOOD" | "MISS";
 export type Side = "left" | "right";
 export type DanceType = "male" | "female";
+/** 採点する部位(U-02 前段で選ぶ)。どのルールを評価するかを決める */
+export type ScorePart = "feet" | "hands" | "whole";
 
 /**
  * 判定に使う指標名。metrics.ts が毎フレーム計算する。
@@ -61,6 +63,17 @@ export type RuleDefinition = RuleCondition & {
   side?: Side | "both";
   /** 適用する踊りの種類。省略時は共通(TBD-03 の暫定: 案 C) */
   danceType?: DanceType | "all";
+  /**
+   * 適用する採点部位。省略時は全部位で評価する。
+   * 「手だけ」を選んだときに脚のルールまで評価すると、脚が映っていない構図で
+   * 一生 NOT_READY になり、何も判定されない。
+   */
+  scoreParts?: ScorePart[];
+  /**
+   * このルールの評価に脚(膝・足首)が必要か。
+   * false のルールだけなら、上半身だけ映っていれば判定できる。
+   */
+  needsLowerBody?: boolean;
   /** 改善メッセージ(MISS 時) */
   improveMessage?: string;
   /** 達成時のメッセージ */

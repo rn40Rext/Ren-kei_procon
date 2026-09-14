@@ -7,16 +7,16 @@ import { test } from "node:test";
 import { PoseSmoother } from "../pose/preprocess";
 import { DEFAULT_RULE_SET, frameRules } from "./definitions";
 import { MetricsTracker } from "./metrics";
-import { createEvaluators } from "./ruleEngine";
+import { createEvaluators, requiresLowerBody } from "./ruleEngine";
 import { SessionAggregator } from "./session";
 import { applyGrade, initialGameScore } from "./gameScore";
-import { RuleEvent } from "./types";
+import { RuleEvent, ScorePart } from "./types";
 import { loadFixture } from "./__fixtures__/load";
 import { PoseFrame } from "../pose/types";
 
-function run(frames: PoseFrame[]) {
+function run(frames: PoseFrame[], scorePart: ScorePart = "whole") {
   const smoother = new PoseSmoother();
-  const evaluators = createEvaluators(frameRules(DEFAULT_RULE_SET), "male");
+  const evaluators = createEvaluators(frameRules(DEFAULT_RULE_SET), "male", scorePart);
   const session = new SessionAggregator(DEFAULT_RULE_SET.version);
   let game = initialGameScore();
   const events: RuleEvent[] = [];
@@ -80,9 +80,45 @@ test("鏡像でも同じルールが同じ回数成功する(左右一貫性)", 
   assert.deepEqual(count(a), count(b));
 });
 
-test("足首が見えていないと全ルールが NOT_READY で何も発火しない", () => {
+test("足首が見えていなくても、脚を使わないルールは判定できる(上半身だけの構図)", () => {
   const { events } = run(loadFixture("ankles_hidden"));
-  assert.equal(events.length, 0);
+  // 胴体長からスケールを推定するので手のルールは動く
+  assert.ok(byRule(events, "HAND_ABOVE_HEAD").some((e) => e.grade !== "MISS"), "手の高さが判定されない");
+  // 脚が見えないルールは成立しない(誤加点しない)
+  for (const id of ["HIP_LOW", "BASE_POSTURE"]) {
+    assert.equal(byRule(events, id).filter((e) => e.grade !== "MISS").length, 0, `${id} が誤って成功している`);
+  }
+});
+
+test("「手だけ」を選ぶと脚のルールは評価器すら作らない", () => {
+  const ids = (part: ScorePart) =>
+    createEvaluators(frameRules(DEFAULT_RULE_SET), "male", part).map((e) => e.ruleId);
+  const hands = new Set(ids("hands"));
+  assert.ok(hands.has("HAND_ABOVE_HEAD"));
+  assert.ok(!hands.has("HIP_LOW"), "手だけなのに腰のルールが動いている");
+  assert.ok(!hands.has("BASE_POSTURE"));
+  const feet = new Set(ids("feet"));
+  assert.ok(feet.has("HIP_LOW"));
+  assert.ok(!feet.has("HAND_ABOVE_HEAD"), "足だけなのに手のルールが動いている");
+  assert.ok(new Set(ids("whole")).has("BASE_POSTURE"));
+});
+
+test("「手だけ」は上半身だけの構図で最後まで判定できる", () => {
+  const { events, session } = run(loadFixture("upper_body_only"), "hands");
+  assert.ok(byRule(events, "HAND_ABOVE_HEAD").some((e) => e.grade !== "MISS"));
+  assert.ok(byRule(events, "HAND_KEEP").some((e) => e.grade !== "MISS"));
+  assert.equal(events.filter((e) => e.grade === "MISS").length, 0, "正しい構えなのに MISS が出ている");
+  const payload = session.build({
+    videoId: "v", clientRequestId: "c", danceType: "male", scorePart: "hands", game: initialGameScore(),
+  });
+  assert.equal(payload.metrics.HIP_LOW, undefined, "評価していない腰のルールが集計に入っている");
+});
+
+test("requiresLowerBody: 手だけなら脚は不要、足だけ・全体なら必要", () => {
+  const defs = frameRules(DEFAULT_RULE_SET);
+  assert.equal(requiresLowerBody(defs, "hands"), false);
+  assert.equal(requiresLowerBody(defs, "feet"), true);
+  assert.equal(requiresLowerBody(defs, "whole"), true);
 });
 
 test("閾値付近で揺れる手でも GOOD/MISS が連続反転しない", () => {

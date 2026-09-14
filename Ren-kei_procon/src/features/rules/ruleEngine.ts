@@ -20,6 +20,7 @@ import {
   RuleSnapshot,
   RuleState,
   SIDED_METRICS,
+  ScorePart,
   Side,
 } from "./types";
 
@@ -234,16 +235,20 @@ export class RuleEvaluator {
  * ルール定義の集合から評価器を作る。
  *  - enabled: false は評価しない(#21)
  *  - danceType が指定され、かつ一致しないルールは評価しない(TBD-03)
+ *  - scorePart が指定され、かつ対象外のルールは評価しない
+ *    (「手だけ」で脚のルールを回すと、脚が映っていない構図で永久に NOT_READY になる)
  *  - side: 'both' のルールは左右 2 つの評価器に展開する(#15)
  */
 export function createEvaluators(
   defs: RuleDefinition[],
-  danceType?: "male" | "female"
+  danceType?: "male" | "female",
+  scorePart?: ScorePart
 ): RuleEvaluator[] {
   const out: RuleEvaluator[] = [];
   for (const def of defs) {
     if (!def.enabled) continue;
     if (def.danceType && def.danceType !== "all" && danceType && def.danceType !== danceType) continue;
+    if (def.scoreParts && scorePart && !def.scoreParts.includes(scorePart)) continue;
     if (def.side === "both") {
       out.push(new RuleEvaluator(def, "left"), new RuleEvaluator(def, "right"));
     } else if (def.side === "left" || def.side === "right") {
@@ -253,4 +258,17 @@ export function createEvaluators(
     }
   }
   return out;
+}
+
+/**
+ * 選んだ部位のルールを評価するのに脚(膝・足首)が映っている必要があるか。
+ * UI の構図ガイド(「全身」か「上半身」か)に使う。
+ */
+export function requiresLowerBody(defs: RuleDefinition[], scorePart?: ScorePart): boolean {
+  return defs.some(
+    (def) =>
+      def.enabled &&
+      def.needsLowerBody === true &&
+      !(def.scoreParts && scorePart && !def.scoreParts.includes(scorePart))
+  );
 }

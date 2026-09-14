@@ -24,6 +24,10 @@ const fixtures: Record<string, ReturnType<typeof synthesize>> = {
   "basic_form_mirror": synthesize(BASIC_FORM, { frames: 90, noise: 0.004, seed: 11, mirror: true }),
   // 足首が見えていない(全身が映っていない → NOT_READY)
   "ankles_hidden": synthesize(BASIC_FORM, { frames: 60, seed: 14, hidden: [27, 28] }),
+  // 「手だけ」の構図: 上半身に寄っていて膝・足首が枠外(3 秒)
+  "upper_body_only": synthesize(BASIC_FORM, {
+    frames: 90, noise: 0.004, seed: 17, hidden: [25, 26, 27, 28, 29, 30, 31, 32],
+  }),
   // 手の高さが閾値の直上・直下で揺れる(チャタリング検証)
   "hand_chatter": synthesize(
     (t) => ({ ...BASIC_FORM, handHeight: 0.06 + 0.012 * Math.sin(2 * Math.PI * 4 * t) }),

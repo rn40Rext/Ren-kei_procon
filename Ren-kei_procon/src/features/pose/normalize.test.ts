@@ -3,7 +3,11 @@ import { test } from "node:test";
 import { BASIC_FORM, STANDING, synthesize } from "../rules/__fixtures__/synth";
 import { LM } from "./types";
 import {
+  DEFAULT_TORSO_RATIO,
   bodyScale,
+  fullBodyScale,
+  measureTorsoRatio,
+  torsoLength,
   kneeAngleDeg,
   normalizedHandHeight,
   normalizedHandHorizontalOffset,
@@ -26,9 +30,45 @@ test("bodyScale は肩中心〜足首中心の距離。撮影距離を変える�
   near(s2, 0.25, 0.01);
 });
 
-test("足首が見えていないと bodyScale は null(NOT_READY)", () => {
+test("足首が見えていなければ fullBodyScale は null", () => {
   const f = synthesize(BASIC_FORM, { frames: 1, hidden: [LM.L_ANKLE, LM.R_ANKLE] })[0];
+  assert.equal(fullBodyScale(f), null);
+});
+
+test("足首が見えなくても胴体長から bodyScale を推定する(手だけの構図)", () => {
+  const f = synthesize(BASIC_FORM, { frames: 1, hidden: [LM.L_ANKLE, LM.R_ANKLE, LM.L_KNEE, LM.R_KNEE] })[0];
+  const torso = torsoLength(f);
+  assert.ok(torso !== null);
+  const estimated = bodyScale(f);
+  assert.ok(estimated !== null, "上半身だけでも推定できる");
+  near(estimated, torso! / DEFAULT_TORSO_RATIO, 1e-9);
+});
+
+test("腰も見えなければ bodyScale は null(誤判定させない)", () => {
+  const f = synthesize(BASIC_FORM, {
+    frames: 1,
+    hidden: [LM.L_ANKLE, LM.R_ANKLE, LM.L_KNEE, LM.R_KNEE, LM.L_HIP, LM.R_HIP],
+  })[0];
   assert.equal(bodyScale(f), null);
+});
+
+test("全身が映ったフレームの実測比を使うと、上半身だけでも同じスケールに戻る", () => {
+  const full = synthesize(BASIC_FORM, { frames: 1 })[0];
+  const upper = synthesize(BASIC_FORM, { frames: 1, hidden: [LM.L_ANKLE, LM.R_ANKLE] })[0];
+  const ratio = measureTorsoRatio(full);
+  assert.ok(ratio !== null, "全身が映っていれば実測できる");
+  // 同じ姿勢・同じ撮影距離なので、実測比を使えば全身時のスケールと一致する
+  near(bodyScale(upper, ratio!), fullBodyScale(full)!, 1e-9);
+  assert.equal(measureTorsoRatio(upper), null, "全身が映っていなければ実測しない");
+});
+
+test("推定スケールでも手の高さは撮影距離に依存しない", () => {
+  const hidden = [LM.L_ANKLE, LM.R_ANKLE, LM.L_KNEE, LM.R_KNEE];
+  const values = [1, 0.6].map((scale) => {
+    const f = synthesize(BASIC_FORM, { frames: 1, scale, hidden })[0];
+    return normalizedHandHeight(f, "left", bodyScale(f)!)!;
+  });
+  near(values[0], values[1], 0.02);
 });
 
 test("正規化した手の高さ・腰の高さは撮影距離に依存しない", () => {

@@ -44,10 +44,20 @@ export type LiveWarning =
 
 export const LIVE_WARNING_MESSAGES: Record<LiveWarning, string> = {
   PERSON_NOT_DETECTED: "人が映っていません。カメラの前に立ってください",
-  LOW_LANDMARK_CONFIDENCE: "検出が不安定です。明るい場所で全身が入るように",
+  LOW_LANDMARK_CONFIDENCE: "検出が不安定です。明るい場所で映してください",
   MULTIPLE_PERSONS_DETECTED: "複数人が映っています。1 人だけ映してください",
-  NOT_FULL_BODY: "全身(頭〜足首)が入るように離れてください",
+  NOT_FULL_BODY: "判定に必要な範囲が映っていません",
 };
+
+/**
+ * 構図の案内。必要な範囲は選んだ部位で変わる。
+ * 「手だけ」なら脚のルールを評価しないので、上半身が入っていれば判定できる。
+ */
+export function framingMessage(needsLowerBody: boolean): string {
+  return needsLowerBody
+    ? "全身(頭〜足首)が入るように離れてください"
+    : "頭から腰までが入るように映してください";
+}
 
 /** UI へ渡すスナップショット。毎フレームではなく約 10Hz で更新する。 */
 export type LiveSnapshot = {

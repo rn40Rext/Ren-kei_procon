@@ -16,6 +16,7 @@ import { useLiveAnalysis } from "../features/analysis/useLiveAnalysis";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
 import { RuleSnapshot } from "../features/rules/types";
 import { colors } from "../theme/colors";
+import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
 type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
@@ -68,7 +69,7 @@ export default function CameraScreen() {
   const [busy, setBusy] = useState(false);
 
   const live = useLiveAnalysis({ uid, danceType, scorePart, baseBpm });
-  const { snapshot, warningMessage, prepare, start, cancel, finish } = live;
+  const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize } = live;
 
   const onSource = useCallback((s: LiveVideoSource | null) => setSource(s), []);
 
@@ -93,6 +94,20 @@ export default function CameraScreen() {
   const onCancel = useCallback(async () => {
     await cancel();
   }, [cancel]);
+
+  // 採点だけ失敗したとき(サーバに届かない等)。動画は保存済みなので採点のみやり直す
+  const onRetry = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await retryFinalize();
+      navigation.replace("Result", { analysisId: result.analysisId, videoId: result.videoId });
+    } catch {
+      // エラー文言は snapshot.errorMessage に出るので、ここでは何もしない
+    } finally {
+      setBusy(false);
+    }
+  }, [busy, retryFinalize, navigation]);
 
   const gauges = useMemo(() => mergeGauges(snapshot.gauges), [snapshot.gauges]);
   const analyzing = snapshot.status === "analyzing";
@@ -174,8 +189,18 @@ export default function CameraScreen() {
               ルール {snapshot.analysisVersion}({snapshot.ruleSource === "remote" ? "サーバ設定" : "内蔵の既定値"})
             </Text>
           )}
+          {__DEV__ && (
+            // 採点は Cloud Functions が必要。どちらに繋いでいるかを開発時だけ出す
+            // (本番に未デプロイのまま試すと、採点だけが CORS で失敗して原因が分かりにくい)
+            <Text style={styles.infoMuted}>接続先: {USING_FIREBASE_EMULATOR ? "エミュレータ" : "本番"}</Text>
+          )}
         </View>
         {snapshot.errorMessage && <Text style={styles.errorText}>{snapshot.errorMessage}</Text>}
+        {canRetryFinalize && (
+          <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={onRetry}>
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
+          </TouchableOpacity>
+        )}
         <View style={styles.buttons}>
           {!analyzing ? (
             <TouchableOpacity

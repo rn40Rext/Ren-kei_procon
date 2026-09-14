@@ -13,6 +13,11 @@
       "side": "both",
       "improveMessage": "手を上げよう。頭の上まで",
       "goodMessage": "手が上がっている",
+      "scoreParts": [
+        "hands",
+        "whole"
+      ],
+      "needsLowerBody": false,
       "enabled": true,
       "version": "v1"
     },
@@ -28,6 +33,11 @@
       "side": "both",
       "improveMessage": "手を上げたまま保とう",
       "goodMessage": "キープできている",
+      "scoreParts": [
+        "hands",
+        "whole"
+      ],
+      "needsLowerBody": false,
       "enabled": true,
       "version": "v1"
     },
@@ -38,7 +48,11 @@
       "maxValue": 0.55,
       "idealMaxValue": 0.48,
       "conditions": [
-        { "metric": "kneeAngleDeg", "maxValue": 160, "idealMaxValue": 145 }
+        {
+          "metric": "kneeAngleDeg",
+          "maxValue": 160,
+          "idealMaxValue": 145
+        }
       ],
       "holdDurationMs": 500,
       "cooldownMs": 2000,
@@ -46,6 +60,11 @@
       "releaseMarginRatio": 0.05,
       "improveMessage": "腰を落とそう。膝をもう少し曲げて",
       "goodMessage": "腰が低い",
+      "scoreParts": [
+        "feet",
+        "whole"
+      ],
+      "needsLowerBody": true,
       "enabled": true,
       "version": "v1"
     },
@@ -61,6 +80,11 @@
       "side": "both",
       "improveMessage": "出した手をピタッと止めよう",
       "goodMessage": "手が止まった",
+      "scoreParts": [
+        "hands",
+        "whole"
+      ],
+      "needsLowerBody": false,
       "enabled": true,
       "version": "v1"
     },
@@ -71,7 +95,10 @@
       "maxValue": 0.25,
       "idealMaxValue": 0.15,
       "conditions": [
-        { "metric": "normalizedHandHeight", "minValue": 0.0 }
+        {
+          "metric": "normalizedHandHeight",
+          "minValue": 0.0
+        }
       ],
       "holdDurationMs": 200,
       "cooldownMs": 2000,
@@ -79,6 +106,11 @@
       "side": "both",
       "improveMessage": "手は頭の上あたりにまとめよう",
       "goodMessage": "手の位置がよい",
+      "scoreParts": [
+        "hands",
+        "whole"
+      ],
+      "needsLowerBody": false,
       "enabled": true,
       "version": "v1"
     },
@@ -93,6 +125,10 @@
       "missAfterMs": 6000,
       "improveMessage": "腰を落として上体を起こしたまま保とう",
       "goodMessage": "基本姿勢を保てている",
+      "scoreParts": [
+        "whole"
+      ],
+      "needsLowerBody": true,
       "enabled": true,
       "version": "v1"
     },
@@ -104,6 +140,12 @@
       "idealMaxValue": 0.07,
       "improveMessage": "お囃子のテンポに合わせて腰を上下させよう",
       "goodMessage": "リズムに乗れている",
+      "scoreParts": [
+        "feet",
+        "hands",
+        "whole"
+      ],
+      "needsLowerBody": false,
       "enabled": true,
       "version": "v1"
     }

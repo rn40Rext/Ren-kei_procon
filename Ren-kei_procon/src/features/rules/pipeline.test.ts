@@ -21,6 +21,7 @@ function run(frames: PoseFrame[], scorePart: ScorePart = "whole") {
   let game = initialGameScore();
   const events: RuleEvent[] = [];
   const tracker = new MetricsTracker();
+  const active = new Set(evaluators.map((e) => e.ruleId));
   for (const raw of frames) {
     const f = smoother.apply(raw);
     const values = tracker.update(f);
@@ -32,8 +33,10 @@ function run(frames: PoseFrame[], scorePart: ScorePart = "whole") {
         game = applyGrade(game, e.grade);
       }
     }
-    const hip = SessionAggregator.hipLowInRange(values);
-    session.trackHold("HIP_LOW", hip.value, hip.inRange, f.timestampMs);
+    if (active.has("HIP_LOW")) {
+      const hip = SessionAggregator.hipLowInRange(values);
+      session.trackHold("HIP_LOW", hip.value, hip.inRange, f.timestampMs);
+    }
     session.endFrame(f.timestampMs);
   }
   return { events, session, game };
@@ -112,6 +115,19 @@ test("「手だけ」は上半身だけの構図で最後まで判定できる",
     videoId: "v", clientRequestId: "c", danceType: "male", scorePart: "hands", game: initialGameScore(),
   });
   assert.equal(payload.metrics.HIP_LOW, undefined, "評価していない腰のルールが集計に入っている");
+});
+
+test("全身が映っていても「手だけ」なら腰のスコアは集計に入らない", () => {
+  // 全身が映っていると腰の値は計算できてしまうので、評価対象で絞らないと
+  // 「手だけ」を選んだのに腰の点が付く(実機で見つかった不具合)
+  const { session, events } = run(loadFixture("basic_form"), "hands");
+  const payload = session.build({
+    videoId: "v", clientRequestId: "c", danceType: "male", scorePart: "hands", game: initialGameScore(),
+  });
+  assert.equal(payload.metrics.HIP_LOW, undefined, "腰の保持率が混ざっている");
+  assert.equal(payload.metrics.BASE_POSTURE, undefined, "基本姿勢が混ざっている");
+  assert.equal(byRule(events, "HIP_LOW").length, 0);
+  assert.ok(byRule(events, "HAND_ABOVE_HEAD").length > 0, "手のルールは動いている");
 });
 
 test("requiresLowerBody: 手だけなら脚は不要、足だけ・全体なら必要", () => {

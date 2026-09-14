@@ -116,6 +116,10 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   const gaugesRef = useRef<RuleSnapshot[]>([]);
   /** 選んだ部位のルールが脚を必要とするか(構図ガイドと信頼度判定に使う) */
   const needsLowerBodyRef = useRef(true);
+  /** 今回評価しているルール ID。保持率の集計対象を絞るのに使う */
+  const activeRuleIdsRef = useRef<Set<string>>(new Set());
+  /** RHYTHM が今回の部位で有効か */
+  const rhythmActiveRef = useRef(true);
   /** FN-01 だけ失敗したときの再試行用。動画と姿勢系列は保存済み */
   const pendingRef = useRef<{ videoId: string; payload: FinalizeRequest } | null>(null);
 
@@ -265,16 +269,24 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     gaugesRef.current = gauges;
 
     if (session) {
-      const hip = SessionAggregator.hipLowInRange(values);
-      session.trackHold("HIP_LOW", hip.value, hip.inRange, t);
-      const posture = values.basePostureMargin;
-      session.trackHold("BASE_POSTURE", posture ?? null, posture !== null && posture !== undefined && posture >= 0, t);
+      // 保持率は「実際に評価しているルール」だけ集計する。
+      // 評価していないルールを入れると、「手だけ」を選んだのに腰のスコアが
+      // 付いてしまう(全身が映っていると値自体は計算できてしまうため)
+      const active = activeRuleIdsRef.current;
+      if (active.has("HIP_LOW")) {
+        const hip = SessionAggregator.hipLowInRange(values);
+        session.trackHold("HIP_LOW", hip.value, hip.inRange, t);
+      }
+      if (active.has("BASE_POSTURE")) {
+        const posture = values.basePostureMargin;
+        session.trackHold("BASE_POSTURE", posture ?? null, posture !== null && posture !== undefined && posture >= 0, t);
+      }
       session.endFrame(t);
     }
 
     // リズム(腰の上下動)
     const rhythm = rhythmRef.current;
-    if (rhythm && primary) {
+    if (rhythm && primary && rhythmActiveRef.current) {
       rhythm.push(t, hipCenterY(primary));
       const est = rhythm.tick(t);
       if (est) {
@@ -325,7 +337,12 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     const defs = frameRules(ruleSet);
     const { danceType, scorePart } = optionsRef.current;
     evaluatorsRef.current = createEvaluators(defs, danceType, scorePart);
+    activeRuleIdsRef.current = new Set(evaluatorsRef.current.map((e) => e.ruleId));
+    // RHYTHM は状態機械を持たないので評価器に現れない。別途 rhythm 側で扱う
     needsLowerBodyRef.current = requiresLowerBody(defs, scorePart);
+    const rhythmDef = ruleSet.rules.find((r) => r.ruleId === RHYTHM_RULE_ID);
+    rhythmActiveRef.current =
+      !!rhythmDef?.enabled && !(rhythmDef.scoreParts && !rhythmDef.scoreParts.includes(scorePart));
     pendingRef.current = null;
     smootherRef.current.reset();
     trackerRef.current.reset();

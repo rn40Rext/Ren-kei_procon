@@ -69,6 +69,28 @@ analysisResults + growthRecords
 - 遅延はフレーム取得 → 推論 → 判定 → 描画までを同一 rAF 内で行い、推論 13ms + 判定 <1ms なので 300ms を十分下回る。
 - 実測ページ: `PoseDetector.web.ts` と同じ CDN / モデル URL を使う簡易ページで測った。再計測するときは `docs/design/ai-basic-motion.md` のこの表を更新する。
 
+### 採点部位による絞り込み（2026-09-14 追加）
+
+U-02 前段で選ぶ `scorePart` は、当初 FN-01 への記録にしか使っておらず、**「手だけ」を選んでも全ルールが評価されていました**（実機のカメラで発覚）。次の 3 点を直しています。
+
+1. `createEvaluators(defs, danceType, scorePart)` が `scoreParts` に一致しないルールの評価器を作らない。
+2. 保持率の集計（`SessionAggregator.trackHold`）も評価対象のルールだけに限る。**全身が映っていると腰の値自体は計算できてしまう**ため、ここを絞らないと「手だけ」を選んだのに腰のスコアが付く。
+3. 構図の警告と検出信頼度の判定を部位別にする（脚を使わないなら脚の landmark を数えない）。
+
+| 部位 | 評価するルール |
+| --- | --- |
+| `hands` | RULE-01/02/04/05（手の高さ・キープ・止める・位置）+ RULE-07 リズム |
+| `feet` | RULE-03 腰の低さ + RULE-07 リズム |
+| `whole` | 全ルール（RULE-06 基本姿勢は `whole` のみ） |
+
+### スケールの推定（上半身だけの構図）
+
+`bodyScale` は肩中心〜足首中心の距離ですが、これを必須にすると **「手だけ」の練習で上半身に寄った構図では全ルールが `NOT_READY`** になります。足首が見えない場合は胴体長（肩中心〜腰中心）から推定します。
+
+- 比率は `胴体長 ÷ 肩〜足首`。セッション中に全身が映ったフレームがあれば `measureTorsoRatio()` の実測値（移動平均）を使い、個人差を吸収する。
+- 実測が無ければ `DEFAULT_TORSO_RATIO = 0.385`（身長比 肩 0.82 / 腰 0.52 / 足首 0.04 からの **概算**）。
+- 腰も見えなければ `null`（＝ `NOT_READY`）のまま。脚を使うルールは landmark 自体が取れないので、この緩和で誤判定は増えません。
+
 ### 前処理（受け入れ条件「低信頼度点の除外と平滑化」）
 
 `pose/preprocess.ts` の `PoseSmoother`。visibility < 0.5 の点は座標を前回値で埋め（visibility はそのまま残し、後段の正規化関数が null 判定に使う）、座標は時定数 80ms の指数移動平均で平滑化する（フレーム間隔に応じて係数を変え、fps が揺れても同じ時定数になる）。
@@ -293,6 +315,8 @@ export class RuleEvaluator {
 | `cooldownMs` | 発火直後に条件が成立し続けても連続発火しない（HAND_ABOVE_HEAD は 1.5 秒） |
 | `missAfterMs` | READY（条件未成立）が続いたら MISS を発火し改善メッセージを出す。0 で無効 |
 | `danceType` | 男踊り / 女踊りでルールを出し分ける受け皿（TBD-03） |
+| `scoreParts` | 適用する採点部位（`feet` / `hands` / `whole`）。U-02 前段で「手だけ」を選んだら手のルールだけを評価する |
+| `needsLowerBody` | そのルールの評価に脚（膝・足首）が要るか。構図の案内（「全身」/「頭から腰まで」）に使う |
 
 RULE-04「手を止める」は `rules/metrics.ts` の `MetricsTracker` が「直前 700ms 以内に正規化速度 0.8 以上の動作があった」ときだけ速度指標を渡す。棒立ちの静止を「止めた」と判定しないため（仕様書 7.4「位置だけで判定しない」）。
 
@@ -429,6 +453,8 @@ totalScore = mean([handHeightScore, hipHeightScore, stopScore, rhythmScore].filt
 | LIVE SCORE | Game Score の累積 | ✅ 右パネル。COMBO 表示あり |
 | 項目ゲージ | 高さ / キープ / 交互などの進捗（`RuleEvaluator.progress()`） | ✅ HOLDING 中は進捗、それ以外は条件への近さ。リズムは推定 BPM を表示 |
 | 操作 | 開始 / 停止 / 保存。解析中は状態を明示 | ✅ 判定を開始 / 終了して採点 / 中止。終了時に動画・姿勢系列を Storage へ保存し FN-01 で確定 → U-03 |
+
+**採点だけ失敗したときの扱い（2026-09-14）**: 動画と姿勢系列を Storage へ置いた後に FN-01 が失敗しても、判定内容を失わないよう payload を保持し「採点をやり直す」で FN-01 だけを呼び直します（`clientRequestId` が同じなので二重に結果は作られません）。Functions へ到達できなかった場合（未デプロイ・オフライン）はブラウザからは CORS エラーに見えるため、`features/analysis/errorMessages.ts` で「採点サーバに接続できませんでした」に変換します。開発時のみ接続先（エミュレータ / 本番）を画面に表示します。
 
 ネイティブ（iOS / Android）では `PoseCameraView.tsx` がプレビューと「Web 版で利用できます」の案内だけを出す（TBD-01 の方式 A が未着手のため）。
 

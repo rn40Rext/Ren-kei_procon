@@ -156,18 +156,26 @@ function subscribeMembershipsOf(
   return onSnapshot(
     q,
     async (snap) => {
-      const results = await Promise.all(
-        snap.docs.map(async (memberDoc) => {
-          const renId = memberDoc.ref.parent.parent?.id ?? '';
-          const renSnap = await getDoc(doc(db, 'ren', renId));
-          return {
-            renId,
-            role: memberDoc.data().role as RenMemberRole,
-            ren: renSnap.exists() ? ({ id: renSnap.id, ...renSnap.data() } as Ren) : null,
-          };
-        })
-      );
-      onData(results);
+      // onSnapshotはコールバックの返り値をawaitしないため、ここでrejectすると
+      // onDataもonErrorも呼ばれないまま画面が読み込み中で止まる(#94)。
+      // ren本体のgetDocが失敗した場合は自分でonErrorへ流す。
+      try {
+        const results = await Promise.all(
+          snap.docs.map(async (memberDoc) => {
+            const renId = memberDoc.ref.parent.parent?.id ?? '';
+            const renSnap = await getDoc(doc(db, 'ren', renId));
+            return {
+              renId,
+              role: memberDoc.data().role as RenMemberRole,
+              ren: renSnap.exists() ? ({ id: renSnap.id, ...renSnap.data() } as Ren) : null,
+            };
+          })
+        );
+        onData(results);
+      } catch (error) {
+        // getDocの失敗はFirestoreError。onSnapshot自体の購読エラーと同じ経路に載せる
+        onError(error as FirestoreError);
+      }
     },
     onError
   );

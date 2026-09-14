@@ -3,15 +3,13 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, Scro
 import { ChevronLeft, Plus, X, Camera, Pencil, Trash2 } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { auth } from '../config/firebaseConfig';
+import { subscribeRen, updateRenIcon, updateRenInfo } from '../repositories/renProfile';
 import {
-  subscribeRen,
   subscribeRenActivities,
   createRenActivity,
   updateRenActivity,
   deleteRenActivity,
-  updateRenIcon,
-  updateRenInfo,
-} from '../repositories/ren';
+} from '../repositories/renActivities';
 import { RenActivity } from '../types/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import BottomNav from '../components/BottomNav';

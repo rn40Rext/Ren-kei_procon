@@ -4,7 +4,7 @@ import { ChevronLeft, X, Search, Heart, MessageSquare, Award, Shield, User as Us
 import { Video, ResizeMode } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
-import { subscribeActiveMembers } from '../repositories/ren';
+import { subscribeActiveMembers } from '../repositories/renMembership';
 import { Post } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 

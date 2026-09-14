@@ -109,6 +109,8 @@ export interface PublishPostInput {
   authorName: string;
   videoUrl: string;
   tags: string[];
+  /** 練習動画(videos)から投稿するとき。サーバが AI 採点の結果を投稿に載せる */
+  videoId?: string;
 }
 
 /**

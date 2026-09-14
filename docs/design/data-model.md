@@ -20,22 +20,22 @@
 | # | パス | 論理 Entity | ドキュメント ID | 現行実装 |
 | --- | --- | --- | --- | --- |
 | 1 | `users/{uid}` | Users | Firebase Auth uid | ⚠️ `Users/{uid}` として存在（`userName` のみ） |
-| 2 | `videos/{videoId}` | Videos | 自動 ID | ⚠️ 存在するが Posts と混在 |
+| 2 | `videos/{videoId}` | Videos | 自動 ID | ✅ 練習セッション終了時に作成（`repositories/videos.ts`） |
 | 3 | `posts/{postId}` | Posts | 自動 ID | ❌ 未実装 |
 | 4 | `posts/{postId}/comments/{commentId}` | Comments | 自動 ID | ⚠️ `videos/{id}/comments` として存在 |
 | 5 | `posts/{postId}/likes/{uid}` | Likes | いいねしたユーザーの uid | ❌ 未実装（`videos.likes` の数値のみ） |
-| 6 | `analysisResults/{analysisId}` | AnalysisResults | 自動 ID | ❌ 未実装 |
-| 7 | `users/{uid}/growthRecords/{recordId}` | GrowthRecords | 自動 ID | ❌ 未実装 |
+| 6 | `analysisResults/{analysisId}` | AnalysisResults | `{uid}_{clientRequestId}`（冪等性のため） | ✅ 実装済み（FN-01） |
+| 7 | `users/{uid}/growthRecords/{recordId}` | GrowthRecords | analysisId と同じ | ✅ 実装済み（FN-01） |
 | 8 | `ren/{renId}` | Ren | 自動 ID | ❌ 未実装 |
 | 9 | `ren/{renId}/members/{uid}` | RenMembers | メンバーの uid | ❌ 未実装 |
 | 10 | `ren/{renId}/announcements/{announcementId}` | Announcements | 自動 ID | ❌ 未実装 |
 | 11 | `ren/{renId}/activities/{activityId}` | RenActivities | 自動 ID | ❌ 未実装 |
 | 12 | `joinRequests/{requestId}` | JoinRequests | 自動 ID | ❌ 未実装 |
 | 13 | `users/{uid}/notifications/{notificationId}` | Notifications | 自動 ID | ❌ 未実装 |
-| 14 | `renStyleReferences/{referenceId}` | RenStyleReferences | 自動 ID | ❌ 未実装 |
-| 15 | `renStyleProfiles/{renId}` | RenStyleProfiles | renId | ❌ 未実装 |
-| 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ❌ 未実装 |
-| 17 | `analysisRules/{ruleId}` | 判定ルール定義（仕様書 7.9） | ルール ID | ❌ 未実装 |
+| 14 | `renStyleReferences/{referenceId}` | RenStyleReferences | 自動 ID | ✅ 実装済み（FN-08） |
+| 15 | `renStyleProfiles/{renId}` | RenStyleProfiles | renId | ✅ 実装済み（FN-07） |
+| 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ✅ 実装済み（FN-02） |
+| 17 | `analysisRules/{ruleId}` | 判定ルール定義（仕様書 7.9） | ルール ID | ✅ 実装済み（読み取り: `repositories/analysisRules.ts` / 投入: `functions npm run seed:rules`） |
 | — | `chats/{chatId}/messages/{messageId}` | **仕様書に無い独自実装** | 自動 ID | ⚠️ 実装済み（扱いは 7 章） |
 
 ### サブコレクションにする / しないの判断
@@ -81,15 +81,16 @@
 | `visibility` | `'private' \| 'public'` | ✓ | 既定 `private`（仕様書 14.3） |
 | `analysisStatus` | `'uploaded' \| 'analyzing' \| 'completed' \| 'failed'` | ✓ | 既定 `uploaded` |
 | `latestAnalysisId` | string | — | 最新の `analysisResults` ドキュメント ID |
+| `poseSeriesPath` | string | — | 姿勢系列 JSON の Storage パス。スタイル診断（FN-02）が読む |
 | `createdAt` | Timestamp | ✓ | |
 
 > 旧 `score` フィールドは持ちません。スコアは `analysisResults.totalScore` を正とします（仕様書 9.2 の「将来は AnalysisResults.totalScore を正とする」を採用）。
 
-> #### 実装との差分（2026-09-09時点・#41は縮小版で実装）
+> #### 実装（2026-09-13、U-02 の保存処理）
 >
-> 現状、練習動画をアップロードして `videos` ドキュメントを作成するクライアントコードが存在しない（カメラ撮影画面はプレビューのみで保存処理が未実装）。そのため #41 では `firestore.rules`（作成時に `visibility: 'private'` / `analysisStatus: 'uploaded'` を強制し、クライアントからの変更を禁止）と `storage.rules`（`users/{uid}/videos/{videoId}` パス用のルールを追加。既存の投稿アップロードが使う包括ルールは変更していない）の受け皿のみを用意した。他人の非公開動画が読めないことは Rules テストで検証済み。
+> `Ren-kei_procon/src/repositories/videos.ts`。練習終了時に `createPracticeVideo()` が `visibility: 'private'` / `analysisStatus: 'uploaded'` / `danceType` / `scorePart` で作成し、動画を `users/{uid}/videos/{videoId}.webm`（Web の `MediaRecorder`）、姿勢系列を `users/{uid}/videos/{videoId}.pose.json` に置いて `storagePath` / `poseSeriesPath` / `durationMs` を更新する。`analysisStatus` / `latestAnalysisId` は FN-01（Admin SDK）だけが書く。`storagePath` は録画に失敗した環境では無いことがあるため **必須ではない**（表の ✓ は目標）。`downloadUrl` は未使用。
 >
-> **TBD-07（常時保存 vs 任意保存）は未決定のまま保留**した。プライバシーとストレージコストのトレードオフであり、練習動画アップロード機能そのもの（#13〜、AI解析①エピック）を実装するタイミングで判断する方が適切と判断したため。
+> **TBD-07（常時保存 vs 任意保存）→ 暫定決定: 常時保存。** 動画が無いと AI②（姿勢系列は別途あるが）と投稿・成長記録の見返しができないため。任意保存にする場合は `CameraScreen` の終了時に選択肢を足す。削除時は `onVideoDeleted` トリガが動画と姿勢系列の両方を消す。
 
 ### 3.3 `posts/{postId}`
 
@@ -98,13 +99,13 @@
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `userId` | string | ✓ | 投稿者 uid |
-| `videoId` | string | ✓ | 公開対象の `videos` ドキュメント ID |
+| `videoId` | string | — | 公開対象の `videos` ドキュメント ID。U-03 から投稿したときのみ（ギャラリーから直接選んだ動画には無い） |
 | `authorName` | string | ✓ | 表示用の非正規化コピー（一覧の N+1 読み取りを避ける） |
 | `title` | string | ✓ | |
 | `description` | string | — | |
 | `tags` | string[] | — | 現行実装の `TAG_OPTIONS`（`#男踊り` 等）を踏襲 |
 | `videoUrl` | string | ✓ | 表示用 URL の非正規化コピー |
-| `totalScore` | number | — | AI 採点の非正規化コピー（一覧表示用） |
+| `score` | number | — | AI 採点（`analysisResults.totalScore`）の非正規化コピー。**現行実装のフィールド名は `score`**（設計上の `totalScore` に揃える改名は未実施）。`videoId` 無しの投稿には存在せず、UI は「未採点」と表示する。以前の乱数モックは廃止（[#58](../../../issues/58)） |
 | `likeCount` | number | ✓ | 既定 0。`likes` サブコレクションから Functions で同期 |
 | `commentCount` | number | ✓ | 既定 0。同上 |
 | `createdAt` | Timestamp | ✓ | |
@@ -149,7 +150,9 @@
 | `rhythmScore` | number | — | 項目別 0〜100 |
 | `greatCount` / `goodCount` / `missCount` | number | ✓ | イベント回数 |
 | `maxCombo` | number | — | |
-| `rawMetrics` | map | — | 判定根拠の数値（再検証・チューニング用） |
+| `handPositionScore` / `basePostureScore` | number | — | RULE-05 / RULE-06 の項目別。**総合には含めない**（TBD-05 で重みが決まるまで） |
+| `clientRequestId` | string | ✓ | 冪等性キー。ドキュメント ID は `{uid}_{clientRequestId}` |
+| `rawMetrics` | map | — | 判定根拠の数値（再検証・チューニング用）。`metrics`（ルール別の回数・保持率・平均値）/ `rhythm` / `eventCount` / `danceType` / `scorePart` / `durationMs` |
 | `feedback` | `{ type: 'good' \| 'improve', ruleId: string, message: string }[]` | ✓ | ルール根拠から生成 |
 | `analysisVersion` | string | ✓ | ルールセットのバージョン。過去スコア比較の意味を追跡 |
 | `createdAt` | Timestamp | ✓ | |
@@ -202,9 +205,68 @@
 
 同一ユーザー・同一連で `pending` を重複させないため、`{renId}_{userId}` を ID にする案もありますが、却下後の再申請を新規ドキュメントで扱う仕様書 9.4 の方針と衝突するため、**自動 ID + Functions 側の重複チェック**（`JOIN_REQUEST_ALREADY_PENDING`）とします。
 
-### 3.11 その他
+### 3.11 `renStyleReferences/{referenceId}`
 
-`announcements` / `activities` / `notifications` / `renStyleReferences` / `renStyleProfiles` / `styleAnalysisResults` / `analysisRules` のフィールドは仕様書 9.3 および 7.9 の定義をそのまま採用します。パスのみ本書 2 章で確定しています。
+連の参照動画とその Embedding。**書き込みは連管理者と Functions のみ**（Embedding は元動画の代替的な個人情報になり得るため。仕様書 14.3）。
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `renId` | string | ✓ | 対象の連 |
+| `userId` | string \| null | ✓ | 熟練者本人の uid。不明なら null |
+| `videoId` | string | ✓ | 参照動画 |
+| `poseSeriesPath` | string | ✓ | 姿勢系列 JSON の Storage パス（5 章） |
+| `embeddingVersion` | string | ✓ | 例 `style-baseline-v1`。**版が違う Embedding を比較しない** |
+| `embeddingRef` | `{ kind: 'inline', vector: number[] }` | ✓ | Embedding 本体。次元が大きくなったら `kind: 'storage'` を追加する |
+| `approved` | boolean | ✓ | 代表計算に採用してよいか。既定 false |
+| `consent` | `{ obtained: boolean, scope: string, obtainedAt: Timestamp }` | ✓ | 提供者の同意と利用範囲。`obtained == false` は代表計算に使わない |
+| `createdAt` / `updatedAt` | Timestamp | ✓ | |
+
+### 3.12 `renStyleProfiles/{renId}`
+
+連の代表 Embedding。**クライアントからは write 不可**（FN-07 のみが書く）。
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `renId` | string | ✓ | ドキュメント ID と同一 |
+| `embeddingVersion` | string | ✓ | |
+| `embeddingRef` | `{ kind: 'inline', vector: number[] }` | ✓ | L2 正規化済みの代表ベクトル |
+| `sampleCount` | number | ✓ | 採用した参照の件数。少ない連は UI で注記する |
+| `updatedAt` | Timestamp | ✓ | |
+
+承認済み参照が 0 件になったときは、**このドキュメントを削除**します（古い代表が残り続けるほうが危険なため）。
+
+### 3.13 `styleAnalysisResults/{styleAnalysisId}`
+
+| フィールド | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `userId` | string | ✓ | 診断したユーザー |
+| `videoId` | string | ✓ | 対象動画 |
+| `modelVersion` | string | ✓ | 使用した Embedding 版 |
+| `status` | `'processing' \| 'completed' \| 'failed'` | ✓ | クライアントは `onSnapshot` で完了を待つ |
+| `results` | `{ renId, renName, similarity, sampleCount }[]` | ✓ | 上位 N 件。`similarity` は**生のコサイン類似度**（表示値への変換はクライアント側） |
+| `errorCode` | string \| null | ✓ | `failed` のときのコード（仕様書 13章） |
+| `createdAt` | Timestamp | ✓ | |
+| `completedAt` | Timestamp \| null | ✓ | |
+
+### 3.14 `analysisRules/{ruleId}`
+
+仕様書 7.9 のフィールドに、Rule Engine の実装で必要になった拡張を加えたもの（型は `Ren-kei_procon/src/features/rules/types.ts` の `RuleDefinition`、既定値は同 `defaultRules.json`）。**クライアントは read 専用**。運用では Firebase コンソールで値を変え、アプリ再起動（セッション開始）で反映される。
+
+| フィールド | 型 | 説明 |
+| --- | --- | --- |
+| `ruleId` / `name` / `metric` | string | 仕様書 7.9 どおり |
+| `minValue` / `maxValue` / `idealMinValue` / `idealMaxValue` | number? | GOOD ライン / GREAT ライン |
+| `conditions` | `{ metric, minValue?, maxValue?, idealMinValue?, idealMaxValue? }[]` | 複合条件（RULE-03 の膝、RULE-05 の「手が頭より上」） |
+| `holdDurationMs` / `cooldownMs` / `missAfterMs` / `releaseMarginRatio` | number? | 連続成立時間 / 再発火までの待ち / MISS を出すまでの未成立時間 / ヒステリシス |
+| `side` | `'left' \| 'right' \| 'both'`? | 左右別に判定する指標 |
+| `danceType` | `'male' \| 'female' \| 'all'`? | 男踊り / 女踊りの出し分け（TBD-03 の受け皿） |
+| `improveMessage` / `goodMessage` | string? | 改善メッセージ / 達成メッセージ |
+| `enabled` / `version` | boolean / string | 仕様書 7.9 どおり |
+| `rhythm` | map | `RHYTHM` ドキュメントのみ。`baseBpm` / `toleranceRatio` / `windowMs` / `minWindowMs` / `bpmMin` / `bpmMax` |
+
+### 3.15 その他
+
+`announcements` / `activities` / `notifications` のフィールドは仕様書 9.3 の定義をそのまま採用します。パスのみ本書 2 章で確定しています。
 
 ## 4. 必要な複合インデックス
 
@@ -219,7 +281,8 @@
 | `joinRequests` | `renId` asc + `status` asc + `createdAt` desc | R-05 参加リクエスト管理 |
 | `joinRequests` | `userId` asc + `createdAt` desc | 自分の申請履歴 |
 | `analysisResults` | `userId` asc + `createdAt` desc | 履歴一覧 |
-| `styleAnalysisResults` | `userId` asc + `createdAt` desc | スタイル診断履歴 |
+| `styleAnalysisResults` | `userId` asc + `createdAt` desc | スタイル診断履歴（**定義済み**） |
+| `renStyleReferences` | `renId` asc + `approved` asc | 代表 Embedding の再計算（FN-07。**定義済み**） |
 
 ## 5. Cloud Storage パス命名規則
 
@@ -230,6 +293,8 @@
 | ユーザーアイコン | `users/{uid}/icon/{fileName}` | 認証ユーザーは read 可 |
 | 連アイコン | `ren/{renId}/icon/{fileName}` | 認証ユーザーは read 可 |
 | 連スタイル参照動画 | `ren/{renId}/styleReferences/{referenceId}.mp4` | 連管理者と system のみ |
+| 姿勢系列（ユーザー動画） | `users/{uid}/videos/{videoId}.pose.json` | 所有者と system |
+| 姿勢系列（連の参照動画） | `ren/{renId}/styleReferences/{referenceId}.pose.json` | 連管理者と system のみ |
 
 **方針**:
 - パスに `uid` を含めることで、Storage Rules で所有者判定ができます。

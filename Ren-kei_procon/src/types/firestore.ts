@@ -36,7 +36,11 @@ export interface Post {
   authorName: string;
   title: string;
   videoUrl: string;
-  score: number;
+  // AI採点(analysisResults.totalScore)の非正規化コピー。採点していない投稿には無い
+  // (以前の乱数モックは廃止。#58)
+  score?: number;
+  // 練習動画(videos)から投稿した場合の元動画
+  videoId?: string;
   likeCount: number;
   commentCount: number;
   tags: string[];

@@ -11,7 +11,7 @@ import numpy as np
 
 from ..features import interpolate_nans, vertical_signal
 from ..landmarks import PoseSequence
-from .base import Part, ScoreResult, Scorer, linear_map
+from .base import Part, ScoreResult, Scorer, linear_map, unmeasured
 
 
 def estimate_tempo(signal: np.ndarray, fps: float,
@@ -68,7 +68,7 @@ class RhythmScorer(Scorer):
 
     def score(self, seq: PoseSequence) -> ScoreResult:
         if not seq.has_image_coords:
-            return ScoreResult(self.axis, 0.0,
+            return unmeasured(self.axis,
                                "画像座標が無いためリズムを解析できません。",
                                {"tempo_bpm": None}, self.part)
 
@@ -78,7 +78,7 @@ class RhythmScorer(Scorer):
         # ノイズを FFT にかけると帯域端に張り付いた無意味な値が出るため、
         # 「測れなかった」と正直に返す。
         if np.std(sig) < self.MIN_MOTION_STD:
-            return ScoreResult(self.axis, 0.0,
+            return unmeasured(self.axis,
                                "上下動が検出できませんでした。"
                                "全身が映っているか確認してください。",
                                {"tempo_bpm": None,
@@ -87,7 +87,7 @@ class RhythmScorer(Scorer):
         tempo, peak_freq, freqs, spec = estimate_tempo(sig, seq.fps)
 
         if not np.isfinite(tempo):
-            return ScoreResult(self.axis, 0.0,
+            return unmeasured(self.axis,
                                "動きが小さく、リズムを検出できませんでした。",
                                {"tempo_bpm": None}, self.part)
 

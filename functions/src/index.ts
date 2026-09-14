@@ -1,7 +1,10 @@
-import {initializeApp} from "firebase-admin/app";
+import {getApps, initializeApp} from "firebase-admin/app";
 import {setGlobalOptions} from "firebase-functions";
 
-initializeApp();
+// lib/firebase.ts でも初期化するため、二重初期化を避ける
+if (getApps().length === 0) {
+  initializeApp();
+}
 
 // リージョンはasia-northeast1(東京)。ユーザーは日本国内のみのため、
 // クライアント↔Functions間のレイテンシを優先する
@@ -22,3 +25,13 @@ export {onLikeWrite} from "./triggers/onLikeWrite";
 export {onCommentWrite} from "./triggers/onCommentWrite";
 export {onMemberWrite} from "./triggers/onMemberWrite";
 export {onVideoDeleted} from "./triggers/onVideoDeleted";
+
+// AI機能① 基本動作トレーニング(#20 / #35): スコア確定はサーバで行う
+export {finalizeBasicAnalysis} from "./analysis/finalizeBasicAnalysis";
+
+// AI機能② 連スタイル類似度判定(#22〜#25)
+export {analyzeStyle} from "./analysis/analyzeStyle";
+export {rebuildRenStyleProfile} from "./style/rebuildRenStyleProfile";
+export {registerStyleReference} from "./style/registerStyleReference";
+export {deleteStyleReference} from "./style/deleteStyleReference";
+export {onStyleReferenceWritten} from "./style/onStyleReferenceWritten";

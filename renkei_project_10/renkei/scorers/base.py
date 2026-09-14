@@ -19,6 +19,9 @@ class ScoreResult:
     message: str                       # ユーザー向けの一言アドバイス
     metrics: dict = field(default_factory=dict)  # 根拠の生値（膝角度など）
     part: str = "下半身"                # 属する部位
+    # False なら「測れなかった」。score は意味を持たず、総合点・部位点・
+    # 助言から除外される（0 点＝最低評価として扱ってはいけない）。
+    measured: bool = True
 
 
 class Part:
@@ -53,3 +56,13 @@ def linear_map(value: float, lo: float, hi: float) -> float:
     """
     t = (value - lo) / (hi - lo)
     return float(max(0.0, min(1.0, t)) * 100.0)
+
+
+def unmeasured(axis: str, message: str, metrics: dict | None = None,
+               part: str = Part.LOWER) -> ScoreResult:
+    """「測れなかった」結果を作る。
+
+    検出できなかった軸を 0 点で返すと、最低評価として総合点を引き下げてしまう。
+    measured=False にして集計から外し、UI では「測れなかった項目」として別枠で示す。
+    """
+    return ScoreResult(axis, 0.0, message, metrics or {}, part, measured=False)

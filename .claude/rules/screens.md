@@ -28,7 +28,14 @@ Because `any` bypassed type checking, navigation to an unregistered screen was n
 2. Register it in `AppNavigator` as a `Stack.Screen`
 3. Confirm the type checks at the `navigate()` call site
 
-**Currently `Camera` / `Result` / `Request` / `UserProfile` / `Chat` are called via `navigate()` even though they are not registered.** Fix them as well when you touch them.
+All screens that are `navigate()`d are registered now ([#51](../../../../issues/51) is resolved). `Camera` takes `{ danceType, scorePart, baseBpm? }`, `Result` takes `{ analysisId, videoId }`, `Community` optionally takes `{ shareVideoId }`.
+
+## Real-time analysis screens (U-02 / U-03)
+
+- `CameraScreen` only orchestrates: the pose/rule logic lives in `src/features/pose/`, `src/features/rules/` and `src/features/analysis/useLiveAnalysis.ts`. Do not put judgement logic in the screen.
+- `PoseCameraView.web.tsx` (DOM `<video>` + `<canvas>`) is the Web implementation; `PoseCameraView.tsx` is the native fallback. Metro picks the platform file. Keep both exporting the same props.
+- Per-frame state goes in refs; React state is published at ~10Hz (`useLiveAnalysis`). Do not `setState` on every frame.
+- LIVE SCORE (Game Score) and the 0–100 Analysis Score must stay visually distinct (D-04).
 
 ## Do not call Firestore directly
 
@@ -52,4 +59,4 @@ Each screen corresponds to a U-xx / R-xx in the specification. The mapping table
 
 ## Expo APIs change between versions
 
-The actual current version is `expo ^54`. `Ren-kei_procon/AGENTS.md` is written assuming v57 and is unsettled ([#55](../../../../issues/55)). Before writing camera, video, or image-picker APIs, check the target version at <https://docs.expo.dev/versions/>.
+The actual current version is `expo ^54` (`Ren-kei_procon/AGENTS.md`). Before writing camera, video, or image-picker APIs, check the target version at <https://docs.expo.dev/versions/>.

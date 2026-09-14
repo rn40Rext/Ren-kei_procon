@@ -5,7 +5,10 @@ import {
 } from 'react-native';
 import { Play, Heart, MessageSquare, Plus, Search, Video as VideoIcon, X, ChevronLeft, Send, Award, User } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
+import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
 
@@ -28,6 +31,10 @@ const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運
 export default function CommunityScreen() {
   // TODO: NativeStackNavigationProp<RootStackParamList, 'Community'>へ置き換える(docs/rules/coding.md 2章)
   const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Community'>>();
+  // U-03(解析結果)から「コミュニティへ投稿」で来た場合の練習動画
+  const shareVideoId = route.params?.shareVideoId;
+  const [shareVideoUrl, setShareVideoUrl] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -54,6 +61,29 @@ export default function CommunityScreen() {
     );
   }, []);
 
+  // 練習動画から来たときは、その動画を投稿フォームに入れてモーダルを開く
+  useEffect(() => {
+    if (!shareVideoId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const video = await fetchVideo(shareVideoId);
+        if (!video?.storagePath) {
+          Alert.alert('動画がありません', 'この練習は動画を保存していないため投稿できません');
+          return;
+        }
+        const url = await videoDownloadUrl(video.storagePath);
+        if (cancelled) return;
+        setShareVideoUrl(url);
+        setPostVideoUri(url);
+        setIsPostModalOpen(true);
+      } catch (e) {
+        console.error('練習動画の取得に失敗しました', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [shareVideoId]);
+
   const pickVideo = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsEditing: true, quality: 0.7 });
     if (!result.canceled) setPostVideoUri(result.assets[0].uri);
@@ -63,18 +93,26 @@ export default function CommunityScreen() {
     if (!postVideoUri || !postTitle) return Alert.alert("エラー", "動画とタイトルを入力してください");
     setIsUploading(true);
     try {
-      const res = await fetch(postVideoUri);
-      const blob = await res.blob();
-      const videoUrl = await uploadPostVideo(blob);
+      // 練習動画(videos)から来た場合は既に Storage にあるので再アップロードしない
+      const fromPractice = shareVideoId !== undefined && postVideoUri === shareVideoUrl;
+      let videoUrl = postVideoUri;
+      if (!fromPractice) {
+        const res = await fetch(postVideoUri);
+        const blob = await res.blob();
+        videoUrl = await uploadPostVideo(blob);
+      }
 
       const currentUser = auth.currentUser;
       const authorName = currentUser?.email?.split('@')[0] || "匿名踊り子";
 
       // スコア・カウンタの初期化はクライアントで改ざんできないよう
-      // Cloud Functions(publishPost)側で行う
-      await publishPost({ title: postTitle, authorName, videoUrl, tags: postTags });
+      // Cloud Functions(publishPost)側で行う。videoId を渡すと AI 採点の結果が投稿に載る
+      await publishPost({
+        title: postTitle, authorName, videoUrl, tags: postTags,
+        ...(fromPractice ? { videoId: shareVideoId } : {}),
+      });
       setIsPostModalOpen(false);
-      setPostTitle(''); setPostVideoUri(null); setPostTags([]);
+      setPostTitle(''); setPostVideoUri(null); setPostTags([]); setShareVideoUrl(null);
       Alert.alert("成功", "動画を投稿しました！");
     } catch (e) { Alert.alert("失敗", "アップロードに失敗しました"); }
     finally { setIsUploading(false); }
@@ -131,7 +169,7 @@ export default function CommunityScreen() {
               <View style={styles.cardMain}>
                 <View style={styles.thumbWrapper}>
                   <Video style={StyleSheet.absoluteFill} source={{uri: p.videoUrl}} resizeMode={ResizeMode.COVER} shouldPlay={false} />
-                  <View style={styles.scoreBadgeMini}><Text style={styles.scoreValueMini}>AI {p.score}点</Text></View>
+                  <View style={styles.scoreBadgeMini}><Text style={styles.scoreValueMini}>{formatAiScoreShort(p.score)}</Text></View>
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle}>{p.title}</Text>
@@ -249,7 +287,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
         <View style={styles.detailVideoBox}><Video style={styles.detailFullVideo} source={{uri: post.videoUrl}} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping /></View>
 
         <View style={styles.metaSection}>
-          <View style={styles.scoreBadgeLarge}><Award size={20} color="#FACC15" /><Text style={styles.scoreTextLarge}>AI採点 {post.score}点</Text></View>
+          <View style={styles.scoreBadgeLarge}><Award size={20} color="#FACC15" /><Text style={styles.scoreTextLarge}>{formatAiScore(post.score)}</Text></View>
 
           {/* 踊り子の名前をタップしてプロフィール画面へ遷移する */}
           <TouchableOpacity

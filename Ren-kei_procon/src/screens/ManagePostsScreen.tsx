@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { formatAiScore } from '../features/analysis/format';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { ChevronLeft, X, Search, Heart, MessageSquare, Award, Shield, User as UserIcon, Send } from 'lucide-react-native';
 import { Video, ResizeMode } from 'expo-av';
@@ -75,7 +76,7 @@ export default function ManagePostsScreen() {
     }
     const sorted = [...list];
     if (sortMode === 'score') {
-      sorted.sort((a, b) => b.score - a.score);
+      sorted.sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
     } else if (sortMode === 'noAdvice') {
       sorted.sort((a, b) => Number(!!hasAdviceMap[a.id]) - Number(!!hasAdviceMap[b.id]));
     }
@@ -148,7 +149,7 @@ export default function ManagePostsScreen() {
                   </View>
                   <View style={styles.metaRow}>
                     <Award size={13} color={COLORS.textMuted} />
-                    <Text style={styles.metaText}>{p.score}点</Text>
+                    <Text style={styles.metaText}>{formatAiScore(p.score)}</Text>
                     <Heart size={13} color={COLORS.textMuted} style={{ marginLeft: 10 }} />
                     <Text style={styles.metaText}>{p.likeCount}</Text>
                     <MessageSquare size={13} color={COLORS.textMuted} style={{ marginLeft: 10 }} />
@@ -185,7 +186,7 @@ export default function ManagePostsScreen() {
 
                 <View style={styles.scoreCard}>
                   <Award size={20} color="#FACC15" />
-                  <Text style={styles.scoreCardText}>AI採点 {selectedPost.score}点</Text>
+                  <Text style={styles.scoreCardText}>{formatAiScore(selectedPost.score)}</Text>
                 </View>
                 <Text style={styles.scoreNote}>
                   ※ 項目別スコアはAI採点(FN-01)が未実装のため表示できません。総合スコアのみ暫定値です

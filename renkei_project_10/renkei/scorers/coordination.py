@@ -13,7 +13,7 @@ import numpy as np
 
 from ..features import interpolate_nans
 from ..landmarks import Lm, PoseSequence
-from .base import Part, ScoreResult, Scorer, linear_map
+from .base import Part, ScoreResult, Scorer, linear_map, unmeasured
 
 
 class StanceWidthScorer(Scorer):
@@ -39,7 +39,7 @@ class StanceWidthScorer(Scorer):
         med = float(np.nanmedian(ratio))
 
         if not np.isfinite(med):
-            return ScoreResult(self.axis, 0.0, "足の位置を検出できませんでした。",
+            return unmeasured(self.axis, "足の位置を検出できませんでした。",
                                {"stance_ratio": None}, self.part)
 
         s = linear_map(abs(med - self.TARGET_RATIO), self.TOLERANCE, 0.0)
@@ -128,10 +128,9 @@ class NambaScorer(Scorer):
                         "view_confidence": round(view_conf, 2)}
 
         if not corrs:
-            return ScoreResult(self.axis, 0.0,
-                               "手足の前後の動きが小さく、なんばを判定できません。",
-                               {**base_metrics, "correlation": None,
-                                "reliable": False}, self.part)
+            return unmeasured(self.axis,
+                              "手足の前後の動きが小さく、なんばを判定できません。",
+                              {**base_metrics, "correlation": None}, self.part)
 
         corr = float(np.mean(corrs))
         motion = float(np.mean(motions))

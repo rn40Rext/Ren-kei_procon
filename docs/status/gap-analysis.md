@@ -1,6 +1,6 @@
 # 仕様書 v0.3 と実装の差分（ギャップ分析）
 
-> 調査日: 2026-09-13（AI 解析①②の実装を反映）/ 前回: 2026-09-11 `d65bdfb`
+> 調査日: 2026-09-15 `7ef7f1d` / 前回: 2026-09-13
 > 比較対象: [仕様書 v0.3](../spec/README.md) ↔ `Ren-kei_procon/src/` `functions/src/` `firestore.rules` `storage.rules` の実装
 
 > ⚠️ **「差分がある」は「実装が間違っている」とは限りません。** 仕様書 v0.3 はチームで合意した確定仕様ではなく、既存資料からの推測で組み立てた文書です（[../spec/README.md](../spec/README.md) の「この文書の位置づけ」）。
@@ -15,21 +15,33 @@
 
 **2026-09-08 以降に、連（Ren）機能・連管理者機能・Security Rules・Cloud Functions 基盤がまとめて実装されました。** 前回調査（2026-09-03 / `d8f683e`）から状況が大きく変わっています。
 
-**2026-09-13 に AI 解析①（姿勢推定・正規化・Rule Engine・リアルタイム UI・FN-01 によるスコア確定）と AI 解析②（ベースライン Embedding・FN-02/07/08/09・ランキング UI）を実装しました。** 乱数の「AI採点」は廃止され、投稿のスコアは `analysisResults.totalScore` 由来か「未採点」のどちらかです。残る大きな未実装は成長曲線（U-10）・通知・ネイティブ（iOS/Android）でのリアルタイム判定、そして**実地データによる閾値確定と妥当性確認**です。
+**2026-09-13 に AI 解析①（姿勢推定・正規化・Rule Engine・リアルタイム UI・FN-01 によるスコア確定）と AI 解析②（ベースライン Embedding・FN-02/07/08/09・ランキング UI）を実装しました。** 乱数の「AI採点」は廃止され、投稿のスコアは `analysisResults.totalScore` 由来か「未採点」のどちらかです。
+
+**2026-09-15 時点で、仕様書の主要機能はほぼ実装が揃いました。** 子イシュー 52 件中 40 件が完了しています。残る未実装は次の 3 つです。
+
+| 残り | 内容 |
+| --- | --- |
+| 成長曲線（U-10）・練習動画一覧 | [#37](../../../issues/37) / [#38](../../../issues/38)。`growthRecords` は FN-01 が作っているので表示だけが足りない |
+| 通知の一覧 UI | [#44](../../../issues/44)。**生成側は 3 経路で実装済みだが、見る画面が無いのでユーザーに届いていない** |
+| 実地データによる妥当性確認 | [#100](../../../issues/100) / [#101](../../../issues/101)。**実装ではなく計測の作業**で、エピック #5 / #6 の完了条件 |
+
+加えて、公開前に必須のセキュリティ課題が 1 件あります（[#102](../../../issues/102)、5 章 S-12）。
+
+なお **2026-09-15 の決定でネイティブ（iOS/Android）アプリは作らないことになりました**。PC・スマートフォンとも Web 実装で動かします（[ai-basic-motion.md 3章](../design/ai-basic-motion.md)）。
 
 | 領域 | 仕様書 | 実装 | 達成度 |
 | --- | --- | --- | --- |
 | 認証（AUTH-01/02） | Firebase Auth | ✅ ログイン・新規登録が動作 | ■■■■■ 100% |
 | プロフィール（USER-01） | name/icon/profile/danceStyle/role | ✅ 全項目が `users/{uid}` に存在し編集可能 | ■■■■□ 90% |
-| 交流広場（COMM-01〜05） | 投稿・詳細・コメント・いいね | 🔶 動作する。ただし練習動画（`videos`）を経由せず直接 `posts` を作る | ■■■■□ 80% |
+| 交流広場（COMM-01〜05） | 投稿・詳細・コメント・いいね | ✅ 動作する。U-03 からの投稿は `videos` と紐付き、スコアが載る | ■■■■■ 95% |
 | 連機能（REN-01〜03 / U-07・U-08） | 検索・参加申請・マイ連 | ✅ 連詳細・参加リクエスト・マイ連が動作 | ■■■■■ 100% |
-| 連管理者（R-01〜R-08） | 8 画面 | 🔶 R-01/05/06/07/08 実装済み。**R-02/R-03/R-04 が未実装** | ■■■□□ 60% |
-| Security Rules（10章） | コレクション別 CRUD 制御 | ✅ 包括版を実装、Rules Unit Test 46 件が通る | ■■■■□ 85% |
+| 連管理者（R-01〜R-08） | 8 画面 | ✅ **R-01〜R-08 すべて実装済み**（[#30](../../../issues/30) / [#31](../../../issues/31) で完了） | ■■■■■ 100% |
+| Security Rules（10章） | コレクション別 CRUD 制御 | ✅ 包括版を実装、**Rules Unit Test 59 件が通る（skip 0）**。本番反映は未確認 | ■■■■□ 90% |
 | Cloud Functions（FN-01〜09） | 7 関数 + 追加 2 | ✅ FN-01/02/03（縮小版）/04/05/06/07/08/09 とトリガ 5 本 | ■■■■□ 90% |
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ✅ **Web 版**でリアルタイム判定（RULE-01〜07）・LIVE SCORE・FN-01 でスコア確定・履歴保存。ネイティブは未対応（TBD-01 方式 A）。**閾値は暫定・実地検証未実施** | ■■■■□ 80% |
 | スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ✅ バックエンドと UI。姿勢系列は AI① が生成。**実データ検証（8.6 の 1・6・7）が未実施のため「検証中・参考値」表示** | ■■■■□ 75% |
 | 成長記録（HIST-01） | GrowthRecords + 成長曲線 | 🔶 `growthRecords` は FN-01 が作成。U-10 のグラフ画面は未実装、`VideoListScreen` はスタブ | ■■□□□ 40% |
-| 通知（NOTI-01） | Notifications | ❌ 未着手（Rules に受け皿があるだけ） | □□□□□ 0% |
+| 通知（NOTI-01） | Notifications | 🔶 **生成側は完了**（[#43](../../../issues/43)）。お知らせ配信・参加承認/却下・指導者コメントの 3 経路が `notifications` を書き、Rules テスト 9 件で保護を確認済み。**一覧 UI が無く誰も見られない**（[#44](../../../issues/44)） | ■■□□□ 40% |
 
 ## 2. 機能 ID 別の詳細
 
@@ -45,23 +57,23 @@
 | PRACTICE-05 | 保存 | ✅ | `videos` + Storage（動画・姿勢系列）→ FN-01 が `analysisResults` / `growthRecords` を作成 |
 | STYLE-01/02 | 連スタイル類似度 | 🔶 | エンコーダ・FN-02/07/08/09・`StyleResultScreen.tsx`。姿勢系列は AI① が生成するようになった。**仕様書 8.6 の検証 1・6・7（実データ）が未実施**のため「検証中・参考値」の帯付きで表示 |
 | COMM-01 | 投稿一覧 | ✅ | `CommunityScreen.tsx`（`posts` を購読） |
-| COMM-02 | 投稿作成 | 🔶 | `publishPost`（Cloud Functions）経由。ただし**練習動画 `videos` を作らずに直接 `posts` を作る縮小版**（[#47](../../../issues/47)） |
+| COMM-02 | 投稿作成 | 🔶 | `publishPost`（Cloud Functions）経由。U-03 からの投稿は `videos` と紐付き `visibility` を `public` へ更新、スコアは `analysisResults` からコピー。**ギャラリーから直接選んだ投稿は `videoId` 無し・未採点**。`analysisStatus == 'completed'` の検証は未実装（[#47](../../../issues/47)） |
 | COMM-03 | 投稿詳細 | ✅ | `CommunityScreen.tsx` 内の `PostDetailScreen` |
-| COMM-04 | コメント/アドバイス | 🔶 | `type: 'instructor' \| 'normal'` で実装。**指導者コメントの権限検証が無く、誰でも「師匠の教え」を投稿できる**（[#31](../../../issues/31)） |
+| COMM-04 | コメント/アドバイス | ✅ | `type: 'instructor' \| 'normal'`。**指導者コメントは `renId` + `isRenAdmin(renId)` を検証**（[#31](../../../issues/31)）。Rules テストで確認済み |
 | COMM-05 | いいね | ✅ | `posts/{postId}/likes/{uid}` で 1 人 1 回を保証。`likeCount` はトリガが `count()` で再集計 |
 | REN-01 | 連詳細 | ✅ | `GroupScreen.tsx`（`ren` / `members`） |
 | REN-02 | 連検索・参加申請（U-07） | ✅ | `RequestScreen.tsx` + `submitJoinRequest` |
 | REN-03 | マイ連（U-08） | ✅ | `GroupScreen.tsx` + `useMyRens` |
 | R-01 | 管理ホーム | ✅ | `AdminHomeScreen.tsx`。複数連の切り替えに対応 |
-| R-02 | 投稿一覧（管理者ビュー） | ❌ | 未実装（[#30](../../../issues/30)） |
-| R-03 | 投稿詳細（管理者ビュー） | ❌ | 未実装（[#30](../../../issues/30)） |
-| R-04 | アドバイス送信 | ❌ | 未実装（[#31](../../../issues/31)）。COMM-04 の権限検証もこのイシューで締める |
+| R-02 | 投稿一覧（管理者ビュー） | ✅ | `ManagePostsScreen.tsx`。全公開投稿を閲覧でき、自連メンバーをハイライト（N-3 案 B） |
+| R-03 | 投稿詳細（管理者ビュー） | ✅ | `ManagePostsScreen.tsx` 内 |
+| R-04 | アドバイス送信 | ✅ | `AdviceComposeScreen.tsx`。COMM-04 の権限検証も同時に実装（[#31](../../../issues/31)） |
 | R-05 | 参加リクエスト管理 | ✅ | `ManageJoinRequestsScreen.tsx` + `updateJoinRequestStatus` |
 | R-06 | メンバー管理 | ✅ | `MemberManagementScreen.tsx` + `updateMemberRole` / `removeMember` |
 | R-07 | お知らせ管理 | ✅ | `ManageAnnouncementsScreen.tsx` + `createAnnouncement` |
 | R-08 | 活動情報管理 | ✅ | `ManageActivitiesScreen.tsx` |
-| HIST-01 | 成長曲線 | ❌ | `VideoListScreen.tsx` はスタブのまま |
-| NOTI-01 | 通知 | ❌ | 生成トリガも一覧 UI も無い |
+| HIST-01 | 成長曲線 | 🔶 | `growthRecords` は FN-01 が作成済み。**U-10 のグラフ画面（[#37](../../../issues/37)）と `VideoListScreen`（[#38](../../../issues/38)、19 行のスタブ）が未実装** |
+| NOTI-01 | 通知 | 🔶 | `createAnnouncement`（バッチ分割で 500 件超に対応）/ `updateJoinRequestStatus` / `onCommentWrite` が `users/{uid}/notifications` を書く。自己通知は抑制。作成はクライアント不可・更新は `read` のみを Rules テストで確認済み（[#43](../../../issues/43) 完了）。**一覧 UI と既読管理（[#44](../../../issues/44)）が無い** |
 
 ## 3. データモデルの差分
 
@@ -70,7 +82,7 @@
 | 仕様書 Entity | 実装 | 差分の内容 |
 | --- | --- | --- |
 | Users | ✅ `users/{uid}` | `role` を含む全項目あり。大文字始まりの `Users` は廃止済み |
-| Videos | ⚠️ `videos/{id}` | **Rules と型だけが存在し、ドキュメントを作る実装が無い**。投稿フローは `videos` を経由しない（[#41](../../../issues/41) / [#47](../../../issues/47)） |
+| Videos | ✅ `videos/{id}` | 練習セッション開始時に `visibility: 'private'` / `analysisStatus: 'uploaded'` で作成（`repositories/videos.ts`）。動画と姿勢系列は `users/{uid}/videos/{videoId}` 配下。`publishPost` が `public` へ更新する |
 | Posts | ✅ `posts/{id}` | `videos` から分離済み |
 | Comments | ✅ `posts/{id}/comments` | `type` は仕様書どおり `instructor` / `normal`。ただし `instructor` の権限検証が無い |
 | Likes | ✅ `posts/{id}/likes/{uid}` | uid をドキュメント ID にして重複を防止。カウンタはトリガが再集計 |
@@ -81,7 +93,7 @@
 | RenActivities | ✅ `ren/{renId}/activities` | — |
 | AnalysisResults | ✅ `analysisResults/{uid}_{clientRequestId}` | FN-01 のみが書く。`posts.score` はここからの非正規化コピー（乱数モックは廃止） |
 | GrowthRecord(s) | ✅ `users/{uid}/growthRecords/{analysisId}` | FN-01 が作成。表示（U-10）は未実装 |
-| Notifications | ❌ | Rules のみ |
+| Notifications | ✅ `users/{uid}/notifications/{id}` | Functions の 3 経路が作成する。read は本人のみ、`read` フィールドの更新のみ許可（Rules テスト 9 件）。**表示する画面が無い**（[#44](../../../issues/44)） |
 | RenStyleReferences / RenStyleProfiles / StyleAnalysisResults | ✅ | FN-08 / FN-07 / FN-02 が書く |
 | AnalysisRules | ✅ `analysisRules/{ruleId}` | read 専用。`functions npm run seed:rules` で投入 |
 | （仕様書外） | ➕ `chats/{chatId}/messages` | 仕様書に存在しない 1 対 1 チャット。Rules は当事者 2 人のみに制限済み |
@@ -102,11 +114,12 @@
 
 ## 5. セキュリティ上の差分
 
-前回調査時点の S-1〜S-6 は解消済みです。**残っているのは次の 3 点です。**
+前回調査時点の S-1〜S-6 は解消済みです。**残っているのは次の 4 点で、うち S-12 は公開前必須です。**
 
 | # | 内容 | 状態 |
 | --- | --- | --- |
-| S-9 | 投稿動画の Storage パスが `videos/{Date.now()}.mp4` で所有者情報を含まない。所有者ベースの保護ができない | 未対応（[#41](../../../issues/41)） |
+| **S-12** | **`finalizeBasicAnalysis` がクライアント提供の `metrics` のみでスコアを計算している。** 内部整合性（`great + good + miss <= attempts` 等）しか見ておらず、実際に練習したかを裏付ける検証が無い。**偽装した集計値を送れば満点を取得でき、`posts.score` として公開投稿に載る** | **未対応（[#102](../../../issues/102)）。開発段階では許容の判断だが公開前必須**（[api-functions.md](../design/api-functions.md) FN-01 節に既知の制約として記載） |
+| S-9 | **ギャラリーから直接投稿する経路**の Storage パスが `videos/{Date.now()}.mp4` で所有者情報を含まない（`repositories/posts.ts`）。練習セッション経由の動画は `users/{uid}/videos/{videoId}` へ移行済み | 一部対応（[#41](../../../issues/41)。該当箇所に TODO コメントあり） |
 | S-10 | Storage の `contentType` 検証が無い（サイズ上限のみ） | 意図的な見送り。React Native から正しい値が送られるか実機未検証のため（[#40](../../../issues/40) にコメント済み） |
 | S-11 | 本番プロジェクト `ren-kei` に最新の Rules が反映されているか未確認 | 未確認。プロジェクトへのアクセス権を持つアカウントでのみ確認できる（[#40](../../../issues/40)） |
 
@@ -134,11 +147,10 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 
 | # | 内容 | 状態 |
 | --- | --- | --- |
-| B-9 | `docs/api/aip_list` が空ファイル。`docs/api/api.design.md` が現行設計と乖離 | 未対応（[#59](../../../issues/59)） |
-| B-12 | `useNavigation<any>()` が `CommunityScreen` / `MypageScreen` など複数画面に残っている。[coding.md](../rules/coding.md) 2 章違反 | 未対応。該当箇所に TODO コメントあり |
-| B-13 | `auth.currentUser` を画面から直接参照している（`useAuth()` が無い）。認証状態の変化に追従しない | 未対応（[#91](../../../issues/91) のスコープ外として分離） |
-| B-14 | `src/theme/colors.ts` が無く、画面ごとに `COLORS` を定義している。阿波踊りの伝統色（藍 `#001E43` / 緋 `#E60012` / 金 `#D4AF37`）は `HomeScreen` にしか無い | 未対応 |
-| B-15 | `ContactInfoScreen` / `SettingScreen` / `VideoListScreen` / `UserProfileScreen` がスタブ | `VideoListScreen` は [#38](../../../issues/38) で実装予定。他 3 つはイシュー未作成 |
+| B-12 | `useNavigation<any>()` が **13 箇所**残っている。[coding.md](../rules/coding.md) 2 章違反 | 未対応。該当箇所に TODO コメントあり |
+| B-13 | `useAuth()` は追加されたが、**使っているのは 2 画面だけで、10 ファイルが `auth.currentUser` を直接参照している**（22 箇所） | 一部対応。イシュー未作成 |
+| B-14 | `src/theme/colors.ts` は追加されたが、**12 画面がローカルに `COLORS` を定義したまま** | 一部対応。イシュー未作成 |
+| B-15 | `ContactInfoScreen` / `SettingScreen` / `VideoListScreen` が 19 行のスタブ（`UserProfileScreen` は簡易実装） | `VideoListScreen` は [#38](../../../issues/38) で実装予定。他 2 つはイシュー未作成 |
 
 解消済み（前回からの変化）:
 
@@ -151,6 +163,7 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 - ✅ B-10 `.gitignore` のコンフリクト残骸（[#52](../../../issues/52)）
 - ✅ B-11 `package.json` の `scripts` / `main` 欠落（[#54](../../../issues/54)）
 - ✅ 画面からの Firestore 直接呼び出し → `src/repositories/` へ集約（[#91](../../../issues/91)）
+- ✅ B-9 `docs/api/` の旧メモ → 空ファイルを削除し、`api.design.md` に「初期検討メモ・現行設計は `design/api-functions.md`」の注記を追加（[#59](../../../issues/59)）
 
 ## 7. 仕様書と実装で解釈が分かれている点
 
@@ -165,16 +178,27 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | いいねの持ち方 | Likes Entity | `posts/{id}/likes/{uid}` | ✅ 解消済み |
 | 所属連の持ち方 | `Users.ren` と RenMembers が併存（TBD-11） | RenMembers に一本化 | ✅ 決定済み（[data-model.md](../design/data-model.md)） |
 | コメント種別 | `normal` / `instructor` | 同じ | ✅ 解消済み。権限検証も実装済み（[#31](../../../issues/31)） |
+| コメント通知の対象 | [#43](../../../issues/43) の表では「投稿にコメントが付いた → 投稿者」 | **`type: 'instructor'`（師匠の教え）のコメントのみ通知する。** 一般コメント（`normal`）では通知しない | 通知過多を避ける実装側の判断と考えられます。**一般コメントでも通知するかはチームで確認してください** |
 | 1 対 1 チャット | 記載なし | 実装済み。Rules で当事者のみに制限 | **プロトタイプ限定機能として残す**。v0.4 で正式化を判断（N-1） |
 | お知らせ・活動情報の公開対象 | TBD-15 | ログイン済みなら誰でも read できる | ✅ **現状維持で決定**（[#34](../../../issues/34)）。将来メンバー限定メッセージ機能を別途検討 |
 | 連アイコンの更新経路 | 記載なし | Storage Cross-Service Rules が本番で不安定だったため、Cloud Functions（Admin SDK）経由に変更 | 実装側の判断。[storage.rules](../../storage.rules) にコメントとして記録済み |
 
 ## 8. 次のアクション
 
-1. **閾値の確定（TBD-02）と実地の妥当性確認** — 連の指導者が OK/NG と判断した動画を集め、`analysisResults.rawMetrics` と `renkei_project_10/calibrate.py` の実測から `analysisRules` を更新する。エピック #5 の完了条件で唯一残っている項目
-2. **AI② の実データ検証（8.6 の 1・6・7）** — 2〜3 連 × 熟練者 3 名の参照動画（同意付き）と 5 人 × 3 テイク。`export_pose_series.py` → FN-08 で登録できる
-3. **本番への反映** — `firebase deploy --only functions,firestore:rules,firestore:indexes,storage` と `functions npm run seed:rules`（承認が必要）
-4. **U-10 成長曲線（[#37](../../../issues/37)）** — `growthRecords` は溜まり始めるので表示だけが足りない
-5. **[#40](../../../issues/40) の本番反映確認** — S-11
+1. **実地データの依頼を出す（[#100](../../../issues/100) / [#101](../../../issues/101)）** — 指導者・連への依頼はリードタイムが長い。AI①② は「動くが妥当性は未確認」の状態から抜けられず、エピック #5 / #6 の完了条件でもある
+2. **[#102](../../../issues/102) スコアの改ざん防止** — S-12。公開前必須
+3. **[#44](../../../issues/44) 通知一覧 UI** — 生成側だけ動いていて、ユーザーに届いていない
+4. **本番への反映** — `firebase deploy --only functions,firestore:rules,firestore:indexes,storage` と `functions npm run seed:rules`（承認が必要）。[#40](../../../issues/40) のクローズ条件（S-11）でもある
+5. **[#37](../../../issues/37) U-10 成長曲線 / [#38](../../../issues/38) 練習動画一覧** — Prototype 3 の残り
+6. **事務作業** — [#8](../../../issues/8) のクローズ（子 6 件すべて完了）、[#41](../../../issues/41) / [#47](../../../issues/47) の受け入れ条件の再確認、[#59](../../../issues/59)
+
+### 検証の実行結果（2026-09-15）
+
+| 対象 | コマンド | 結果 |
+| --- | --- | --- |
+| アプリ型チェック | `npx tsc --noEmit` | ✅ エラーなし |
+| Rule Engine 等 | `npm test`（アプリ） | ✅ 44 pass / 0 fail |
+| Cloud Functions | `npm test`（functions） | ✅ 24 pass / 0 fail |
+| Security Rules | `tests/rules`（Emulator） | ✅ **59 pass / 0 fail / skip 0**（通知の 9 件を追加） |
 
 優先順位とマイルストーンは [roadmap.md](roadmap.md) を参照してください。

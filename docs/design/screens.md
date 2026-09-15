@@ -9,7 +9,7 @@
 
 | 画面 ID | 画面名 | 実装ファイル | 実装状況 | 呼び出す API / データ |
 | --- | --- | --- | --- | --- |
-| U-01 | ホーム / 認証 | [LoginScreen.tsx](../../Ren-kei_procon/src/screens/LoginScreen.tsx)<br>[HomeScreen.tsx](../../Ren-kei_procon/src/screens/HomeScreen.tsx) | ✅ 実装済み | Firebase Auth |
+| U-01 | ホーム / 認証 | [LoginScreen.tsx](../../Ren-kei_procon/src/screens/LoginScreen.tsx)<br>[HomeScreen.tsx](../../Ren-kei_procon/src/screens/HomeScreen.tsx) | ✅ 実装済み。「通知への導線」は [NotificationsScreen.tsx](../../Ren-kei_procon/src/screens/NotificationsScreen.tsx)（ベルアイコン + 未読バッジ、#44。画面IDは未採番） | Firebase Auth, `repositories/notifications.ts` |
 | U-02 | 踊り解析 | [ScoringScreen.tsx](../../Ren-kei_procon/src/screens/ScoringScreen.tsx)<br>[CameraScreen.tsx](../../Ren-kei_procon/src/screens/CameraScreen.tsx)<br>[PoseCameraView.web.tsx](../../Ren-kei_procon/src/components/PoseCameraView.web.tsx) | ✅ 実装済み（#13〜#19。**Web 版のみ**リアルタイム判定。ネイティブは案内表示） | MediaPipe Tasks（WASM）, Rule Engine, `analysisRules`, Storage, FN-01 |
 | U-03 | 解析結果 | [ResultScreen.tsx](../../Ren-kei_procon/src/screens/ResultScreen.tsx) | ✅ 実装済み（#20） | `analysisResults` 購読 → `StyleResult` / `Community`（`shareVideoId`） |
 | U-04 | コミュニティ | [CommunityScreen.tsx](../../Ren-kei_procon/src/screens/CommunityScreen.tsx) | ✅ 実装済み | `posts` 購読 |
@@ -24,7 +24,7 @@
 
 | 画面 ID | 画面名 | 実装ファイル | 実装状況 | 呼び出す API |
 | --- | --- | --- | --- | --- |
-| R-01 | 管理ホーム | [AdminHomeScreen.tsx](../../Ren-kei_procon/src/screens/AdminHomeScreen.tsx) | 🔶 部分実装（#29。通知は準備中） | `joinRequests`, 通知 |
+| R-01 | 管理ホーム | [AdminHomeScreen.tsx](../../Ren-kei_procon/src/screens/AdminHomeScreen.tsx) | ✅ 実装済み（#29。通知一覧への導線と未読件数表示を#44で追加） | `joinRequests`, `repositories/notifications.ts` |
 | R-02 | 投稿一覧 | [ManagePostsScreen.tsx](../../Ren-kei_procon/src/screens/ManagePostsScreen.tsx) | ✅ 実装済み（#30。N-3=案Bで全公開投稿+自連ハイライト） | `posts` |
 | R-03 | 投稿詳細 | 同上（画面内モーダル） | 🔶 部分実装（#30。項目別スコアは`analysisResults`未実装のため総合スコアのみ） | `posts` |
 | R-04 | アドバイス送信 | [AdviceComposeScreen.tsx](../../Ren-kei_procon/src/screens/AdviceComposeScreen.tsx) | ✅ 実装済み（#31） | `comments`（`type: 'instructor'`） |
@@ -48,6 +48,7 @@
 | 設定 | [SettingScreen.tsx](../../Ren-kei_procon/src/screens/SettingScreen.tsx) | スタブ。U-09 の一部として実装 |
 | お問い合わせ | [ContactInfoScreen.tsx](../../Ren-kei_procon/src/screens/ContactInfoScreen.tsx) | スタブ。U-09 の一部として実装 |
 | 自分の動画一覧 | [VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx) | スタブ。U-09 の「保存動画」に相当 |
+| 通知一覧 | [NotificationsScreen.tsx](../../Ren-kei_procon/src/screens/NotificationsScreen.tsx) | U-01/R-01 の「通知への導線」（仕様書 5.2/6.2）の遷移先。仕様書は一覧画面そのものにU-xxを割り当てていないため、独立画面として実装（#44） |
 
 ## 2. ナビゲーション定義の現状と問題
 

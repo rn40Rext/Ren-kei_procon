@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   addDoc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -30,6 +31,12 @@ export function subscribePosts(
     (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post))),
     onError
   );
+}
+
+/** 通知(type:'comment')タップ時、投稿詳細へ直接遷移するために1件だけ取得する。 */
+export async function fetchPost(postId: string): Promise<Post | null> {
+  const snap = await getDoc(doc(db, 'posts', postId));
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Post) : null;
 }
 
 /** 特定ユーザーの投稿を新しい順に取得する(参加リクエストの申請者確認で使う。複合インデックス userId + createdAt)。 */

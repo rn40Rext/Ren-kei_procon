@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Users, MapPin, Plus, X, Shield, ChevronRight, Megaphone, CalendarDays, Search } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { createRen } from '../repositories/renProfile';
 import { subscribeRenActivities } from '../repositories/renActivities';
 import { subscribeAnnouncements } from '../repositories/renAnnouncements';
 import { Announcement, RenActivity } from '../types/firestore';
 import { useMyRens } from '../hooks/useMyRens';
 import BottomNav from '../components/BottomNav';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 const COLORS = {
   primary: '#2563EB',
@@ -31,6 +32,9 @@ function formatDate(value: any): string {
 
 export default function GroupScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Group'>>();
+  // 通知(type:'join_result')タップで来たとき、承認された連を選択した状態で開く(#44)
+  const requestedRenId = route.params?.renId;
   const { myRens, loading } = useMyRens();
   const [selectedRenId, setSelectedRenId] = useState<string | null>(null);
   const [activities, setActivities] = useState<RenActivity[]>([]);
@@ -44,10 +48,15 @@ export default function GroupScreen() {
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if ((!selectedRenId || !myRens.some((r) => r.renId === selectedRenId)) && myRens.length > 0) {
+    if (myRens.length === 0) return;
+    if (requestedRenId && myRens.some((r) => r.renId === requestedRenId)) {
+      setSelectedRenId(requestedRenId);
+      return;
+    }
+    if (!selectedRenId || !myRens.some((r) => r.renId === selectedRenId)) {
       setSelectedRenId(myRens[0].renId);
     }
-  }, [myRens, selectedRenId]);
+  }, [myRens, selectedRenId, requestedRenId]);
 
   useEffect(() => {
     if (!selectedRenId) {

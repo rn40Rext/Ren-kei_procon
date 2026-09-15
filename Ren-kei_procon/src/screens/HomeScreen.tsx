@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Dimensions, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Users, BarChart2, User, PlayCircle, ClipboardList, ChevronRight, LogOut } from 'lucide-react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Bell, Users, BarChart2, User, PlayCircle, ClipboardList, ChevronRight, LogOut } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNav from '../components/BottomNav';
+import NotificationBadge from '../components/NotificationBadge';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { useAuth } from '../hooks/useAuth';
+import { subscribeUnreadNotificationCount } from '../repositories/notifications';
 
 // Firebase関連
 import { signOut } from "firebase/auth";
-import { auth } from '../config/firebaseConfig'; 
+import { auth } from '../config/firebaseConfig';
 
 const { width } = Dimensions.get('window');
 
@@ -23,7 +28,18 @@ const COLORS = {
 };
 
 export default function HomeScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Home'>>();
+  const { uid } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!uid) return;
+    return subscribeUnreadNotificationCount(
+      uid,
+      setUnreadCount,
+      (error) => console.error('未読通知件数の取得に失敗しました', error)
+    );
+  }, [uid]);
 
   const handleLogout = async () => {
     try {
@@ -50,10 +66,16 @@ export default function HomeScreen() {
                 <View style={styles.badge}><Text style={styles.badgeText}>徳島 伝統の絆</Text></View>
                 <Text style={styles.welcomeText}>やっとさー！ {auth.currentUser?.email?.split('@')[0]} さん</Text>
               </View>
-              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                <LogOut color={COLORS.white} size={20} />
-                <Text style={styles.logoutText}>終了</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <TouchableOpacity style={styles.bellButton} onPress={() => navigation.navigate('Notifications')}>
+                  <Bell color={COLORS.white} size={22} />
+                  <NotificationBadge count={unreadCount} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                  <LogOut color={COLORS.white} size={20} />
+                  <Text style={styles.logoutText}>終了</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
           <Text style={styles.heroTitle}>最高の演舞を目指して、{"\n"}今日も稽古に励みましょう。</Text>
@@ -157,6 +179,7 @@ const styles = StyleSheet.create({
   badgeText: { color: COLORS.white, fontSize: 10, fontWeight: 'bold' },
   welcomeText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: 'bold' },
   heroTitle: { color: COLORS.white, fontSize: 24, fontWeight: '900', lineHeight: 34, marginTop: 5 },
+  bellButton: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', padding: 8, borderRadius: 12, marginRight: 8 },
   logoutButton: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', padding: 8, borderRadius: 12 },
   logoutText: { color: COLORS.white, fontSize: 10, marginTop: 2, fontWeight: 'bold' },
   menuContainer: { paddingHorizontal: 20, marginTop: -30 },

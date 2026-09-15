@@ -27,18 +27,23 @@ import ManageActivitiesScreen from "../screens/ManageActivitiesScreen";
 import ManagePostsScreen from "../screens/ManagePostsScreen";
 import AdviceComposeScreen from "../screens/AdviceComposeScreen";
 import StyleResultScreen from "../screens/StyleResultScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
 
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined; // 💡 ホームを追加
   // shareVideoId: U-03 から「コミュニティへ投稿」で来たとき、その練習動画を投稿フォームに入れる
-  Community: { shareVideoId?: string } | undefined;
+  // openPostId: 通知(type:'comment')タップ時、該当投稿の詳細を直接開く(#44)
+  Community: { shareVideoId?: string; openPostId?: string } | undefined;
   Mypage: undefined;
   Scoring: undefined;
   VideoList: undefined;
   ContactInfo: undefined;
   Setting: undefined;
-  Group: undefined;
+  // renId: 通知(type:'join_result')タップ時、承認された連を選択した状態で開く(#44)
+  Group: { renId?: string } | undefined;
+  // 通知一覧(#44)。仕様書 U-01/R-01 の「通知への導線」の遷移先
+  Notifications: undefined;
   // U-02 本体。baseBpm はリズム判定の基準テンポ(TBD-04 の暫定: ユーザー選択)
   Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
@@ -107,6 +112,7 @@ export default function AppNavigator() {
           <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
           <Stack.Screen name="AdviceCompose" component={AdviceComposeScreen} />
           <Stack.Screen name="StyleResult" component={StyleResultScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
         </>
       ) : (
         <Stack.Screen name="Login" component={LoginScreen} />

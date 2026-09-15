@@ -18,19 +18,28 @@ AI は最終目的ではありません。初心者が練習し、成長を実�
 
 ## 主な機能と実装状況
 
+> 2026-09-15 時点。詳細は [docs/status/gap-analysis.md](docs/status/gap-analysis.md)、優先順位は [docs/status/roadmap.md](docs/status/roadmap.md)。
+
 | 機能 | 内容 | 状況 |
 | --- | --- | --- |
 | 認証 | メール/パスワードによる登録・ログイン | ✅ 実装済み |
 | 交流広場 | 練習動画の投稿・閲覧、コメント（門下生の声 / 師匠の教え）、いいね、タグ絞り込み | ✅ 実装済み |
-| マイページ | プロフィール表示・ニックネーム編集 | 🔶 部分実装 |
-| AI 解析① 基本動作 | 姿勢推定 + 判定ルールで手の高さ・腰の低さ・停止・リズムを採点。GREAT/GOOD/MISS のリアルタイム表示 | ⚠️ **未実装**（現在の採点は乱数によるモック） |
-| AI 解析② 連スタイル類似度 | どの連の熟練者の動きに近いかを判定 | ❌ 未着手 |
-| 成長記録 | 練習履歴の保存と成長曲線 | ❌ 未着手 |
-| 連（Ren）機能 | 連の検索、参加リクエスト、マイ連 | ❌ 未着手 |
-| 連管理者機能 | 参加申請の承認、メンバー管理、お知らせ、アドバイス送信 | ❌ 未着手 |
-| 通知 | コメント・申請結果・お知らせの通知 | ❌ 未着手 |
+| マイページ | プロフィール（ニックネーム・自己紹介・踊り種別・アイコン）の編集 | ✅ 実装済み |
+| AI 解析① 基本動作 | 姿勢推定 + 判定ルール（RULE-01〜07）で手の高さ・腰の低さ・停止・リズムを採点。GREAT/GOOD/MISS のリアルタイム表示、解析結果画面、履歴保存 | ✅ 実装済み（**ブラウザのみ**・**閾値は暫定**） |
+| AI 解析② 連スタイル類似度 | どの連の熟練者の動きに近いかを判定 | 🔶 実装済み。**実データ検証が未実施のため「検証中・参考値」表示** |
+| 成長記録 | 練習履歴の保存と成長曲線 | 🔶 履歴（`growthRecords`）は保存される。**グラフ画面（U-10）が未実装** |
+| 連（Ren）機能 | 連の検索、参加リクエスト、マイ連 | ✅ 実装済み |
+| 連管理者機能 | 管理ホーム、投稿一覧/詳細、アドバイス送信、参加申請の承認、メンバー管理、お知らせ、活動情報（R-01〜R-08） | ✅ 実装済み |
+| 通知 | コメント・申請結果・お知らせの通知 | 🔶 **生成側のみ**。一覧画面が無いためユーザーには届かない |
 
-> ⚠️ **AI 採点は現在モックです。** 投稿時に 80〜99 のランダム値を「AI 採点」として表示しています（`CommunityScreen.tsx`）。画面上は AI が動いているように見えるため、デモや発表の際は注意してください。実装状況の詳細は [docs/status/gap-analysis.md](docs/status/gap-analysis.md) を参照してください。
+### ⚠️ デモ・発表の前に必ず補足すること
+
+乱数による「AI 採点」のモックは廃止されました（[#58](../../issues/58)）。採点の無い投稿は「未採点」と表示されます。ただし**次の 4 点は「動くこと」と「正しいこと」が別**です。
+
+1. **判定閾値はすべて暫定値です。** 連の指導者による妥当性確認（TBD-02、[#100](../../issues/100)）は未実施で、`analysisRules` から差し替えられる状態になっているだけです
+2. **連スタイル類似度は参考値です。** 仕様書 8.6 の実データ検証（[#101](../../issues/101)）が未実施のため、画面にも「検証中」の帯が出ます
+3. **リアルタイム判定はブラウザでのみ動きます。** ネイティブアプリは作らない方針です（2026-09-15 決定）。`getUserMedia` が HTTPS を要求するため、スマートフォンでは `npm run web:tunnel` 等の HTTPS 経由が必要です
+4. **WASM とモデルを実行時に CDN から取得しています。** 会場の回線が不安定だと姿勢推定が始まりません
 
 ## 技術スタック
 
@@ -42,7 +51,8 @@ AI は最終目的ではありません。初心者が練習し、成長を実�
 | バックエンド | Firebase（Authentication / Cloud Firestore / Cloud Storage / Cloud Functions） |
 | カメラ・動画 | expo-camera / expo-av / expo-image-picker |
 | UI | lucide-react-native / expo-linear-gradient |
-| 姿勢推定（予定） | MediaPipe Tasks API — 組み込み方式は検証中（[#13](../../issues/13)） |
+| 姿勢推定 | MediaPipe Tasks Vision（`@mediapipe/tasks-vision`、WASM + WebGL）。**Expo Web で実行**（[#13](../../issues/13) で決定） |
+| オフライン採点エンジン | Python 3.12 + MediaPipe 0.10.14（`renkei_project_10/`）。閾値較正・検証用 |
 
 Firebase プロジェクト: `ren-kei`
 
@@ -53,17 +63,25 @@ Ren-kei_procon/
 ├── README.md                   ← この文書
 ├── docs/                       設計ドキュメント → docs/README.md が索引
 ├── firebase.json               Firebase デプロイ設定
-├── firestore.rules             Firestore Security Rules ※未整備
-├── storage.rules               Storage Security Rules   ※未整備
-├── functions/                  Cloud Functions          ※未実装
+├── firestore.rules             Firestore Security Rules
+├── storage.rules               Storage Security Rules
+├── firestore.indexes.json      複合インデックス
+├── tests/rules/                Security Rules のユニットテスト
+├── functions/                  Cloud Functions（FN-01〜09 + トリガ）
+├── renkei_project_10/          オフライン採点エンジン（Python・閾値較正用）
 └── Ren-kei_procon/             ★ Expo アプリ本体
     ├── App.tsx
     ├── app.json
     └── src/
         ├── config/firebaseConfig.ts
         ├── navigation/AppNavigator.tsx
-        ├── components/BottomNav.tsx
-        └── screens/            各画面
+        ├── components/
+        ├── screens/            各画面
+        ├── repositories/       Firestore / Storage アクセス
+        ├── types/              Firestore エンティティの型
+        ├── hooks/              useAuth / useMyRens / useAdminRens
+        ├── theme/              colors.ts
+        └── features/           pose（姿勢推定）/ rules（Rule Engine）/ analysis / style
 ```
 
 アプリ本体がサブディレクトリ `Ren-kei_procon/` にある点に注意してください。ルート直下は Firebase の設定とドキュメント用です。
@@ -81,12 +99,19 @@ Ren-kei_procon/
 ```bash
 cd Ren-kei_procon
 npm install
-npx expo start
+npm run web          # ★ リアルタイム判定が動くのはこの Web 版だけ
 ```
 
-表示された QR コードを Expo Go で読み取るか、`i`（iOS Simulator）/ `a`（Android Emulator）/ `w`（Web）を押します。
+**AI 解析①（リアルタイム判定）を使うときは必ず Web 版で起動してください。** ネイティブ（Expo Go）では姿勢推定が `POSE_NOT_SUPPORTED` になり、画面に案内が出ます。
 
-> ⚠️ アプリの `package.json` に `scripts` と `main` が定義されていないため `npm start` は使えません。`npx expo start` を直接実行してください（[B-11](docs/status/gap-analysis.md#6-実装上の既知の不具合)）。
+```bash
+npm start            # ネイティブ（Expo Go）。連機能や交流広場の確認用
+npm run web:tunnel   # スマートフォンのブラウザで試す（HTTPS が必要なため ngrok 経由）
+npm test             # Rule Engine・正規化・リズム判定のユニットテスト
+npx tsc --noEmit     # 型チェック（コミット前に必須）
+```
+
+> ⚠️ **スマートフォンで試すときは HTTPS が必須です。** `getUserMedia` が Secure Context を要求するため、`http://<LAN IP>:8081` ではカメラが開きません。`npm run web:tunnel` を使ってください。端末の fps を測るときは URL に `?poseModel=lite` / `?poseDelegate=CPU` を付けると、ビルドし直さずに切り替えられます。
 
 ### Cloud Functions
 
@@ -94,8 +119,17 @@ npx expo start
 cd functions
 npm install
 npm run build
-npm run serve      # Emulator で起動
-npm run deploy     # デプロイ
+npm test                # ユニットテスト（スコア計算・エンコーダ・ガード）
+npm run serve           # Emulator で起動
+npm run verify:emulator # FN-01/02/07/08/09 を Emulator で通しで検証（Java が必要）
+npm run seed:rules      # analysisRules の初期値を投入（本番へ投入する場合は承認が必要）
+npm run deploy          # デプロイ
+```
+
+### Security Rules のテスト
+
+```bash
+npm run test:rules   # リポジトリルートで実行（Emulator を自動起動）
 ```
 
 ### Security Rules のデプロイ
@@ -106,19 +140,19 @@ firebase deploy --only firestore:rules,storage
 
 ## ⚠️ 開発前に知っておくべきこと
 
-着手前に [docs/status/gap-analysis.md](docs/status/gap-analysis.md) を一読してください。特に次の 2 点は影響が大きいです。
+着手前に [docs/status/gap-analysis.md](docs/status/gap-analysis.md) を一読してください。**2026-09-11 時点で挙げていた 3 点（Storage Rules の全開放・5 画面のナビゲータ未登録・乱数の AI 採点）はすべて解消済みです。** 現在効いてくるのは次の 3 点です。
 
-### 1. Storage Rules が全開放されています — [#50](../../issues/50)
+### 1. リアルタイム判定はブラウザでのみ動きます
 
-`storage.rules` が現在 `allow read, write: if true` になっており、**未認証の第三者が動画をアップロード・上書き・削除できます**。アプリを誰かに触らせる前に対処してください（暫定対処は [#50](../../issues/50)、本格実装は [#40](../../issues/40)、修正案は [docs/design/security-rules.md](docs/design/security-rules.md)）。
+姿勢推定は `PoseDetector.web.ts`（MediaPipe Tasks、WASM）にしかありません。ネイティブ側の `PoseDetector.ts` は `POSE_NOT_SUPPORTED` を返すスタブです。**2026-09-15 の決定で、スマートフォンでも Web 実装を使い、ネイティブアプリは作りません**（[docs/design/ai-basic-motion.md](docs/design/ai-basic-motion.md) 3章）。
 
-### 2. 5 つの画面がナビゲータに未登録です — [#51](../../issues/51)
+### 2. 判定閾値はすべて暫定値です — [#100](../../issues/100)
 
-`Camera` / `Result` / `Request` / `UserProfile` / `Chat` の 5 画面は `AppNavigator.tsx` に登録されていないのに `navigate()` されており、**遷移するとアプリが落ちます**。AI 機能の開発では `Camera` / `Result` を使うため、先に修正が必要です。
+`Ren-kei_procon/src/features/rules/defaultRules.json` の値は設計上の初期値で、**連の指導者による妥当性確認は未実施**です（TBD-02）。Firestore の `analysisRules` から差し替えられるので、**閾値を変えるのにアプリの改修は要りません**。スコアを「較正済み」として提示しないでください。
 
-### 3. AI 採点のスコア表示はモックです — [#58](../../issues/58)
+### 3. スコアはクライアントの集計値を信頼しています — [#102](../../issues/102)
 
-実際には解析していないランダム値を「AI ○○点」と表示しています。デモや発表で実在しない採点結果を提示しないよう注意してください。
+`finalizeBasicAnalysis` は `totalScore` をクライアントが送る `metrics` から計算し、内部整合性しか検証していません。**偽装した集計値を送れば満点を取得できます。** 開発段階では許容していますが（[docs/rules/safety.md](docs/rules/safety.md) 0章）、**一般公開前には必須の対応**です。
 
 ## ドキュメント
 
@@ -191,23 +225,23 @@ firebase deploy --only firestore:rules,storage
 
 ### イシューとマイルストーン
 
-未実装機能はエピック 8 件 + 子イシュー 36 件（#5〜#48）に分解して管理しています。加えて既知の不具合・技術的負債を 10 件（#50〜#59）起票しています。
+機能はエピック 8 件 + 子イシュー 36 件（#5〜#48）に分解して管理しています。加えて既知の不具合・技術的負債（#50〜#59）と、実装後に判明した課題（#91 / #93 / #94 / #100 / #101 / #102）があります。**子イシュー計 52 件のうち 40 件が完了（2026-09-15）。**
 
-| マイルストーン | 完了条件 |
-| --- | --- |
-| Prototype 1 | 1 つの基本動作がリアルタイムで安定判定され、プロトタイプ動画同等のフィードバックが出る |
-| Prototype 2 | 複数ルールを同時/順次判定でき、誤判定を調整できる |
-| Prototype 3 | 練習履歴が保存され、成長推移を表示できる |
-| Prototype 4 | 最低 2〜3 連で類似度ランキングを表示できる |
-| MVP Community | 解析動画を安全に公開し交流できる |
-| MVP Ren | 参加申請から所属表示まで一連で動作する |
+| マイルストーン | 完了条件 | 状況 |
+| --- | --- | --- |
+| Prototype 1 | 1 つの基本動作がリアルタイムで安定判定され、プロトタイプ動画同等のフィードバックが出る | ✅ 完了 |
+| Prototype 2 | 複数ルールを同時/順次判定でき、誤判定を調整できる | ✅ 完了 |
+| Prototype 3 | 練習履歴が保存され、成長推移を表示できる | 🔶 成長曲線（[#37](../../issues/37)）と動画一覧（[#38](../../issues/38)）が残り |
+| Prototype 4 | 最低 2〜3 連で類似度ランキングを表示できる | 🔶 実装完了・**実データ検証（[#101](../../issues/101)）が残り** |
+| MVP Community | 解析動画を安全に公開し交流できる | 🔶 実装はほぼ完了。本番反映の確認と [#102](../../issues/102) が残り |
+| MVP Ren | 参加申請から所属表示まで一連で動作する | 🔶 連・連管理者は完了。**通知（[#43](../../issues/43)〜[#45](../../issues/45)）が残り** |
 
 エピック（親イシュー）から着手すると、子イシューの推奨順序と依存関係が確認できます。
 
-- [#5 AI解析① 基本動作トレーニング](../../issues/5)
-- [#6 AI解析② 連スタイル類似度判定](../../issues/6)
-- [#7 連(Ren)機能](../../issues/7)
-- [#8 連管理者機能 R-01〜R-08](../../issues/8)
+- [#5 AI解析① 基本動作トレーニング](../../issues/5) — 実装完了・実地検証待ち
+- [#6 AI解析② 連スタイル類似度判定](../../issues/6) — 実装完了・実地検証待ち
+- [#7 連(Ren)機能](../../issues/7) — ✅ 完了
+- [#8 連管理者機能 R-01〜R-08](../../issues/8) — 子イシューは全件完了
 - [#9 成長記録・成長曲線](../../issues/9)
 - [#10 ロール・権限モデルと Security Rules 整備](../../issues/10)
 - [#11 通知機能](../../issues/11)

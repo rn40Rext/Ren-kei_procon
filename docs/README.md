@@ -110,8 +110,7 @@ Word 原本 `Ren-Kei_システム仕様書_基本設計書_v0.3.docx` を章ご�
 
 | ファイル | 状態 |
 | --- | --- |
-| [api/api.design.md](api/api.design.md) | 「投稿API」の初期メモ。実装は現在クライアント直接書き込みで、この設計とは乖離している |
-| `api/aip_list` | 空ファイル |
+| [api/api.design.md](api/api.design.md) | 「投稿API」の初期検討メモ（2026 年 7 月）。**現行設計ではない**旨の注記付きで経緯の記録として残している。現在の API 定義は [design/api-functions.md](design/api-functions.md) |
 
 ## 文書の更新ルール
 

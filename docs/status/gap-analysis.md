@@ -36,12 +36,12 @@
 | 交流広場（COMM-01〜05） | 投稿・詳細・コメント・いいね | ✅ 動作する。U-03 からの投稿は `videos` と紐付き、スコアが載る | ■■■■■ 95% |
 | 連機能（REN-01〜03 / U-07・U-08） | 検索・参加申請・マイ連 | ✅ 連詳細・参加リクエスト・マイ連が動作 | ■■■■■ 100% |
 | 連管理者（R-01〜R-08） | 8 画面 | ✅ **R-01〜R-08 すべて実装済み**（[#30](../../../issues/30) / [#31](../../../issues/31) で完了） | ■■■■■ 100% |
-| Security Rules（10章） | コレクション別 CRUD 制御 | ✅ 包括版を実装、**Rules Unit Test 50 件が通る（skip 0）**。本番反映は未確認 | ■■■■□ 90% |
+| Security Rules（10章） | コレクション別 CRUD 制御 | ✅ 包括版を実装、**Rules Unit Test 59 件が通る（skip 0）**。本番反映は未確認 | ■■■■□ 90% |
 | Cloud Functions（FN-01〜09） | 7 関数 + 追加 2 | ✅ FN-01/02/03（縮小版）/04/05/06/07/08/09 とトリガ 5 本 | ■■■■□ 90% |
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ✅ **Web 版**でリアルタイム判定（RULE-01〜07）・LIVE SCORE・FN-01 でスコア確定・履歴保存。ネイティブは未対応（TBD-01 方式 A）。**閾値は暫定・実地検証未実施** | ■■■■□ 80% |
 | スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ✅ バックエンドと UI。姿勢系列は AI① が生成。**実データ検証（8.6 の 1・6・7）が未実施のため「検証中・参考値」表示** | ■■■■□ 75% |
 | 成長記録（HIST-01） | GrowthRecords + 成長曲線 | 🔶 `growthRecords` は FN-01 が作成。U-10 のグラフ画面は未実装、`VideoListScreen` はスタブ | ■■□□□ 40% |
-| 通知（NOTI-01） | Notifications | 🔶 **生成側のみ**。お知らせ配信・参加承認/却下・コメントの 3 経路が `notifications` を書くが、**一覧 UI が無く誰も見られない**（[#44](../../../issues/44)） | ■□□□□ 30% |
+| 通知（NOTI-01） | Notifications | 🔶 **生成側は完了**（[#43](../../../issues/43)）。お知らせ配信・参加承認/却下・指導者コメントの 3 経路が `notifications` を書き、Rules テスト 9 件で保護を確認済み。**一覧 UI が無く誰も見られない**（[#44](../../../issues/44)） | ■■□□□ 40% |
 
 ## 2. 機能 ID 別の詳細
 
@@ -73,7 +73,7 @@
 | R-07 | お知らせ管理 | ✅ | `ManageAnnouncementsScreen.tsx` + `createAnnouncement` |
 | R-08 | 活動情報管理 | ✅ | `ManageActivitiesScreen.tsx` |
 | HIST-01 | 成長曲線 | 🔶 | `growthRecords` は FN-01 が作成済み。**U-10 のグラフ画面（[#37](../../../issues/37)）と `VideoListScreen`（[#38](../../../issues/38)、19 行のスタブ）が未実装** |
-| NOTI-01 | 通知 | 🔶 | `createAnnouncement` / `updateJoinRequestStatus` / `onCommentWrite` が `users/{uid}/notifications` を書く。**一覧 UI と既読管理（[#44](../../../issues/44)）が無い** |
+| NOTI-01 | 通知 | 🔶 | `createAnnouncement`（バッチ分割で 500 件超に対応）/ `updateJoinRequestStatus` / `onCommentWrite` が `users/{uid}/notifications` を書く。自己通知は抑制。作成はクライアント不可・更新は `read` のみを Rules テストで確認済み（[#43](../../../issues/43) 完了）。**一覧 UI と既読管理（[#44](../../../issues/44)）が無い** |
 
 ## 3. データモデルの差分
 
@@ -93,7 +93,7 @@
 | RenActivities | ✅ `ren/{renId}/activities` | — |
 | AnalysisResults | ✅ `analysisResults/{uid}_{clientRequestId}` | FN-01 のみが書く。`posts.score` はここからの非正規化コピー（乱数モックは廃止） |
 | GrowthRecord(s) | ✅ `users/{uid}/growthRecords/{analysisId}` | FN-01 が作成。表示（U-10）は未実装 |
-| Notifications | 🔶 `users/{uid}/notifications/{id}` | Functions の 3 経路が作成する。read は本人のみ、`read` フィールドの更新のみ許可。**表示する画面が無い**（[#44](../../../issues/44)） |
+| Notifications | ✅ `users/{uid}/notifications/{id}` | Functions の 3 経路が作成する。read は本人のみ、`read` フィールドの更新のみ許可（Rules テスト 9 件）。**表示する画面が無い**（[#44](../../../issues/44)） |
 | RenStyleReferences / RenStyleProfiles / StyleAnalysisResults | ✅ | FN-08 / FN-07 / FN-02 が書く |
 | AnalysisRules | ✅ `analysisRules/{ruleId}` | read 専用。`functions npm run seed:rules` で投入 |
 | （仕様書外） | ➕ `chats/{chatId}/messages` | 仕様書に存在しない 1 対 1 チャット。Rules は当事者 2 人のみに制限済み |
@@ -147,7 +147,6 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 
 | # | 内容 | 状態 |
 | --- | --- | --- |
-| B-9 | `docs/api/aip_list` が空ファイル。`docs/api/api.design.md` が現行設計と乖離 | 未対応（[#59](../../../issues/59)） |
 | B-12 | `useNavigation<any>()` が **13 箇所**残っている。[coding.md](../rules/coding.md) 2 章違反 | 未対応。該当箇所に TODO コメントあり |
 | B-13 | `useAuth()` は追加されたが、**使っているのは 2 画面だけで、10 ファイルが `auth.currentUser` を直接参照している**（22 箇所） | 一部対応。イシュー未作成 |
 | B-14 | `src/theme/colors.ts` は追加されたが、**12 画面がローカルに `COLORS` を定義したまま** | 一部対応。イシュー未作成 |
@@ -164,6 +163,7 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 - ✅ B-10 `.gitignore` のコンフリクト残骸（[#52](../../../issues/52)）
 - ✅ B-11 `package.json` の `scripts` / `main` 欠落（[#54](../../../issues/54)）
 - ✅ 画面からの Firestore 直接呼び出し → `src/repositories/` へ集約（[#91](../../../issues/91)）
+- ✅ B-9 `docs/api/` の旧メモ → 空ファイルを削除し、`api.design.md` に「初期検討メモ・現行設計は `design/api-functions.md`」の注記を追加（[#59](../../../issues/59)）
 
 ## 7. 仕様書と実装で解釈が分かれている点
 
@@ -178,6 +178,7 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | いいねの持ち方 | Likes Entity | `posts/{id}/likes/{uid}` | ✅ 解消済み |
 | 所属連の持ち方 | `Users.ren` と RenMembers が併存（TBD-11） | RenMembers に一本化 | ✅ 決定済み（[data-model.md](../design/data-model.md)） |
 | コメント種別 | `normal` / `instructor` | 同じ | ✅ 解消済み。権限検証も実装済み（[#31](../../../issues/31)） |
+| コメント通知の対象 | [#43](../../../issues/43) の表では「投稿にコメントが付いた → 投稿者」 | **`type: 'instructor'`（師匠の教え）のコメントのみ通知する。** 一般コメント（`normal`）では通知しない | 通知過多を避ける実装側の判断と考えられます。**一般コメントでも通知するかはチームで確認してください** |
 | 1 対 1 チャット | 記載なし | 実装済み。Rules で当事者のみに制限 | **プロトタイプ限定機能として残す**。v0.4 で正式化を判断（N-1） |
 | お知らせ・活動情報の公開対象 | TBD-15 | ログイン済みなら誰でも read できる | ✅ **現状維持で決定**（[#34](../../../issues/34)）。将来メンバー限定メッセージ機能を別途検討 |
 | 連アイコンの更新経路 | 記載なし | Storage Cross-Service Rules が本番で不安定だったため、Cloud Functions（Admin SDK）経由に変更 | 実装側の判断。[storage.rules](../../storage.rules) にコメントとして記録済み |
@@ -198,6 +199,6 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | アプリ型チェック | `npx tsc --noEmit` | ✅ エラーなし |
 | Rule Engine 等 | `npm test`（アプリ） | ✅ 44 pass / 0 fail |
 | Cloud Functions | `npm test`（functions） | ✅ 24 pass / 0 fail |
-| Security Rules | `tests/rules`（Emulator） | ✅ 50 pass / 0 fail / skip 0 |
+| Security Rules | `tests/rules`（Emulator） | ✅ **59 pass / 0 fail / skip 0**（通知の 9 件を追加） |
 
 優先順位とマイルストーンは [roadmap.md](roadmap.md) を参照してください。

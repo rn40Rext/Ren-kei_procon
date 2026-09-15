@@ -32,6 +32,17 @@
         "demo-renkei"
       ],
       "port": 4000
+    },
+    {
+      "name": "expo-web-tunnel",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "Ren-kei_procon",
+        "run",
+        "web:tunnel"
+      ],
+      "port": 8081
     }
   ]
 }

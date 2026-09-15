@@ -12,7 +12,7 @@ This is the repository for **Ren-Kei**, an Awa Odori practice support app. This 
 
 | # | Detail |
 | --- | --- |
-| 1 | **Real-time pose judgement runs only on Expo Web** (`npx expo start --web`). MediaPipe Tasks (WASM) is loaded in `src/features/pose/PoseDetector.web.ts`; on iOS/Android `PoseDetector.ts` is a stub and `CameraScreen` shows a notice (TBD-01, [docs/design/ai-basic-motion.md ch. 3](docs/design/ai-basic-motion.md)) |
+| 1 | **Real-time pose judgement runs on the Web build only — on phones too** (`npx expo start --web`). A native implementation will not be built (decided 2026-09-15, [docs/design/ai-basic-motion.md ch. 3](docs/design/ai-basic-motion.md)); `PoseDetector.ts` stays a stub that returns `POSE_NOT_SUPPORTED`. On a phone the page **must be served over HTTPS** or `getUserMedia` refuses — use `npm run web:tunnel` |
 | 2 | **All Rule Engine thresholds are provisional** (`Ren-kei_procon/src/features/rules/defaultRules.json`, overridable from Firestore `analysisRules`). They have not been validated against instructor judgement (TBD-02). Do not present the scores as calibrated |
 | 3 | The `Math.random()` "AI score" is gone ([#58](../../issues/58)). `posts.score` is either a copy of `analysisResults.totalScore` (server-computed by FN-01) or absent — the UI shows 「未採点」. Never reintroduce a fake score |
 
@@ -37,7 +37,8 @@ This is the repository for **Ren-Kei**, an Awa Odori practice support app. This 
 cd Ren-kei_procon
 npm install
 npx expo start          # native (Expo Go). Real-time pose judgement is NOT available here
-npx expo start --web    # Expo Web — the only platform with real-time pose judgement (TBD-01)
+npx expo start --web    # Expo Web — the only platform with real-time pose judgement (PC and phone alike)
+npm run web:tunnel      # Same, exposed over HTTPS (ngrok). Required to test on a phone: getUserMedia needs a Secure Context
 npx tsc --noEmit        # Type check. Required before committing
 npm test                # Rule Engine / normalisation / rhythm unit tests (node --test + tsx, fixtures in src/features/rules/__fixtures__)
 npm run fixtures        # Regenerate the synthetic pose fixtures after editing __fixtures__/synth.ts

@@ -47,13 +47,28 @@ analysisResults + growthRecords
 
 ## 3. 姿勢推定の組み込み（TBD-01 → 決定済み）
 
-**決定（2026-09-13、[#13](../../../issues/13)）: Prototype 1 は方式 B' = Expo Web + MediaPipe Tasks Vision（`@mediapipe/tasks-vision` 1.0.1、WASM + WebGL）で実装する。** WebView ではなく、アプリ自体を Expo Web（`react-native-web`）で動かし、`<video>` 要素を Pose Landmarker に直接渡す。ネイティブ（iOS / Android）は方式 A（`react-native-vision-camera` + ネイティブ MediaPipe）を後続とし、現状は `PoseDetector.ts` のスタブが `POSE_NOT_SUPPORTED` を返す。
+**決定（2026-09-13、[#13](../../../issues/13)）: 方式 B' = Expo Web + MediaPipe Tasks Vision（`@mediapipe/tasks-vision` 1.0.1、WASM + WebGL）で実装する。** WebView ではなく、アプリ自体を Expo Web（`react-native-web`）で動かし、`<video>` 要素を Pose Landmarker に直接渡す。
+
+**追加決定（2026-09-15）: スマートフォンでも Web 標準で動かす。ネイティブアプリ（方式 A）は作らない。**
+
+PC・スマートフォンとも同じ Web 実装を使います。ネイティブ実装（`react-native-vision-camera` + ネイティブ MediaPipe）は着手しません。`PoseDetector.ts`（ネイティブ側）は `POSE_NOT_SUPPORTED` を返すスタブのまま残します（Expo Go で誤って開いたときに黙って壊れないようにするため）。
 
 採用理由:
 
-1. アプリはすでに Web で動く（`react-native-web` / `expo start --web`）ため、ネイティブビルドも Dev Client も要らず、デモをノート PC で投影できる。
+1. アプリはすでに Web で動く（`react-native-web` / `expo start --web`）ため、ネイティブビルドも Dev Client も要らない。
 2. 計測で目標（10fps 以上・遅延 300ms 以内）を大きく上回った（下表）。
-3. Web 実装（`PoseDetector.web.ts`）とネイティブ実装は同じ `PoseDetector` インタフェースで差し替えられる。
+3. **実装が 1 本で済む。** ネイティブを足すと姿勢推定・描画・録画の 3 箇所が二重になり、閾値の校正も環境ごとに必要になる。
+4. iOS のネイティブ配布には Apple Developer Program（年 $99）と Mac が要るが、Web ならどちらも不要。
+
+### スマートフォンで動かす条件
+
+| 項目 | 内容 |
+| --- | --- |
+| **HTTPS 必須** | `getUserMedia` は Secure Context を要求する。`http://<LAN IP>:8081` では **カメラが開かない**。開発時は `npm run web:tunnel`（ngrok 経由の HTTPS）、配布時は HTTPS ホスティングを使う |
+| 端末での実測 | **未実施**。下表の計測は Apple Silicon Mac の値で、スマートフォンでは落ちる。`?poseModel=lite` / `?poseDelegate=CPU` で切り替えて実測する（`PoseDetector.web.ts`） |
+| 実行時の取得 | WASM を CDN、モデルを Google のモデルストレージから実行時に取得している。**会場の回線に依存する**ため、デモ前にセルフホストへ移すこと（未対応） |
+
+> **「アプリらしく見せる」には PWA 化**（ホーム画面に追加してアドレスバーを消す）が最小コストの手段です。Expo Go に WebView を入れて包む案も検討しましたが、Expo Go のランチャーを必ず経由するため体験がむしろ悪く、採用しませんでした。
 
 ### 計測結果（受け入れ条件「10fps 以上・300ms 以内」）
 
@@ -456,7 +471,7 @@ totalScore = mean([handHeightScore, hipHeightScore, stopScore, rhythmScore].filt
 
 **採点だけ失敗したときの扱い（2026-09-14）**: 動画と姿勢系列を Storage へ置いた後に FN-01 が失敗しても、判定内容を失わないよう payload を保持し「採点をやり直す」で FN-01 だけを呼び直します（`clientRequestId` が同じなので二重に結果は作られません）。Functions へ到達できなかった場合（未デプロイ・オフライン）はブラウザからは CORS エラーに見えるため、`features/analysis/errorMessages.ts` で「採点サーバに接続できませんでした」に変換します。開発時のみ接続先（エミュレータ / 本番）を画面に表示します。
 
-ネイティブ（iOS / Android）では `PoseCameraView.tsx` がプレビューと「Web 版で利用できます」の案内だけを出す（TBD-01 の方式 A が未着手のため）。
+ネイティブ（iOS / Android の Expo Go / ビルド）では `PoseCameraView.tsx` がプレビューと「Web 版で利用できます」の案内だけを出す。**スマートフォンでも Web 標準で動かす方針のため、ここを実装する予定はありません**（3 章の追加決定）。
 
 ### U-03 解析結果（[ResultScreen](../../Ren-kei_procon/src/screens/ResultScreen.tsx)）
 
@@ -520,7 +535,8 @@ TBD-07（練習動画を常に保存するか）は**暫定的に「常に保存
 ### 12.3 残課題
 
 - **閾値の確定（TBD-02、[#100](../../../issues/100)）**: 既定値はすべて暫定。指導者が OK / NG を付けた動画の姿勢系列を `cd Ren-kei_procon && npm run calibrate -- --dir <dir> --labels labels.csv --out suggested.json` に流すと、アプリと同じ Rule Engine で判定した結果と、OK / NG 群を最もよく分ける閾値の候補（Youden の J）が出る（`src/features/rules/tools/calibrate.ts`）。`renkei_project_10/calibrate.py` の実測と `analysisResults.rawMetrics` も材料にし、採用は指導者と相談して `analysisRules` を更新する。
-- **ネイティブ対応（方式 A）**: `PoseDetector` のネイティブ実装。Rule Engine 側は変更不要。
+- ~~**ネイティブ対応（方式 A）**~~: **やらないと決定**（3 章）。代わりにスマートフォンの実機で Web 版の fps を実測することが残課題。
+- **WASM・モデルのセルフホスト**: 現在 CDN と Google のモデルストレージから実行時に取得しており、会場の回線と外部サービスに依存する。デモ前に自分のホスティングへ移す。
 - **サーバ側の再解析**: 現状は FN-01 がクライアントの集計値を信頼する（docs/design/api-functions.md の注記どおり）。`renkei_project_10/` を Cloud Run に載せ、保存した動画 / 姿勢系列から 8 軸を再採点して `analysisResults` に添える案がある（TBD-12 と合わせて判断）。
 - **項目重み（TBD-05）**: 単純平均のまま。指導者評価との比較後に確定。
 - **Game Score の点数（TBD-06）**: 暫定値（GREAT 100 / GOOD 60 / MISS 0 / 5 コンボごとに倍率 +1）。UX テスト後に確定。

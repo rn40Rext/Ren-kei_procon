@@ -28,3 +28,14 @@ Run `npm test` before committing; it needs no device. `npm run fixtures` regener
 
 Thresholds are provisional (TBD-02). Change them in `defaultRules.json` **and** document the change in `docs/design/ai-basic-motion.md` ch. 6; production values live in Firestore `analysisRules`.
 
+# Running on a phone
+
+The Web build is the only place real-time pose judgement runs — on phones as well as PCs
+(decided 2026-09-15, `docs/design/ai-basic-motion.md` ch. 3). There is no native path.
+
+- `getUserMedia` needs a **Secure Context**. A LAN address (`http://192.168.x.x:8081`) will not
+  open the camera. Use `npm run web:tunnel` (ngrok HTTPS) or deploy to an HTTPS host.
+- Phone performance is **unmeasured**. Override the model without rebuilding:
+  `?poseModel=lite|full|heavy` and `?poseDelegate=CPU|GPU` (`PoseDetector.web.ts`).
+- `?demoVideo=<url>` feeds a video file instead of the camera (demo fallback / verification).
+

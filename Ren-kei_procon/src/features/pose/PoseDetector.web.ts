@@ -44,6 +44,25 @@ const MODEL_URLS: Record<PoseModelVariant, string> = {
   heavy: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task",
 };
 
+/**
+ * 検証用のモデル上書き。URL に ?poseModel=lite|full|heavy を付けると切り替わる。
+ *
+ * スマホのブラウザでは full/GPU が重い可能性があり、実機で fps を比べたいときに
+ * ビルドし直さずに試せるようにしておく。指定が無ければ呼び出し側の既定(full)。
+ */
+function modelFromQuery(): PoseModelVariant | null {
+  if (typeof location === "undefined") return null;
+  const v = new URLSearchParams(location.search).get("poseModel");
+  return v === "lite" || v === "full" || v === "heavy" ? v : null;
+}
+
+/** 同様に ?poseDelegate=CPU|GPU で推論先を切り替える(端末によっては CPU が速い)。 */
+function delegateFromQuery(): "CPU" | "GPU" | null {
+  if (typeof location === "undefined") return null;
+  const v = new URLSearchParams(location.search).get("poseDelegate");
+  return v === "CPU" || v === "GPU" ? v : null;
+}
+
 class WebPoseDetector implements PoseDetector {
   private landmarker: PoseLandmarkerType | null = null;
   private lastTs = -1;
@@ -57,8 +76,8 @@ class WebPoseDetector implements PoseDetector {
     const fileset = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
     this.landmarker = await vision.PoseLandmarker.createFromOptions(fileset, {
       baseOptions: {
-        modelAssetPath: MODEL_URLS[this.options.model ?? "full"],
-        delegate: this.options.delegate ?? "GPU",
+        modelAssetPath: MODEL_URLS[modelFromQuery() ?? this.options.model ?? "full"],
+        delegate: delegateFromQuery() ?? this.options.delegate ?? "GPU",
       },
       runningMode: "VIDEO",
       numPoses: this.options.numPoses ?? 2,

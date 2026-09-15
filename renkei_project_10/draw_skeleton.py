@@ -5,10 +5,16 @@
 一方、画面に出す膝角度は採点と同じワールド座標から計算する（数字の整合性のため）。
 
 実行（renkei_project 直下で）:
-    python draw_skeleton.py
-実行後、OUTPUT_PATH の動画を再生して関節が正しく乗っているか確認する。
+    python draw_skeleton.py 踊りの動画.MOV [-o 出力.mp4] [--model モデル.task]
+実行後、出力した動画を再生して関節が正しく乗っているか確認する。
+
+数値が良くても骨格が別人や別の手足に乗っていることがあるので、
+基準値を作る前に必ずこれで目視確認する。
 """
 from __future__ import annotations
+
+import argparse
+import os
 
 import cv2
 import numpy as np
@@ -16,10 +22,8 @@ import mediapipe as mp
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision
 
-# ---- パス（自分の環境に合わせて）----------------------------------------
-VIDEO_PATH = r"C:\Users\micch\procon\video\test.MOV"
-MODEL_PATH = r"C:\Users\micch\procon\pose_landmarker_full.task"
-OUTPUT_PATH = r"C:\Users\micch\procon\video\test_skeleton.mp4"
+# ---- パス（score_video.py と同じ規約。環境変数 RENKEI_POSE_MODEL か --model）----
+from score_video import MODEL_PATH
 
 # ---- 色分け（左=水色 / 右=オレンジ / 中央=白）----------------------------
 # 左右を色で分けると「左右が入れ替わって拾われている」ミスに気づきやすい。
@@ -44,9 +48,28 @@ def angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
     return float(np.degrees(np.arccos(np.clip(cos, -1.0, 1.0))))
 
 
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description="骨格を動画に重ねて目視確認する")
+    p.add_argument("video", help="入力動画")
+    p.add_argument("-o", "--output", help="出力 mp4。既定は <入力名>_skeleton.mp4")
+    p.add_argument("--model", default=MODEL_PATH, help="姿勢推定モデル(.task)")
+    p.add_argument("--crop", nargs=4, type=float, metavar=("X0", "X1", "Y0", "Y1"),
+                   help="切り出し範囲(0..1)。他の人が映り込む場合に使う")
+    return p
+
+
 def main() -> None:
+    args = build_parser().parse_args()
+    VIDEO_PATH = args.video
+    MODEL_PATH_ = args.model
+    OUTPUT_PATH = args.output or os.path.splitext(args.video)[0] + "_skeleton.mp4"
+    if not os.path.isfile(VIDEO_PATH):
+        raise SystemExit(f"[エラー] 動画が見つかりません: {VIDEO_PATH}")
+    if not os.path.isfile(MODEL_PATH_):
+        raise SystemExit(f"[エラー] モデルが見つかりません: {MODEL_PATH_}"
+                         "（python download_model.py で取得）")
     options = vision.PoseLandmarkerOptions(
-        base_options=mp_python.BaseOptions(model_asset_path=MODEL_PATH),
+        base_options=mp_python.BaseOptions(model_asset_path=MODEL_PATH_),
         running_mode=vision.RunningMode.VIDEO,
         num_poses=1,
         min_pose_detection_confidence=0.5,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { auth } from '../config/firebaseConfig';
-import { subscribeAdminMemberships } from '../repositories/ren';
+import { subscribeAdminMemberships } from '../repositories/renMembership';
 
 export interface AdminRen {
   renId: string;

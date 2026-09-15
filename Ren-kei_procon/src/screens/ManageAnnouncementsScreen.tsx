@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { ChevronLeft, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { subscribeAnnouncements, createAnnouncement } from '../repositories/ren';
+import { subscribeAnnouncements, createAnnouncement } from '../repositories/renAnnouncements';
 import { Announcement } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
 

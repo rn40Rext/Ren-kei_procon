@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { auth } from '../config/firebaseConfig';
-import { subscribeMyMemberships } from '../repositories/ren';
+import { subscribeMyMemberships } from '../repositories/renMembership';
 import { RenMemberRole } from '../types/firestore';
 
 // docs/design/data-model.md 3.8章

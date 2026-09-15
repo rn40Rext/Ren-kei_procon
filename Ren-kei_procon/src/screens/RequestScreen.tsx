@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { Search, Users, MapPin, ChevronRight, X } from 'lucide-react-native';
 import { auth } from '../config/firebaseConfig';
-import { subscribeRens, fetchRenMember } from '../repositories/ren';
+import { subscribeRens } from '../repositories/renProfile';
+import { fetchRenMember } from '../repositories/renMembership';
 import {
   subscribeMyJoinRequests,
   submitJoinRequest,

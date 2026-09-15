@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Act
 import { ChevronLeft, ChevronRight, Shield, User as UserIcon } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { auth } from '../config/firebaseConfig';
-import { subscribeActiveMembers, updateMemberRole, removeMember } from '../repositories/ren';
+import { subscribeActiveMembers, updateMemberRole, removeMember } from '../repositories/renMembership';
 import { fetchUserProfile } from '../repositories/users';
 import { RenMember } from '../types/firestore';
 import BottomNav from '../components/BottomNav';

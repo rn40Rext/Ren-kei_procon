@@ -182,6 +182,7 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | 1 対 1 チャット | 記載なし | 実装済み。Rules で当事者のみに制限 | **プロトタイプ限定機能として残す**。v0.4 で正式化を判断（N-1） |
 | お知らせ・活動情報の公開対象 | TBD-15 | ログイン済みなら誰でも read できる | ✅ **現状維持で決定**（[#34](../../../issues/34)）。将来メンバー限定メッセージ機能を別途検討 |
 | 連アイコンの更新経路 | 記載なし | Storage Cross-Service Rules が本番で不安定だったため、Cloud Functions（Admin SDK）経由に変更 | 実装側の判断。[storage.rules](../../storage.rules) にコメントとして記録済み |
+| 通知タップ時の遷移先の精度（#44） | type:'announcement'はannouncementIdからマイ連お知らせへ遷移（issueの参照マッピング表） | announcementIdから所属連(renId)を単独で引く手段が無い（`announcements`ドキュメントにrenIdを持たせていない）ため、マイ連一覧（連未選択）へ遷移するに留めている。comment/join_resultは referenceId から正確に遷移先を解決できている | 実装側のスコープ判断。精度を上げるなら`announcements`ドキュメントに`renId`を非正規化するか、通知に`renId`を追加する形の再設計が必要 |
 
 ## 8. 次のアクション
 

@@ -17,6 +17,7 @@ import {
   subscribePosts,
   subscribePostComments,
   addPostComment,
+  fetchPost,
   likePost,
   uploadPostVideo,
   publishPost,
@@ -34,6 +35,8 @@ export default function CommunityScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'Community'>>();
   // U-03(解析結果)から「コミュニティへ投稿」で来た場合の練習動画
   const shareVideoId = route.params?.shareVideoId;
+  // 通知(type:'comment')タップで来た場合、直接開く投稿(#44)
+  const openPostId = route.params?.openPostId;
   const [shareVideoUrl, setShareVideoUrl] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +86,28 @@ export default function CommunityScreen() {
     })();
     return () => { cancelled = true; };
   }, [shareVideoId]);
+
+  // 通知タップで来たとき、該当投稿の詳細を直接開く。削除済みなら開かず
+  // アラートのみ出す(通知一覧側でも遷移前にフォールバックしているが、
+  // それとは別経路でこの画面へ直接来た場合にも同じ挙動にする)。
+  useEffect(() => {
+    if (!openPostId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const post = await fetchPost(openPostId);
+        if (cancelled) return;
+        if (post) {
+          setSelectedPost(post);
+        } else {
+          Alert.alert('投稿が見つかりません', 'この投稿は削除された可能性があります');
+        }
+      } catch (e) {
+        console.error('通知からの投稿取得に失敗しました', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [openPostId]);
 
   const pickVideo = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsEditing: true, quality: 0.7 });

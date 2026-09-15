@@ -118,6 +118,21 @@ export interface JoinRequest {
   createdAt?: FirestoreDate;
 }
 
+export type NotificationType = 'comment' | 'join_result' | 'announcement';
+
+// docs/design/data-model.md 3.13章(仕様書9.3 Notifications)。
+// referenceIdはtypeに応じてpostId/requestId/announcementIdのいずれか(#43)。
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  referenceId?: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt?: FirestoreDate;
+}
+
 // 仕様書には無い1対1チャット(プロトタイプ限定機能。gap-analysis 7章のN-1)
 export interface ChatMessage {
   id: string;

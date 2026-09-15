@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   updateDoc,
   onSnapshot,
   query,
@@ -69,6 +70,12 @@ export function subscribePendingJoinRequestCount(
     where('status', '==', 'pending')
   );
   return onSnapshot(q, (snap) => onData(snap.size), onError);
+}
+
+/** 通知(type:'join_result')タップ時、遷移先の連(renId)を特定するために使う。 */
+export async function fetchJoinRequest(requestId: string): Promise<JoinRequest | null> {
+  const snap = await getDoc(doc(db, 'joinRequests', requestId));
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as JoinRequest) : null;
 }
 
 /**

@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Act
 import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone, CalendarDays } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { subscribePendingJoinRequestCount } from '../repositories/joinRequests';
+import { subscribeUnreadNotificationCount } from '../repositories/notifications';
 import { useAdminRens } from '../hooks/useAdminRens';
+import { useAuth } from '../hooks/useAuth';
 import BottomNav from '../components/BottomNav';
 
 const COLORS = {
@@ -15,9 +17,20 @@ const COLORS = {
 
 export default function AdminHomeScreen() {
   const navigation = useNavigation<any>();
+  const { uid } = useAuth();
   const { adminRens, loading } = useAdminRens();
   const [selectedRenId, setSelectedRenId] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    if (!uid) return;
+    return subscribeUnreadNotificationCount(
+      uid,
+      setUnreadNotifications,
+      (error) => console.error('未読通知件数の取得に失敗しました', error)
+    );
+  }, [uid]);
 
   useEffect(() => {
     if (!selectedRenId && adminRens.length > 0) {
@@ -93,12 +106,15 @@ export default function AdminHomeScreen() {
           <ChevronRight size={20} color="#CBD5E1" />
         </TouchableOpacity>
 
-        <View style={styles.pendingCard}>
+        <TouchableOpacity style={styles.pendingCard} onPress={() => navigation.navigate('Notifications')}>
           <View style={styles.pendingRow}>
             <Bell size={18} color={COLORS.textMuted} />
-            <Text style={styles.pendingText}>通知機能は準備中です</Text>
+            <Text style={styles.pendingText}>
+              {unreadNotifications > 0 ? `未読の通知が${unreadNotifications}件あります` : '新しい通知はありません'}
+            </Text>
+            <ChevronRight size={18} color="#CBD5E1" />
           </View>
-        </View>
+        </TouchableOpacity>
 
         <Text style={styles.sectionLabel}>管理メニュー</Text>
         <TouchableOpacity
@@ -164,7 +180,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: COLORS.textMuted, marginTop: 2 },
   pendingCard: { backgroundColor: '#fff', borderRadius: 14, padding: 18, borderWidth: 1, borderColor: COLORS.border, marginBottom: 24 },
   pendingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  pendingText: { marginLeft: 10, fontSize: 13, color: COLORS.textMuted },
+  pendingText: { flex: 1, marginLeft: 10, fontSize: 13, color: COLORS.textMuted },
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
   menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
   menuItemText: { flex: 1, marginLeft: 12, fontSize: 14, fontWeight: 'bold', color: COLORS.textMain },

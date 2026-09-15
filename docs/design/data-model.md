@@ -31,7 +31,7 @@
 | 10 | `ren/{renId}/announcements/{announcementId}` | Announcements | 自動 ID | ❌ 未実装 |
 | 11 | `ren/{renId}/activities/{activityId}` | RenActivities | 自動 ID | ❌ 未実装 |
 | 12 | `joinRequests/{requestId}` | JoinRequests | 自動 ID | ❌ 未実装 |
-| 13 | `users/{uid}/notifications/{notificationId}` | Notifications | 自動 ID | ❌ 未実装 |
+| 13 | `users/{uid}/notifications/{notificationId}` | Notifications | 自動 ID | ✅ 実装済み。生成: `onCommentWrite`（type:'instructor'コメントのみ）/ `updateJoinRequestStatus` / `createAnnouncement`（#43）。一覧UI・既読管理: `NotificationsScreen`（#44） |
 | 14 | `renStyleReferences/{referenceId}` | RenStyleReferences | 自動 ID | ✅ 実装済み（FN-08） |
 | 15 | `renStyleProfiles/{renId}` | RenStyleProfiles | renId | ✅ 実装済み（FN-07） |
 | 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ✅ 実装済み（FN-02） |

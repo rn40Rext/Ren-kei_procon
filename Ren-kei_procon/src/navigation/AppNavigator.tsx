@@ -37,14 +37,10 @@ export type RootStackParamList = {
   ContactInfo: undefined;
   Setting: undefined;
   Group: undefined;
-  Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole" };
-  Result:
-    | {
-        videoUri?: string;
-        danceType?: "male" | "female";
-        scorePart?: "feet" | "hands" | "whole";
-      }
-    | undefined;
+  // U-02 本体。baseBpm はリズム判定の基準テンポ(TBD-04 の暫定: ユーザー選択)
+  Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
+  // U-03 解析結果。FN-01 が確定した analysisResults を表示する
+  Result: { analysisId: string; videoId: string };
   Request: { inviteName?: string; inviteMeta?: string } | undefined;
   UserProfile: { userId: string; userName: string };
   Chat: { chatId: string; recipientName: string };

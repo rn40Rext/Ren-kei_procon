@@ -11,3 +11,4 @@ initializeApp();
 setGlobalOptions({region: "asia-northeast1", maxInstances: 10});
 
 export {publishPost} from "./community/publishPost";
+export {finalizeBasicAnalysis} from "./analysis/finalizeBasicAnalysis";

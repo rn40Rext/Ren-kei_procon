@@ -1,165 +1,206 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+/**
+ * U-03 解析結果。仕様書 5章 U-03 / 7.7、docs/design/ai-basic-motion.md 10章。
+ *
+ * FN-01 がサーバで確定した analysisResults を表示する。
+ * 極め度（Analysis Score・0〜100・履歴用）と LIVE SCORE（練習中の参考値）は
+ * 混同させない表示にする(D-04)。
+ */
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, SafeAreaView } from 'react-native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
-import { KumihimoRule, NarutoLoader, Chochin } from '../components/motifs';
-import RenkeiVideo from '../components/RenkeiVideo';
-import { uploadPracticeVideo, DANCE_TYPE_LABEL, SCORE_PART_LABEL } from '../data/practice';
+import { KumihimoRule, NarutoLoader, Chochin, AwaDivider } from '../components/motifs';
 
-type ResultScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Result'>;
-type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
+type ResultNav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
+type ResultRoute = RouteProp<RootStackParamList, 'Result'>;
 
-type Phase = 'idle' | 'uploading' | 'saved' | 'error';
+const ITEMS: { key: keyof AnalysisResult; label: string; note?: string }[] = [
+  { key: 'handHeightScore', label: '手の高さ' },
+  { key: 'hipHeightScore', label: '腰の低さ' },
+  { key: 'stopScore', label: '手を止める' },
+  { key: 'rhythmScore', label: 'リズム' },
+  { key: 'handPositionScore', label: '手の位置', note: '参考（総合に含まず）' },
+  { key: 'basePostureScore', label: '基本姿勢', note: '参考（総合に含まず）' },
+];
+
+function scoreColor(v: number): string {
+  if (v >= 80) return colors.gold;
+  if (v >= 60) return colors.goldBright;
+  return colors.aka;
+}
 
 export default function ResultScreen() {
-  const navigation = useNavigation<ResultScreenNavigationProp>();
-  const route = useRoute<ResultScreenRouteProp>();
-  const params = route.params ?? {};
-  const videoUri = params.videoUri;
-
-  const [phase, setPhase] = useState<Phase>(videoUri ? 'uploading' : 'idle');
-  const started = useRef(false);
+  const navigation = useNavigation<ResultNav>();
+  const route = useRoute<ResultRoute>();
+  const { analysisId, videoId } = route.params;
+  const [result, setResult] = useState<AnalysisResult | null | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!videoUri || started.current) return;
-    started.current = true;
-    let alive = true;
-    (async () => {
-      try {
-        await uploadPracticeVideo({
-          uri: videoUri,
-          danceType: params.danceType ?? null,
-          scorePart: params.scorePart ?? null,
-        });
-        if (alive) setPhase('saved');
-      } catch {
-        if (alive) setPhase('error');
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [videoUri, params.danceType, params.scorePart]);
+    return subscribeAnalysisResult(analysisId, setResult, (e) => setError(e.message));
+  }, [analysisId]);
 
-  const meta = [
-    params.danceType ? DANCE_TYPE_LABEL[params.danceType] : null,
-    params.scorePart ? SCORE_PART_LABEL[params.scorePart] : null,
-  ]
-    .filter(Boolean)
-    .join('・');
+  if (result === undefined && !error) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <NarutoLoader size={34} color={colors.gold} />
+        <Text style={styles.muted}>結果を読み込んでいます…</Text>
+      </SafeAreaView>
+    );
+  }
+  if (error || result === null) {
+    return (
+      <SafeAreaView style={[styles.container, styles.centered]}>
+        <Text style={styles.errorText}>{error ?? '解析結果が見つかりませんでした'}</Text>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home')}>
+          <Text style={styles.secondaryButtonText}>踊り広場へ戻る</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+  const r = result as AnalysisResult;
+  const items = ITEMS.filter((it) => typeof r[it.key] === 'number');
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.body}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <KumihimoRule width={30} />
+        <Text style={styles.title}>解析結果</Text>
+        <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した0〜100の評価です。</Text>
 
-        {phase === 'uploading' && (
-          <>
-            <Text style={styles.title}>演舞を保存しています…</Text>
-            <NarutoLoader size={34} color={colors.gold} style={{ marginVertical: spacing.lg }} />
-            <Text style={styles.text}>撮影した演舞を非公開で保存しています。</Text>
-          </>
-        )}
+        <View style={styles.totalCard}>
+          <Chochin size={22} lit style={{ marginBottom: spacing.sm }} />
+          <Text style={styles.totalLabel}>{lexicon.aiScore}</Text>
+          <Text style={[styles.totalValue, { color: scoreColor(r.totalScore) }]}>{Math.round(r.totalScore)}</Text>
+          <Text style={styles.totalUnit}>/ 100</Text>
+          <Text style={styles.version}>判定ルール {r.analysisVersion}</Text>
+        </View>
 
-        {phase === 'saved' && (
-          <>
-            <Chochin size={26} lit style={{ marginBottom: spacing.xs }} />
-            {videoUri ? <RenkeiVideo uri={videoUri} style={styles.preview} contentFit="cover" muted /> : null}
-            <Text style={styles.title}>演舞を保存しました（非公開）</Text>
-            {meta ? <Text style={styles.metaText}>{meta}</Text> : null}
-            <View style={styles.statusPill}>
-              <Text style={styles.statusPillText}>AI解析：準備中</Text>
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={18} />
+          <Text style={styles.sectionTitle}>　項目別</Text>
+        </View>
+        {items.length === 0 && <Text style={styles.muted}>評価できた項目がありません（全身が映る位置でもう一度お試しください）</Text>}
+        {items.map((it) => {
+          const v = r[it.key] as number;
+          return (
+            <View key={it.key} style={styles.itemRow}>
+              <View style={styles.itemHeader}>
+                <Text style={styles.itemLabel}>
+                  {it.label}
+                  {it.note ? <Text style={styles.itemNote}>　{it.note}</Text> : null}
+                </Text>
+                <Text style={[styles.itemValue, { color: scoreColor(v) }]}>{Math.round(v)}</Text>
+              </View>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, v))}%`, backgroundColor: scoreColor(v) }]} />
+              </View>
             </View>
-            <Text style={styles.text}>
-              {lexicon.aiScore}・{lexicon.aiAdvice}はまだ準備中です。{'\n'}
-              保存した演舞は「稽古手帳」からいつでも見返せます。
-            </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate('VideoList')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>稽古手帳を見る</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Home')} activeOpacity={0.7}>
-              <Text style={styles.linkText}>踊り広場へ戻る</Text>
-            </TouchableOpacity>
-          </>
+          );
+        })}
+
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={18} />
+          <Text style={styles.sectionTitle}>　{lexicon.aiAdvice}</Text>
+        </View>
+        {r.feedback?.length ? (
+          r.feedback.map((f, i) => (
+            <View key={`${f.ruleId}-${i}`} style={[styles.feedback, f.type === 'improve' ? styles.feedbackImprove : styles.feedbackGood]}>
+              <Text style={[styles.feedbackTag, { color: f.type === 'improve' ? colors.aka : colors.gold }]}>
+                {f.type === 'improve' ? '改善点' : 'できている'}
+              </Text>
+              <Text style={styles.feedbackText}>{f.message}</Text>
+            </View>
+          ))
+        ) : (
+          <Text style={styles.muted}>コメントはありません</Text>
         )}
 
-        {phase === 'error' && (
-          <>
-            <Text style={styles.title}>保存に失敗しました</Text>
-            <Text style={styles.text}>
-              通信状況をご確認のうえ、もう一度お試しください。{'\n'}ログインが切れている場合もあります。
-            </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate('Home')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>踊り広場へ戻る</Text>
-            </TouchableOpacity>
-          </>
-        )}
+        <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }} />
 
-        {phase === 'idle' && (
-          <>
-            <Text style={styles.title}>
-              {lexicon.aiScore}・{lexicon.aiAdvice}
-            </Text>
-            <Text style={styles.text}>
-              AIによる採点・身体操法の指南は準備中です。{'\n'}
-              自主稽古から演舞を撮ると、非公開で保存できます。
-            </Text>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => navigation.navigate('Scoring')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryButtonText}>自主稽古へ</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigation.navigate('Home')} activeOpacity={0.7}>
-              <Text style={styles.linkText}>踊り広場へ戻る</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+        <View style={styles.gameCard}>
+          <Text style={styles.gameLabel}>練習中のLIVE SCORE（参考値）</Text>
+          <Text style={styles.gameValue}>{r.gameScore}</Text>
+          <Text style={styles.gameCounts}>
+            GREAT {r.greatCount} / GOOD {r.goodCount} / MISS {r.missCount}
+            {typeof r.maxCombo === 'number' ? ` / 最大 ${r.maxCombo} COMBO` : ''}
+          </Text>
+          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、上の{lexicon.aiScore}とは別物です。</Text>
+        </View>
+
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring')} activeOpacity={0.85}>
+          <Text style={styles.primaryButtonText}>もう一度稽古する</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+          <Text style={styles.secondaryButtonText}>踊り広場へ戻る</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: spacing.xl }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  preview: {
-    width: 200,
-    height: 200,
-    borderRadius: radius.md,
-    marginTop: spacing.lg,
-    backgroundColor: colors.indigoRaised,
-  },
-  title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.lg, marginBottom: spacing.sm, textAlign: 'center' },
-  metaText: { ...typography.caption, color: colors.gold, marginBottom: spacing.sm },
-  text: { ...typography.body, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.xl, lineHeight: 22 },
-  statusPill: {
+  centered: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  content: { padding: spacing.xl, alignItems: 'stretch' },
+
+  title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
+  lead: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 17 },
+
+  totalCard: {
+    alignItems: 'center',
+    backgroundColor: colors.indigo,
     borderWidth: 1,
-    borderColor: colors.gold,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    marginBottom: spacing.md,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.md,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
   },
-  statusPillText: { ...typography.caption, color: colors.gold },
-  primaryButton: {
-    backgroundColor: colors.gold,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xxl,
-    borderRadius: radius.sm,
-    marginBottom: spacing.md,
+  totalLabel: { ...typography.sectionLabel, color: colors.gold },
+  totalValue: { fontSize: 72, fontWeight: '900', lineHeight: 80, fontFamily: typography.displaySerif.fontFamily },
+  totalUnit: { ...typography.caption, color: colors.textMuted, marginTop: -6 },
+  version: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+
+  sectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.md },
+  sectionTitle: { ...typography.headingSerif, color: colors.textPrimary },
+
+  itemRow: { marginBottom: spacing.md },
+  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  itemLabel: { ...typography.bodyStrong, color: colors.textPrimary },
+  itemNote: { ...typography.caption, color: colors.textMuted, fontWeight: '400' },
+  itemValue: { ...typography.bodyStrong },
+  barTrack: { height: 10, backgroundColor: colors.indigoRaised, borderRadius: 5, overflow: 'hidden' },
+  barFill: { height: 10, borderRadius: 5 },
+
+  feedback: { borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1 },
+  feedbackImprove: { backgroundColor: colors.akaSoft, borderColor: colors.aka },
+  feedbackGood: { backgroundColor: colors.goldSoft, borderColor: colors.gold },
+  feedbackTag: { ...typography.sectionLabel, marginBottom: 4 },
+  feedbackText: { ...typography.body, color: colors.textPrimary },
+
+  gameCard: {
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    backgroundColor: colors.indigo,
   },
-  primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
-  linkText: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  gameLabel: { ...typography.caption, color: colors.textMuted, fontWeight: '700' },
+  gameValue: { fontSize: 28, fontWeight: '900', color: colors.goldBright, marginTop: 2 },
+  gameCounts: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  gameNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+
+  primaryButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', marginBottom: spacing.sm },
+  primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
+  secondaryButton: { borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.indigo },
+  secondaryButtonText: { ...typography.button, color: colors.textPrimary },
+
+  muted: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+  errorText: { color: colors.aka, marginBottom: spacing.lg, textAlign: 'center' },
 });

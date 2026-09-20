@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } fr
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Layers, Music2, Footprints, Hand, User } from 'lucide-react-native';
+import { Music2, Footprints, Hand, User } from 'lucide-react-native';
 import AppMenu from '../components/AppMenu';
 import { IconOdoriko } from '../components/awaIcons';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
@@ -26,16 +26,19 @@ const PART_OPTIONS: { key: ScorePart; label: string; note: string; Icon: typeof 
   { key: 'whole', label: '全体の調和', note: '上体のぶれ・二拍子との一致', Icon: User },
 ];
 
+// リズム判定の基準テンポ。既定はさゝゆり連の実測 112 BPM
 const CHO_OPTIONS = [
-  { key: 'nonbiri', label: 'のんびり調子', bpm: 106 },
-  { key: 'haya', label: '早調子', bpm: 118 },
+  { bpm: 96, label: 'ゆったり' },
+  { bpm: 104, label: 'のんびり調子' },
+  { bpm: 112, label: '基準（標準）' },
+  { bpm: 120, label: '早調子' },
+  { bpm: 128, label: '速い' },
 ];
 
 export default function AnalysisScreen() {
   const [danceType, setDanceType] = useState<DanceType | null>(null);
   const [scorePart, setScorePart] = useState<ScorePart | null>(null);
-  const [cho, setCho] = useState(CHO_OPTIONS[1].key);
-  const [ghost, setGhost] = useState(true);
+  const [baseBpm, setBaseBpm] = useState(112);
 
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
   const ready = danceType !== null && scorePart !== null;
@@ -53,42 +56,25 @@ export default function AnalysisScreen() {
       <HeaderSeam />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 手本重ね合わせ（ゴースト） */}
-        <TouchableOpacity
-          style={[styles.ghostCard, ghost && styles.ghostCardOn]}
-          activeOpacity={0.85}
-          onPress={() => setGhost((v) => !v)}
-        >
-          <Layers size={20} color={ghost ? colors.textOnGold : colors.gold} />
-          <View style={{ flex: 1, marginLeft: spacing.md }}>
-            <Text style={[styles.ghostTitle, ghost && styles.ghostTitleOn]}>手本重ね合わせ（ゴースト）</Text>
-            <Text style={[styles.ghostNote, ghost && styles.ghostNoteOn]}>
-              師匠のお手本を半透明でガイド表示する
-            </Text>
-          </View>
-          <View style={[styles.toggle, ghost && styles.toggleOn]}>
-            <View style={[styles.knob, ghost && styles.knobOn]} />
-          </View>
-        </TouchableOpacity>
-
-        {/* ぞめき調子（BPM） */}
+        {/* ぞめき調子（リズム判定の基準テンポ） */}
         <View style={styles.sectionHead}>
           <KumihimoRule width={20} />
-          <Text style={styles.sectionTitleInline}>ぞめき調子</Text>
+          <Text style={styles.sectionTitleInline}>ぞめき調子（基準テンポ）</Text>
         </View>
+        <Text style={styles.hint}>お囃子のテンポに合わせて選びます。練習は本番より落としたテンポでも構いません。</Text>
         <View style={styles.choRow}>
           {CHO_OPTIONS.map((c) => {
-            const active = cho === c.key;
+            const active = baseBpm === c.bpm;
             return (
               <TouchableOpacity
-                key={c.key}
+                key={c.bpm}
                 style={[styles.choBtn, active && styles.choBtnActive]}
-                onPress={() => setCho(c.key)}
+                onPress={() => setBaseBpm(c.bpm)}
                 activeOpacity={0.85}
               >
                 <Music2 size={15} color={active ? colors.textOnGold : colors.gold} />
-                <Text style={[styles.choLabel, active && styles.choLabelActive]}>{c.label}</Text>
-                <Text style={[styles.choBpm, active && styles.choLabelActive]}>{c.bpm} BPM・二拍子</Text>
+                <Text style={[styles.choLabel, active && styles.choLabelActive]}>{c.bpm} BPM</Text>
+                <Text style={[styles.choBpm, active && styles.choLabelActive]}>{c.label}</Text>
               </TouchableOpacity>
             );
           })}
@@ -146,7 +132,7 @@ export default function AnalysisScreen() {
           style={[styles.nextButton, !ready && styles.nextButtonDisabled]}
           onPress={() => {
             if (danceType === null || scorePart === null) return;
-            navigation.navigate('Camera', { danceType, scorePart });
+            navigation.navigate('Camera', { danceType, scorePart, baseBpm });
           }}
         >
           <Text style={[styles.nextButtonText, !ready && styles.nextButtonTextDisabled]}>
@@ -167,32 +153,15 @@ const styles = StyleSheet.create({
 
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
 
-  ghostCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-    backgroundColor: colors.indigo,
-  },
-  ghostCardOn: { backgroundColor: colors.gold, borderColor: colors.gold },
-  ghostTitle: { ...typography.bodyStrong, color: colors.textPrimary },
-  ghostTitleOn: { color: colors.textOnGold },
-  ghostNote: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  ghostNoteOn: { color: 'rgba(11,19,43,0.7)' },
-  toggle: { width: 40, height: 24, borderRadius: radius.pill, backgroundColor: colors.indigoRaised, padding: 3, justifyContent: 'center' },
-  toggleOn: { backgroundColor: colors.akaDeep },
-  knob: { width: 18, height: 18, borderRadius: radius.pill, backgroundColor: colors.textMuted },
-  knobOn: { backgroundColor: colors.kinari, alignSelf: 'flex-end' },
-
   sectionTitle: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.xl, marginBottom: spacing.md },
   sectionHead: { marginTop: spacing.xl, marginBottom: spacing.md },
   sectionTitleInline: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.sm },
+  hint: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 16 },
 
-  choRow: { flexDirection: 'row', gap: spacing.md },
+  choRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choBtn: {
-    flex: 1,
+    minWidth: '30%',
+    flexGrow: 1,
     padding: spacing.md,
     borderRadius: radius.md,
     borderWidth: 1,

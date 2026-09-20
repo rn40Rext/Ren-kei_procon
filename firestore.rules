@@ -101,5 +101,22 @@ service cloud.firestore {
                     && resource.data.fromUserId == request.auth.uid
                     && resource.data.status == 'pending';
     }
+
+    // analysisResults: AI解析①（自主稽古）の採点結果。FN-01（Admin SDK）のみが書く。
+    match /analysisResults/{analysisId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /users/{uid}/growthRecords/{recordId} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // analysisRules: 判定閾値のマスタ。運用者がコンソール/Functionsから更新する想定。
+    match /analysisRules/{ruleId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
   }
 }

@@ -9,6 +9,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "fire
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { RenKeiWordmark } from "../components/Brand";
 import { ChochinGarland, SeigaihaBand } from "../components/motifs";
+import { IconOdoriko, IconOnnaOdori } from "../components/awaIcons";
 import { colors, spacing, radius, typography } from "../theme";
 import { Dimensions } from "react-native";
 
@@ -74,6 +75,10 @@ export default function LoginScreen() {
         <View style={styles.logoContainer}>
           <RenKeiWordmark size={40} style={{ marginBottom: 12 }} />
           <SeigaihaBand width={140} height={12} color={colors.gold} opacity={0.5} />
+          <View style={styles.danceRow}>
+            <IconOnnaOdori size={20} color={colors.goldBright} />
+            <IconOdoriko size={20} color={colors.goldBright} />
+          </View>
           <Text style={styles.title}>{isRegisterMode ? "新規アカウント作成" : "ログイン"}</Text>
           <Text style={styles.subtitle}>阿波踊り 練習支援プラットフォーム</Text>
         </View>
@@ -124,6 +129,7 @@ const styles = StyleSheet.create({
   garland: { position: "absolute", top: 0, left: 0, right: 0 },
   inner: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
   logoContainer: { alignItems: "center", marginBottom: spacing.xxl },
+  danceRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.md },
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.lg },
   subtitle: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
   form: { width: "100%" },

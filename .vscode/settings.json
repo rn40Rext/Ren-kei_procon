@@ -1,0 +1,14 @@
+{
+  // このリポジトリはルート直下ではなく Ren-kei_procon/ にアプリ本体があります。
+  // VS Code がライブラリ内（node_modules）の tsconfig.json まで検証して
+  // 「expo-module-scripts/tsconfig.base が見つかりません」等の誤検知を出すため、
+  // node_modules を TypeScript / 検索の対象から外します（アプリのビルドには影響しません）。
+  "files.exclude": {
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/node_modules": true
+  },
+  "typescript.tsdk": "Ren-kei_procon/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}

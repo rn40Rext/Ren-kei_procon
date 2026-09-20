@@ -11,17 +11,25 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
+import { ChevronRight, Settings, Mail, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
+import { IconWagasa, IconEnbuPlay } from '../components/awaIcons';
 import { signOut } from 'firebase/auth';
 import { auth, db, storage } from '../config/firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import AppMenu from '../components/AppMenu';
-import { RenMon } from '../components/motifs';
+import { RenMon, HeaderSeam } from '../components/motifs';
 import { colors, spacing, radius, typography } from '../theme';
 
 type DanceStyle = 'male' | 'female' | null;
+type Role = 'user' | 'ren_admin' | 'service_admin';
+
+const ROLE_LABEL: Record<Role, string> = {
+  user: '踊り手',
+  ren_admin: '連の世話役',
+  service_admin: '運営',
+};
 
 const KEIKO_STATS = [
   { label: '連続稽古', value: '18', unit: '日' },
@@ -40,6 +48,7 @@ export default function MypageScreen() {
   const [profile, setProfile] = useState('');
   const [danceStyle, setDanceStyle] = useState<DanceStyle>(null);
   const [icon, setIcon] = useState('');
+  const [role, setRole] = useState<Role>('user');
 
   // 編集中の下書き
   const [draftNickname, setDraftNickname] = useState('');
@@ -135,6 +144,8 @@ export default function MypageScreen() {
         setProfile(data.profile || '');
         setDanceStyle(data.danceStyle ?? null);
         setIcon(data.icon || '');
+        if (data.role === 'ren_admin' || data.role === 'service_admin') setRole(data.role);
+        else setRole('user');
       }
     };
 
@@ -151,6 +162,7 @@ export default function MypageScreen() {
         <Text style={styles.headerTitle}>稽古手帳</Text>
         <AppMenu />
       </View>
+      <HeaderSeam />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.profileSection}>
@@ -220,6 +232,10 @@ export default function MypageScreen() {
           ) : (
             <TouchableOpacity onPress={startEditing}>
               <Text style={styles.userName}>{displayName}</Text>
+              <View style={styles.roleBadge}>
+                {role !== 'user' ? <ShieldCheck size={12} color={colors.gold} /> : null}
+                <Text style={styles.roleBadgeText}>{ROLE_LABEL[role]}</Text>
+              </View>
               {profile ? <Text style={styles.profileText}>{profile}</Text> : null}
               <Text style={styles.editText}>
                 {danceStyle === 'male' ? '男踊り' : danceStyle === 'female' ? '女踊り' : '傘連・阿波徳島　新進'}　▸ タップして改める
@@ -246,14 +262,14 @@ export default function MypageScreen() {
           <Text style={styles.sectionLabel}>稽古の記録</Text>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('VideoList')}>
             <View style={styles.menuLeft}>
-              <Video size={19} color={colors.gold} />
+              <IconEnbuPlay size={19} color={colors.gold} />
               <Text style={styles.menuText}>自分の演舞・稽古録</Text>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Group')}>
             <View style={styles.menuLeft}>
-              <Users size={19} color={colors.gold} />
+              <IconWagasa size={19} color={colors.gold} />
               <Text style={styles.menuText}>所属連・役職の設定</Text>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
@@ -333,6 +349,20 @@ const styles = StyleSheet.create({
     borderColor: colors.indigo,
   },
   userName: { ...typography.titleSerif, color: colors.textPrimary, textAlign: 'center' },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 4,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    backgroundColor: colors.indigoRaised,
+  },
+  roleBadgeText: { ...typography.caption, color: colors.gold, fontSize: 10 },
   profileText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   editText: { textAlign: 'center', ...typography.caption, color: colors.textMuted, marginTop: 4 },
 

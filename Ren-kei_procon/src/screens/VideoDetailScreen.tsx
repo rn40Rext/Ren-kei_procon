@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,16 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
 } from 'react-native';
 import { ChevronLeft, ChevronRight, Play, Hand, Send } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { Badge, Chip, WashiCard, MetricRow, SectionHeader, Panel } from '../components/ui';
-import { RenMon } from '../components/motifs';
+import { RenMon, NarutoLoader, SeigaihaBand, AsanohaBackground } from '../components/motifs';
+import RenkeiVideo from '../components/RenkeiVideo';
 import AppMenu from '../components/AppMenu';
 import {
   todaysEnbu,
@@ -24,10 +28,300 @@ import {
   masterTeachings,
   monkaComments,
 } from '../data/mockEnbu';
+import {
+  fetchPost,
+  subscribeComments,
+  addComment,
+  isLiked,
+  toggleLike,
+  loadCachedPosts,
+  loadCachedComments,
+  type PostDoc,
+  type CommentDoc,
+} from '../data/community';
 
+const SCREEN_W = Dimensions.get('window').width;
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
 
 export default function VideoDetailScreen({ navigation, route }: any) {
+  const postId: string | undefined = route?.params?.postId;
+  // 実データ（交流広場の投稿）ならこちら
+  if (postId) return <RealPostDetail postId={postId} navigation={navigation} />;
+  return <SampleDetail navigation={navigation} route={route} />;
+}
+
+/* ================================================================== */
+/* 実データ：交流広場の投稿（posts/{postId}）                            */
+/* ================================================================== */
+function RealPostDetail({ postId, navigation }: { postId: string; navigation: any }) {
+  const [post, setPost] = useState<PostDoc | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [comments, setComments] = useState<CommentDoc[]>([]);
+  const [tab, setTab] = useState<'teaching' | 'voice'>('voice');
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    let gotPost = false;
+    let gotComments = false;
+
+    // 前回セッションの保存分で即座に埋める（オフライン・応答前でも消えない）
+    loadCachedPosts().then((cached) => {
+      const hit = cached.find((x) => x.id === postId);
+      if (alive && hit && !gotPost) {
+        setPost(hit);
+        setLikeCount(hit.likeCount);
+        setLoading(false);
+      }
+    });
+    loadCachedComments(postId).then((cc) => {
+      if (alive && !gotComments && cc.length) setComments(cc);
+    });
+
+    fetchPost(postId).then((p) => {
+      if (!alive) return;
+      gotPost = true;
+      if (p) {
+        setPost(p);
+        setLikeCount(p.likeCount);
+      }
+      setLoading(false);
+    });
+    isLiked(postId).then((v) => alive && setLiked(v));
+    const unsub = subscribeComments(postId, (c) => {
+      if (!alive) return;
+      gotComments = true;
+      setComments(c);
+    });
+    return () => {
+      alive = false;
+      unsub();
+    };
+  }, [postId]);
+
+  const onClap = async () => {
+    if (busy) return;
+    setBusy(true);
+    // 楽観更新
+    const next = !liked;
+    setLiked(next);
+    setLikeCount((n) => n + (next ? 1 : -1));
+    try {
+      await toggleLike(postId, liked);
+    } catch (e) {
+      setLiked(!next);
+      setLikeCount((n) => n + (next ? -1 : 1));
+      Alert.alert('エラー', '拍手の送信に失敗しました');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onSend = async () => {
+    if (!draft.trim() || sending) return;
+    setSending(true);
+    try {
+      await addComment(postId, { text: draft, type: 'normal' });
+      setDraft('');
+    } catch (e) {
+      Alert.alert('エラー', '声の送信に失敗しました');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const shown = comments.filter((c) => (tab === 'teaching' ? c.type === 'instructor' : c.type === 'normal'));
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <NarutoLoader size={34} color={colors.gold} />
+        <Text style={styles.loadingText}>演舞を開いています…</Text>
+      </SafeAreaView>
+    );
+  }
+  if (!post) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <Text style={styles.enbuDesc}>投稿が見つかりませんでした</Text>
+        <TouchableOpacity style={styles.toKeikoBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.toKeikoText}>戻る</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <ChevronLeft color={colors.gold} size={22} />
+            <Text style={styles.backText}>広場へ戻る</Text>
+          </TouchableOpacity>
+          <Text style={styles.topTitle} numberOfLines={1}>演舞</Text>
+          <AppMenu />
+        </View>
+        <SeigaihaBand width={SCREEN_W} height={8} color={colors.gold} opacity={0.2} />
+
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <View style={styles.player}>
+            {post.videoUrl ? (
+              <RenkeiVideo uri={post.videoUrl} style={styles.playerVideo} contentFit="cover" nativeControls />
+            ) : (
+              <View style={[styles.playerVideo, styles.center]}>
+                <AsanohaBackground width={SCREEN_W} height={220} color={colors.gold} opacity={0.08} />
+                <Play size={26} color={colors.gold} />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.metaBlock}>
+            {post.tags.length > 0 ? (
+              <View style={styles.metaBadges}>
+                {post.tags.slice(0, 3).map((t) => (
+                  <Badge key={t} label={t} tone="dark" style={{ marginRight: spacing.sm }} />
+                ))}
+              </View>
+            ) : null}
+
+            <Text style={styles.enbuTitle}>{post.title}</Text>
+
+            <View style={styles.performerRow}>
+              <RenMon size={32} color={colors.gold}>
+                <Text style={styles.performerInitial}>{post.authorName.slice(0, 1)}</Text>
+              </RenMon>
+              <View style={styles.performerText}>
+                <Text style={styles.performerName}>{post.authorName}</Text>
+                <Text style={styles.performerRen}>交流広場の投稿</Text>
+              </View>
+            </View>
+
+            {post.description ? <Text style={styles.enbuDesc}>{post.description}</Text> : null}
+
+            <Panel style={styles.metricsPanel}>
+              <MetricRow
+                items={[
+                  { label: lexicon.aiScore, value: `${post.score}` },
+                  { label: '拍手', value: `${likeCount}` },
+                  { label: '声', value: `${post.commentCount}` },
+                ]}
+              />
+            </Panel>
+
+            <TouchableOpacity
+              style={[styles.clapBtn, liked && styles.clapBtnActive]}
+              onPress={onClap}
+              activeOpacity={0.85}
+              disabled={busy}
+            >
+              <Hand
+                size={18}
+                color={liked ? colors.textOnAka : colors.aka}
+                fill={liked ? colors.textOnAka : 'transparent'}
+              />
+              <Text style={[styles.clapText, liked && styles.clapTextActive]}>
+                {lexicon.like}　{likeCount.toLocaleString()}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.toKeikoBtn}
+              onPress={() => navigation.navigate('Scoring')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.toKeikoText}>この演舞を手本に稽古する</Text>
+              <ChevronRight size={15} color={colors.gold} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tabBar}>
+            <TouchableOpacity
+              style={[styles.tabItem, tab === 'voice' && styles.tabItemActive]}
+              onPress={() => setTab('voice')}
+            >
+              <Text style={[styles.tabLabel, tab === 'voice' && styles.tabLabelActive]}>
+                {lexicon.comment}（{comments.filter((c) => c.type === 'normal').length}）
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tabItem, tab === 'teaching' && styles.tabItemActive]}
+              onPress={() => setTab('teaching')}
+            >
+              <Text style={[styles.tabLabel, tab === 'teaching' && styles.tabLabelActive]}>
+                {lexicon.masterTeaching}（{comments.filter((c) => c.type === 'instructor').length}）
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.tabBody}>
+            {shown.length === 0 ? (
+              <Text style={styles.emptyComment}>
+                {tab === 'teaching' ? 'まだ師匠の教えはありません。' : 'まだ声は届いていません。最初のひとことを。'}
+              </Text>
+            ) : (
+              shown.map((c) => (
+                <View key={c.id} style={styles.comment}>
+                  <View style={styles.commentHead}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{c.userName.slice(0, 1)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.commentName}>{c.userName}</Text>
+                      <Text style={styles.commentRen}>
+                        {c.type === 'instructor' ? '師匠の教え' : '門下生の声'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.commentText}>{c.text}</Text>
+                </View>
+              ))
+            )}
+          </View>
+
+          <View style={{ height: 120 }} />
+        </ScrollView>
+
+        <View style={styles.inputDock}>
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder={`${lexicon.commentInput}…`}
+              placeholderTextColor={colors.textMuted}
+              value={draft}
+              onChangeText={setDraft}
+              multiline
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, (!draft.trim() || sending) && styles.sendBtnDisabled]}
+              disabled={!draft.trim() || sending}
+              onPress={onSend}
+            >
+              {sending ? (
+                <ActivityIndicator color={colors.textOnGold} size="small" />
+              ) : (
+                <Send size={18} color={colors.textOnGold} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+/* ================================================================== */
+/* サンプル（ダミーデータ）表示 — 従来どおり                             */
+/* ================================================================== */
+function SampleDetail({ navigation, route }: any) {
   const enbuId: string | undefined = route?.params?.id;
   const enbu = useMemo(() => ALL_ENBU.find((e) => e.id === enbuId) ?? todaysEnbu, [enbuId]);
 
@@ -60,6 +354,7 @@ export default function VideoDetailScreen({ navigation, route }: any) {
           <Text style={styles.topTitle} numberOfLines={1}>稽古録</Text>
           <AppMenu />
         </View>
+        <SeigaihaBand width={SCREEN_W} height={8} color={colors.gold} opacity={0.2} />
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* 演舞プレイヤー */}
@@ -252,6 +547,10 @@ export default function VideoDetailScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
+  center: { justifyContent: 'center', alignItems: 'center' },
+  playerVideo: { width: '100%', height: 220, backgroundColor: colors.indigoRaised },
+  emptyComment: { ...typography.body, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl },
+  loadingText: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md },
 
   topBar: {
     flexDirection: 'row',

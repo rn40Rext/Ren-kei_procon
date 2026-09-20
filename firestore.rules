@@ -8,9 +8,18 @@ service cloud.firestore {
       allow read: if request.auth != null
                   && (resource.data.userId == request.auth.uid
                       || resource.data.visibility == 'public');
+      // 作成時はvisibility=private・analysisStatus=uploaded固定。
       allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.visibility == 'private'
+                    && request.resource.data.analysisStatus == 'uploaded';
+      // visibility/analysisStatusはクライアントから変更不可
+      // (publishPost/FN-01はAdmin SDK経由でRulesを通らないため別枠)。
+      allow update: if request.auth != null
+                    && resource.data.userId == request.auth.uid
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['userId', 'visibility', 'analysisStatus']);
+      allow delete: if request.auth != null
                     && resource.data.userId == request.auth.uid;
     }
 
@@ -68,6 +77,29 @@ service cloud.firestore {
                     && request.auth.uid in chatId.split('_')
                     && request.resource.data.senderId == request.auth.uid;
       allow update, delete: if false;
+    }
+
+    // invitations: 連へのお誘い（連の実体が未実装のため、ユーザー間の
+    // スカウトとして実装。送信者・宛先本人のみ読み書き可能）。
+    match /invitations/{invitationId} {
+      allow read: if request.auth != null
+                  && (resource.data.fromUserId == request.auth.uid
+                      || resource.data.toUserId == request.auth.uid);
+      allow create: if request.auth != null
+                    && request.resource.data.fromUserId == request.auth.uid
+                    && request.resource.data.toUserId != request.auth.uid
+                    && request.resource.data.status == 'pending';
+      // 応答（承諾／辞退）は宛先本人のみ。status以外は変更不可、pendingからのみ遷移可。
+      allow update: if request.auth != null
+                    && resource.data.toUserId == request.auth.uid
+                    && resource.data.status == 'pending'
+                    && request.resource.data.status in ['accepted', 'declined']
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['status', 'updatedAt']);
+      // 取り消しは送信者本人・返答待ちの間のみ
+      allow delete: if request.auth != null
+                    && resource.data.fromUserId == request.auth.uid
+                    && resource.data.status == 'pending';
     }
   }
 }

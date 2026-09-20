@@ -13,6 +13,8 @@ import {
 import { Send, ChevronLeft } from 'lucide-react-native';
 import { db, auth } from '../config/firebaseConfig';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { HeaderSeam, KumihimoRule } from '../components/motifs';
+import { IconMakimono } from '../components/awaIcons';
 import { colors, spacing, radius, typography } from '../theme';
 
 export default function ChatScreen({ route, navigation }: any) {
@@ -45,6 +47,7 @@ export default function ChatScreen({ route, navigation }: any) {
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{recipientName} さんとの連絡</Text>
       </View>
+      <HeaderSeam />
 
       <FlatList
         data={messages}
@@ -58,7 +61,19 @@ export default function ChatScreen({ route, navigation }: any) {
             </View>
           );
         }}
-        contentContainerStyle={{ padding: spacing.lg }}
+        contentContainerStyle={
+          messages.length === 0
+            ? { flexGrow: 1, justifyContent: 'center' }
+            : { padding: spacing.lg }
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <IconMakimono size={30} color={colors.gold} />
+            <Text style={styles.emptyText}>まだ言の葉は交わされていません</Text>
+            <Text style={styles.emptySub}>下の欄から最初のひとことを送ってみましょう。</Text>
+            <KumihimoRule width={32} style={{ marginTop: spacing.md }} />
+          </View>
+        }
       />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={100}>
@@ -90,6 +105,9 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
   },
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary, flex: 1 },
+  empty: { alignItems: 'center', paddingHorizontal: spacing.xl, transform: [{ scaleY: -1 }] },
+  emptyText: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.md },
+  emptySub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' },
   bubble: { maxWidth: '80%', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm },
   myBubble: { alignSelf: 'flex-end', backgroundColor: colors.gold },
   otherBubble: {

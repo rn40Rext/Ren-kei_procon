@@ -9,7 +9,7 @@ import {
   TextStyle,
 } from 'react-native';
 import { colors, spacing, radius, typography } from '../theme';
-import { KumihimoRule } from './motifs';
+import { KumihimoRule, AsanohaBackground } from './motifs';
 
 /* ================================================================== */
 /* 見出し（区切り）                                                     */
@@ -150,6 +150,7 @@ export function WashiCard({
 }) {
   return (
     <View style={[uiStyles.washi, style]}>
+      <AsanohaBackground width={360} height={360} color={colors.akaDeep} opacity={0.05} />
       <View style={uiStyles.washiEdge} />
       {eyebrow ? <Text style={uiStyles.washiEyebrow}>{eyebrow}</Text> : null}
       {children}

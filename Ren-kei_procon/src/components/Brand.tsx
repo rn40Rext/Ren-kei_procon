@@ -1,14 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, Image, StyleSheet, StyleProp, ViewStyle, ImageStyle } from 'react-native';
 import { fontFamily } from '../theme';
 
 /**
  * Ren-Kei のブランドロゴ。
  * RenKeiWordmark: 「Ren-Kei」のワードマークをテキストで再現（青 Ren／橙 ハイフン／緑 Kei）。
  * 画像に依存せず、どの解像度でも鮮明。
- *
- * 円形エンブレム（踊り手＋連結ネットワーク）は assets/ren-kei-mark.png を配置後、
- * RenKeiMark として追加する。
+ * RenKeiMark: 円形エンブレム（踊り手＋連結ネットワーク）。assets/ren-kei-mark.png を表示する。
  */
 
 export const brandColors = {
@@ -38,6 +36,23 @@ export function RenKeiWordmark({
       <Text style={[t, { color: brandColors.hyphen }]}>-</Text>
       <Text style={[t, { color: brandColors.kei }]}>Kei</Text>
     </View>
+  );
+}
+
+export function RenKeiMark({
+  size = 26,
+  style,
+}: {
+  size?: number;
+  style?: StyleProp<ImageStyle>;
+}) {
+  return (
+    <Image
+      source={require('../../assets/ren-kei-mark.png')}
+      accessibilityLabel="Ren-Kei"
+      resizeMode="contain"
+      style={[{ width: size, height: size }, style]}
+    />
   );
 }
 

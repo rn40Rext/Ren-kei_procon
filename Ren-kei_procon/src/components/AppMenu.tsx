@@ -13,11 +13,10 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { X, ChevronRight } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { ChochinGarland } from './motifs';
-import { RenKeiWordmark } from './Brand';
+import { RenKeiWordmark, RenKeiMark } from './Brand';
 import {
-  IconTenugui,
   IconUchiwa,
-  IconAmigasa,
+  IconWagasa,
   IconGeta,
   IconMakimono,
 } from './awaIcons';
@@ -28,7 +27,7 @@ type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request';
 
 const LINKS: { key: NavKey; label: string; note: string; Icon: typeof IconUchiwa }[] = [
   { key: 'Home', label: '踊り広場', note: '演舞の推薦・みんなの投稿・交流', Icon: IconUchiwa },
-  { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く', Icon: IconAmigasa },
+  { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く', Icon: IconWagasa },
   { key: 'Scoring', label: '自主稽古・演舞解析', note: '手本同期・二拍子稽古', Icon: IconGeta },
   { key: 'Mypage', label: '稽古手帳', note: '成長記録・段位・連バッジ', Icon: IconMakimono },
 ];
@@ -58,12 +57,12 @@ export default function AppMenu({
   return (
     <>
       <TouchableOpacity
-        style={styles.trigger}
+        style={[styles.trigger, { borderColor: tint }]}
         onPress={() => setOpen(true)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityLabel="メニューを開く"
       >
-        <IconTenugui color={tint} size={21} />
+        <RenKeiMark size={30} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -127,12 +126,12 @@ const styles = StyleSheet.create({
   trigger: {
     width: 38,
     height: 38,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.indigoLine,
-    backgroundColor: colors.goldSoft,
+    backgroundColor: colors.indigoRaised,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
 
   overlay: { flex: 1, flexDirection: 'row' },

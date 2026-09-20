@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleProp, ViewStyle, Animated, Easing, AccessibilityInfo, Dimensions } from 'react-native';
 import Svg, { Path, Circle, G, Rect, Line, Defs, Pattern } from 'react-native-svg';
 import { colors, fontFamily } from '../theme';
 
@@ -227,6 +227,81 @@ export function ChochinGarland({
   );
 }
 
+/**
+ * 傘の吊り飾り（弓なりの綱から和傘がぶら下がる）。
+ * 提灯の代わりに、連（れん）にまつわる画面のヘッダーへ全幅で置く。
+ */
+export function KasaGarland({
+  width,
+  count = 6,
+  height = 44,
+  sag = 10,
+  style,
+}: {
+  width: number;
+  count?: number;
+  height?: number;
+  sag?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const cordY = 6;
+  const nodes = Array.from({ length: count }).map((_, i) => {
+    const t = count === 1 ? 0.5 : (i + 0.5) / count;
+    return { x: t * width, y: cordY + sag * 4 * t * (1 - t) };
+  });
+  const r = 8.5; // 傘の半径
+  return (
+    <View style={style} pointerEvents="none">
+      <Svg width={width} height={height}>
+        {/* 綱 */}
+        <Path
+          d={`M0 ${cordY} Q ${width / 2} ${cordY + sag + 4} ${width} ${cordY}`}
+          fill="none"
+          stroke={colors.gold}
+          strokeWidth={1}
+          opacity={0.6}
+        />
+        {nodes.map((n, i) => {
+          const open = i % 2 === 0;
+          const canopy = open ? colors.goldBright : colors.akaDeep;
+          const frame = open ? colors.gold : colors.aka;
+          const topY = n.y + 4;
+          const edgeY = topY + 6;
+          const apexY = topY - 5;
+          return (
+            <G key={i}>
+              {/* 吊り紐 */}
+              <Line x1={n.x} y1={n.y} x2={n.x} y2={topY - 3} stroke={colors.gold} strokeWidth={0.8} opacity={0.7} />
+              {/* 傘の面 */}
+              <Path
+                d={`M ${n.x - r} ${edgeY} Q ${n.x} ${topY - 15} ${n.x + r} ${edgeY} Z`}
+                fill={canopy}
+                stroke={frame}
+                strokeWidth={0.9}
+              />
+              {/* 骨 */}
+              {[-0.55, 0, 0.55].map((k) => (
+                <Line
+                  key={k}
+                  x1={n.x}
+                  y1={apexY}
+                  x2={n.x + r * k}
+                  y2={edgeY}
+                  stroke={frame}
+                  strokeWidth={0.4}
+                  opacity={0.6}
+                />
+              ))}
+              {/* 石突き */}
+              <Line x1={n.x} y1={apexY - 2} x2={n.x} y2={edgeY + 2} stroke={frame} strokeWidth={0.9} />
+            </G>
+          );
+        })}
+      </Svg>
+    </View>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* 青海波（鳴門の波）— 帯・背景                                          */
 /* ------------------------------------------------------------------ */
@@ -269,6 +344,30 @@ export function SeigaihaBand({
         </G>
       </Svg>
     </View>
+  );
+}
+
+/**
+ * 画面ヘッダーの直下に敷く、控えめな青海波の縫い目。
+ * ホームの暖簾に相当する「和」の境界を、遷移先の各画面にも通す。
+ */
+export function HeaderSeam({
+  color = colors.gold,
+  opacity = 0.18,
+  style,
+}: {
+  color?: string;
+  opacity?: number;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <SeigaihaBand
+      width={Dimensions.get('window').width}
+      height={8}
+      color={color}
+      opacity={opacity}
+      style={style}
+    />
   );
 }
 
@@ -461,5 +560,54 @@ export function NarutoSpiral({
         />
       </Svg>
     </View>
+  );
+}
+
+/**
+ * 読み込み中の表示。鳴門の渦をゆっくり回す（徳島＝渦潮にちなむ）。
+ * OS の «視差効果を減らす» 設定が有効なときは回さず静止で見せる。
+ */
+export function NarutoLoader({
+  size = 30,
+  color = colors.gold,
+  style,
+}: {
+  size?: number;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const spin = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
+      if (cancelled || reduced) return;
+      loop = Animated.loop(
+        Animated.timing(spin, {
+          toValue: 1,
+          duration: 2600,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      );
+      loop.start();
+    });
+    return () => {
+      cancelled = true;
+      loop?.stop();
+    };
+  }, [spin]);
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  return (
+    <Animated.View
+      style={[{ width: size, height: size, transform: [{ rotate }] }, style]}
+      accessibilityRole="progressbar"
+      accessibilityLabel="読み込み中"
+    >
+      <NarutoSpiral size={size} color={color} />
+    </Animated.View>
   );
 }

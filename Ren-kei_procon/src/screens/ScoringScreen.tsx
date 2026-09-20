@@ -5,6 +5,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Layers, Music2, Footprints, Hand, User } from 'lucide-react-native';
 import AppMenu from '../components/AppMenu';
+import { IconOdoriko } from '../components/awaIcons';
+import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 
 type DanceType = "male" | "female";
@@ -41,12 +43,14 @@ export default function AnalysisScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <IconOdoriko size={22} color={colors.gold} style={styles.headerIcon} />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>自主稽古・演舞解析</Text>
           <Text style={styles.headerSub}>手本に重ねて撮り、{lexicon.aiAdvice}を受ける</Text>
         </View>
         <AppMenu />
       </View>
+      <HeaderSeam />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 手本重ね合わせ（ゴースト） */}
@@ -68,7 +72,10 @@ export default function AnalysisScreen() {
         </TouchableOpacity>
 
         {/* ぞめき調子（BPM） */}
-        <Text style={styles.sectionTitle}>ぞめき調子</Text>
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={20} />
+          <Text style={styles.sectionTitleInline}>ぞめき調子</Text>
+        </View>
         <View style={styles.choRow}>
           {CHO_OPTIONS.map((c) => {
             const active = cho === c.key;
@@ -88,7 +95,10 @@ export default function AnalysisScreen() {
         </View>
 
         {/* 踊りの種類 */}
-        <Text style={styles.sectionTitle}>踊りの型</Text>
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={20} />
+          <Text style={styles.sectionTitleInline}>踊りの型</Text>
+        </View>
         {DANCE_OPTIONS.map((d) => {
           const active = danceType === d.key;
           return (
@@ -108,7 +118,10 @@ export default function AnalysisScreen() {
         })}
 
         {/* 見てほしい部分 */}
-        <Text style={styles.sectionTitle}>重点的に見てほしい所</Text>
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={20} />
+          <Text style={styles.sectionTitleInline}>重点的に見てほしい所</Text>
+        </View>
         {PART_OPTIONS.map(({ key, label, note, Icon }) => {
           const active = scorePart === key;
           return (
@@ -148,6 +161,7 @@ export default function AnalysisScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  headerIcon: { marginRight: spacing.md },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
   headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
@@ -173,6 +187,8 @@ const styles = StyleSheet.create({
   knobOn: { backgroundColor: colors.kinari, alignSelf: 'flex-end' },
 
   sectionTitle: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.xl, marginBottom: spacing.md },
+  sectionHead: { marginTop: spacing.xl, marginBottom: spacing.md },
+  sectionTitleInline: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.sm },
 
   choRow: { flexDirection: 'row', gap: spacing.md },
   choBtn: {

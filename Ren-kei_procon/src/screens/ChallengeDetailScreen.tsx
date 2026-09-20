@@ -8,20 +8,30 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, UserPlus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, WashiCard, Panel, SectionHeader } from '../components/ui';
-import { RenMon } from '../components/motifs';
-import { IconEnbuPlay, IconGeta, categoryIcon } from '../components/awaIcons';
+import { RenMon, HeaderSeam } from '../components/motifs';
+import { IconEnbuPlay, IconGeta, IconWagasa, categoryIcon } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
 import { challengeById, DIFFICULTY_TONE } from '../data/mockChallenges';
 import { monkaEnbu } from '../data/mockEnbu';
+import { useMyRole, isRenLeaderClass } from '../data/role';
 
 export default function ChallengeDetailScreen({ navigation, route }: any) {
   const id: string | undefined = route?.params?.id;
   const ch = useMemo(() => challengeById(id), [id]);
   const CatIcon = categoryIcon(ch.category);
+  const role = useMyRole();
+  const canScout = isRenLeaderClass(role);
+
+  const scoutPoster = () => {
+    navigation.navigate('Request', {
+      inviteName: ch.poster,
+      inviteMeta: `${ch.category}・${ch.posterRole}`,
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,6 +47,7 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
         <Text style={styles.topTitle}>チャレンジ</Text>
         <AppMenu />
       </View>
+      <HeaderSeam />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* お題の演舞 */}
@@ -76,6 +87,14 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
           </View>
 
           <Text style={styles.participants}>{ch.participants} 人が挑戦中</Text>
+
+          {canScout ? (
+            <TouchableOpacity style={styles.scoutBtn} onPress={scoutPoster} activeOpacity={0.85}>
+              <IconWagasa size={15} color={colors.gold} />
+              <Text style={styles.scoutBtnText}>　{ch.poster}さんを連へ勧誘する</Text>
+              <UserPlus size={14} color={colors.gold} style={{ marginLeft: 4 }} />
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         {/* 見どころ・課題 */}
@@ -177,6 +196,19 @@ const styles = StyleSheet.create({
   posterName: { ...typography.bodyStrong, color: colors.textPrimary },
   posterRole: { ...typography.caption, color: colors.gold, marginTop: 2 },
   participants: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md },
+  scoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    backgroundColor: colors.goldSoft,
+  },
+  scoutBtnText: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
   focusPanel: { marginHorizontal: spacing.lg, marginTop: spacing.lg, padding: spacing.md },
   focusLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },

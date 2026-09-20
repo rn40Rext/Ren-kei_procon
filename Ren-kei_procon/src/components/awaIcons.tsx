@@ -137,11 +137,63 @@ export function IconTenugui(p: IconProps) {
   );
 }
 
+/** 踊り子（男踊り）— アプリの顔・踊る。腰を落とし片手を高く上げた構え。 */
+export function IconOdoriko(p: IconProps) {
+  return (
+    <Base {...p}>
+      {/* 頭 */}
+      <Circle cx="14.4" cy="4.3" r="1.9" />
+      {/* 胴（前傾） */}
+      <Path d="M13.6 6.1 10.8 12.4" />
+      {/* 右腕：高く上げる */}
+      <Path d="M12.5 7.7 18 3.6" />
+      {/* 左腕：横へ張る */}
+      <Path d="M12.9 8.6 7 10.2" />
+      {/* 左脚：踏み込み */}
+      <Path d="M10.8 12.4 7.4 15.6 8.8 20.4" />
+      {/* 右脚：蹴り出し */}
+      <Path d="M10.8 12.4 14.4 15 16 20" />
+    </Base>
+  );
+}
+
+/** 踊り子（女踊り）— 編笠をかぶり両腕をしなやかに上げ、爪先立つ姿。 */
+export function IconOnnaOdori(p: IconProps) {
+  return (
+    <Base {...p}>
+      {/* 編笠 */}
+      <Path d="M7.4 6.6Q12 1.8 16.6 6.6" />
+      {/* 首・胴 */}
+      <Path d="M12 6.8 12 14.2" />
+      {/* 両腕を高く */}
+      <Path d="M11.6 9.4 8 4.4" />
+      <Path d="M12.4 9.4 16 4.4" />
+      {/* 脚（爪先立ち） */}
+      <Path d="M12 14.2 10.6 19.2 10.6 20.8" />
+      <Path d="M12 14.2 13.4 19.2 13.4 20.8" />
+    </Base>
+  );
+}
+
+/** 和傘（開いた傘）— 連（れん）。傘連にちなみ、連・仲間を表す。 */
+export function IconWagasa(p: IconProps) {
+  return (
+    <Base {...p}>
+      {/* 傘の面 */}
+      <Path d="M3.6 12Q12 -2 20.4 12Z" />
+      {/* 骨 */}
+      <Path d="M8 11.4 12 5M12 11.7 12 5M16 11.4 12 5" />
+      {/* 中棒と柄 */}
+      <Path d="M12 2.6 12 21q0 1.9 -2.4 1.9" />
+    </Base>
+  );
+}
+
 export type AwaCategory = '男踊り' | '女踊り' | '鳴り物';
 
 /** 踊りの型からアイコンを返す */
 export function categoryIcon(category: AwaCategory) {
-  if (category === '女踊り') return IconAmigasa;
+  if (category === '女踊り') return IconOnnaOdori;
   if (category === '鳴り物') return IconTaiko;
-  return IconGeta;
+  return IconOdoriko;
 }

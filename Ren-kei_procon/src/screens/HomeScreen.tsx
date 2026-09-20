@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,10 @@ import {
   Platform,
   Dimensions,
   Animated,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography } from '../theme';
@@ -26,10 +29,20 @@ import {
   IconMakimono,
   IconTenugui,
   IconGeta,
+  IconWagasa,
   categoryIcon,
 } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
+import RenkeiVideo from '../components/RenkeiVideo';
 import { RenKeiWordmark } from '../components/Brand';
+import { auth } from '../config/firebaseConfig';
+import {
+  subscribePosts,
+  loadCachedPosts,
+  uploadVideoAndPublish,
+  POST_TAG_OPTIONS,
+  type PostDoc,
+} from '../data/community';
 import {
   filterChips,
   feedTags,
@@ -55,6 +68,46 @@ function daysToFestival(): number {
   return Math.max(0, Math.ceil((start.getTime() - now.getTime()) / 86400000));
 }
 
+type HeroLike = {
+  category: string;
+  kimeRate: number;
+  timeAgo: string;
+  authorRen: string;
+  title: string;
+};
+
+/** ヒーロー画像／動画に重ねる帯（見出し・カウントダウン・再生マーク・題）。 */
+function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
+  return (
+    <>
+      <View style={styles.heroEyebrowTop}>
+        <KumihimoRule width={18} />
+        <Text style={styles.heroEyebrowText}>　あなたの直近の投稿</Text>
+      </View>
+
+      <View style={styles.countdownChip}>
+        <Text style={styles.countdownText}>阿波おどり本番まで あと {festivalDays} 日</Text>
+      </View>
+
+      <View style={styles.heroPlayWrap} pointerEvents="none">
+        <View style={styles.heroPlayCircle}>
+          <IconEnbuPlay size={24} color={colors.textOnGold} />
+        </View>
+      </View>
+
+      <View style={styles.heroImgFooter}>
+        <View style={styles.heroTopRow}>
+          <Badge label={hero.category} tone="aka" />
+          <Badge label={`極め度 ${hero.kimeRate}%`} tone="dark" style={styles.badgeGap} />
+          <Badge label={hero.timeAgo} tone="outline" style={styles.badgeGap} />
+        </View>
+        <Text style={styles.heroRen}>{hero.authorRen}</Text>
+        <Text style={styles.heroName} numberOfLines={2}>{hero.title}</Text>
+      </View>
+    </>
+  );
+}
+
 export default function HomeScreen({ navigation }: any) {
   const [activeChip, setActiveChip] = useState(filterChips[0]);
   const [feedTag, setFeedTag] = useState(feedTags[0]);
@@ -67,14 +120,104 @@ export default function HomeScreen({ navigation }: any) {
   const [feed, setFeed] = useState<FeedPost[]>([...seedMine, ...seedFeed]);
   const [posting, setPosting] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
+  const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
+  const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // 実データ：交流広場の投稿（posts）を購読
+  const [realPosts, setRealPosts] = useState<PostDoc[]>([]);
+  const gotLive = useRef(false);
+  useEffect(() => {
+    // まず前回セッションの保存分を即表示（Firestore 応答前・オフラインでも残る）
+    loadCachedPosts().then((cached) => {
+      if (!gotLive.current && cached.length) setRealPosts(cached);
+    });
+    const unsub = subscribePosts(
+      (posts) => {
+        gotLive.current = true;
+        setRealPosts(posts);
+      },
+      (e) => console.warn('subscribePosts', e),
+    );
+    return unsub;
+  }, []);
+
+  const uid = auth.currentUser?.uid;
 
   const openEnbu = (id: string) => navigation.navigate('VideoDetail', { id });
+  const openPost = (postId: string) => navigation.navigate('VideoDetail', { postId });
 
-  // 自分が投稿した演舞（新しい順）
+  // 自分が投稿した演舞（新しい順）。実データの投稿があればそれを最優先で主役に据える。
   const mine = useMemo(() => feed.filter((p) => p.mine), [feed]);
-  const heroPost = mine[0] ?? null;
-  const otherMine = mine.slice(1);
+  const myRealPosts = useMemo(
+    () => realPosts.filter((p) => p.userId && p.userId === uid),
+    [realPosts, uid],
+  );
+  const realHero = myRealPosts[0] ?? null;
+  const dummyHero = mine[0] ?? null;
+  const otherMine = realHero ? mine : mine.slice(1);
+  // フィード一覧・「ほかのあなたの投稿」はヒーローに出している最新投稿を除いて表示
+  const feedRealPosts = useMemo(
+    () => realPosts.filter((p) => p.id !== realHero?.id),
+    [realPosts, realHero],
+  );
+  // ヒーローの下の横並び：自分の実投稿（ヒーロー以外）＋サンプルの自分の投稿
+  const otherMineItems = useMemo(
+    () => [
+      ...myRealPosts
+        .filter((p) => p.id !== realHero?.id)
+        .map((p) => ({
+          key: p.id,
+          kind: 'real' as const,
+          videoUrl: p.videoUrl,
+          title: p.title,
+          meta: `あなたの投稿・拍手 ${p.likeCount}`,
+          onPress: () => openPost(p.id),
+        })),
+      ...otherMine.map((p) => ({
+        key: p.id,
+        kind: 'dummy' as const,
+        image: p.image,
+        title: p.title,
+        meta: `${p.timeAgo}・拍手 ${p.claps}`,
+        onPress: () => openEnbu(p.id),
+      })),
+    ],
+    [myRealPosts, realHero, otherMine],
+  );
+
+  const hero = realHero
+    ? {
+        kind: 'real' as const,
+        title: realHero.title,
+        authorRen: '交流広場に投稿',
+        category: realHero.tags[0] ?? '演舞',
+        kimeRate: realHero.score,
+        timeAgo: 'あなたの投稿',
+        description: realHero.description,
+        videoUrl: realHero.videoUrl,
+        claps: realHero.likeCount,
+        comments: realHero.commentCount,
+        duration: undefined as string | undefined,
+        onPress: () => openPost(realHero.id),
+      }
+    : dummyHero
+      ? {
+          kind: 'dummy' as const,
+          title: dummyHero.title,
+          authorRen: dummyHero.authorRen,
+          category: dummyHero.category,
+          kimeRate: dummyHero.kimeRate,
+          timeAgo: dummyHero.timeAgo,
+          description: dummyHero.description,
+          image: dummyHero.image,
+          claps: dummyHero.claps,
+          comments: dummyHero.comments,
+          duration: dummyHero.duration,
+          onPress: () => openEnbu(dummyHero.id),
+        }
+      : null;
 
   const visibleFeed = useMemo(() => {
     return feed.filter((p) => {
@@ -86,8 +229,71 @@ export default function HomeScreen({ navigation }: any) {
     });
   }, [feed, feedTag, search]);
 
-  const submitPost = () => {
-    if (!draftTitle.trim()) return;
+  const resetDraft = () => {
+    setDraftTitle('');
+    setDraftDesc('');
+    setDraftTags([]);
+    setVideoUri(null);
+  };
+
+  const pickVideo = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('権限が必要です', '動画を選ぶにはライブラリへのアクセスを許可してください。');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      quality: 1,
+      videoMaxDuration: 120,
+    });
+    if (!res.canceled && res.assets?.[0]?.uri) setVideoUri(res.assets[0].uri);
+  };
+
+  // 初心者サポート：見てほしい演舞をその場で撮って、そのまま解析・投稿に回せるように
+  const recordVideo = async () => {
+    const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!camPerm.granted) {
+      Alert.alert('権限が必要です', '撮影にはカメラへのアクセスを許可してください。');
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['videos'],
+      quality: 1,
+      videoMaxDuration: 120,
+    });
+    if (!res.canceled && res.assets?.[0]?.uri) setVideoUri(res.assets[0].uri);
+  };
+
+  const submitPost = async () => {
+    if (!draftTitle.trim() || submitting) return;
+
+    // 動画が選ばれていれば実データとして投稿（GitHub バックエンド）
+    if (videoUri) {
+      if (!auth.currentUser) {
+        Alert.alert('ログインが必要です', '投稿するにはログインしてください。');
+        return;
+      }
+      setSubmitting(true);
+      try {
+        await uploadVideoAndPublish({
+          uri: videoUri,
+          title: draftTitle,
+          description: draftDesc,
+          tags: draftTags,
+        });
+        setPosting(false);
+        resetDraft();
+        setFeedTag(feedTags[0]);
+      } catch (e: any) {
+        Alert.alert('投稿に失敗しました', e?.message ?? '時間をおいて再度お試しください。');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // 動画なし：従来どおりサンプル（ローカル）に追加
     setFeed((prev) => [
       {
         id: `me-${Date.now()}`,
@@ -101,15 +307,14 @@ export default function HomeScreen({ navigation }: any) {
         comments: 0,
         timeAgo: 'たった今',
         duration: '00:00',
-        description: '投稿したばかりの演舞です。',
+        description: draftDesc.trim() || '投稿したばかりの演舞です。',
         image: awaImage('男踊り', Math.floor(Math.random() * 7)),
         mine: true,
       },
       ...prev,
     ]);
     setPosting(false);
-    setDraftTitle('');
-    setDraftTags([]);
+    resetDraft();
     setFeedTag(feedTags[0]);
   };
 
@@ -175,79 +380,48 @@ export default function HomeScreen({ navigation }: any) {
           useNativeDriver: true,
         })}
       >
-        {/* 自分が投稿した演舞 */}
-        {heroPost ? (
+        {/* 自分が投稿した演舞（実データがあれば動画、無ければサンプル画像） */}
+        {hero ? (
           <View style={styles.hero}>
             <TouchableOpacity
               style={styles.heroImageWrap}
               activeOpacity={0.92}
-              onPress={() => openEnbu(heroPost.id)}
+              onPress={hero.onPress}
             >
-              <ImageBackground source={{ uri: heroPost.image }} style={styles.heroImage}>
-                <LinearGradient
-                  colors={['rgba(11,19,43,0.55)', 'rgba(11,19,43,0.1)', 'rgba(11,19,43,0.88)']}
-                  locations={[0, 0.42, 1]}
-                  style={styles.heroImgGrad}
-                >
-                  {/* 提灯行列：スクロールでゆっくり動く（パララックス） */}
-                  <Animated.View
-                    style={[
-                      styles.heroGarland,
-                      {
-                        transform: [
-                          {
-                            translateY: scrollY.interpolate({
-                              inputRange: [-HERO_H, 0, HERO_H],
-                              outputRange: [-24, 0, 24],
-                              extrapolate: 'clamp',
-                            }),
-                          },
-                        ],
-                      },
-                    ]}
-                    pointerEvents="none"
+              {hero.kind === 'real' ? (
+                <View style={styles.heroImage}>
+                  <RenkeiVideo uri={hero.videoUrl} style={styles.heroVideo} contentFit="cover" muted />
+                  <LinearGradient
+                    colors={['rgba(11,19,43,0.55)', 'rgba(11,19,43,0.1)', 'rgba(11,19,43,0.88)']}
+                    locations={[0, 0.42, 1]}
+                    style={styles.heroImgGrad}
                   >
-                    <ChochinGarland width={SCREEN_W} count={9} height={46} sag={14} />
-                  </Animated.View>
-
-                  <View style={styles.heroEyebrowTop}>
-                    <KumihimoRule width={18} />
-                    <Text style={styles.heroEyebrowText}>　あなたの直近の投稿</Text>
-                  </View>
-
-                  <View style={styles.countdownChip}>
-                    <Text style={styles.countdownText}>阿波おどり本番まで あと {festivalDays} 日</Text>
-                  </View>
-
-                  <View style={styles.heroPlayWrap} pointerEvents="none">
-                    <View style={styles.heroPlayCircle}>
-                      <IconEnbuPlay size={24} color={colors.textOnGold} />
-                    </View>
-                  </View>
-
-                  <View style={styles.heroImgFooter}>
-                    <View style={styles.heroTopRow}>
-                      <Badge label={heroPost.category} tone="aka" />
-                      <Badge label={`極め度 ${heroPost.kimeRate}%`} tone="dark" style={styles.badgeGap} />
-                      <Badge label={heroPost.timeAgo} tone="outline" style={styles.badgeGap} />
-                    </View>
-                    <Text style={styles.heroRen}>{heroPost.authorRen}</Text>
-                    <Text style={styles.heroName} numberOfLines={2}>{heroPost.title}</Text>
-                  </View>
-                </LinearGradient>
-              </ImageBackground>
+                    {renderHeroOverlay(hero, festivalDays)}
+                  </LinearGradient>
+                </View>
+              ) : (
+                <ImageBackground source={{ uri: hero.image }} style={styles.heroImage}>
+                  <LinearGradient
+                    colors={['rgba(11,19,43,0.55)', 'rgba(11,19,43,0.1)', 'rgba(11,19,43,0.88)']}
+                    locations={[0, 0.42, 1]}
+                    style={styles.heroImgGrad}
+                  >
+                    {renderHeroOverlay(hero, festivalDays)}
+                  </LinearGradient>
+                </ImageBackground>
+              )}
             </TouchableOpacity>
 
             <View style={styles.heroBody}>
-              {heroPost.description ? (
-                <Text style={styles.heroDesc}>{heroPost.description}</Text>
+              {hero.description ? (
+                <Text style={styles.heroDesc}>{hero.description}</Text>
               ) : null}
               <MetricRow
                 style={styles.heroMetrics}
                 items={[
-                  { label: '演舞尺', value: heroPost.duration ?? '--:--' },
-                  { label: '拍手', value: `${heroPost.claps}` },
-                  { label: '門下生の声', value: `${heroPost.comments}` },
+                  { label: '演舞尺', value: hero.duration ?? '--:--' },
+                  { label: '拍手', value: `${hero.claps}` },
+                  { label: '門下生の声', value: `${hero.comments}` },
                 ]}
               />
               <TouchableOpacity
@@ -259,7 +433,7 @@ export default function HomeScreen({ navigation }: any) {
                 <Text style={styles.syncBtnText}>　手本と並べて撮り直す</Text>
               </TouchableOpacity>
 
-              {otherMine.length > 0 ? (
+              {otherMineItems.length > 0 ? (
                 <>
                   <Text style={styles.otherMineLabel}>ほかのあなたの投稿</Text>
                   <ScrollView
@@ -267,20 +441,26 @@ export default function HomeScreen({ navigation }: any) {
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={styles.otherMineRow}
                   >
-                    {otherMine.map((p) => (
+                    {otherMineItems.map((item) => (
                       <TouchableOpacity
-                        key={p.id}
+                        key={item.key}
                         style={styles.otherMineCard}
                         activeOpacity={0.9}
-                        onPress={() => openEnbu(p.id)}
+                        onPress={item.onPress}
                       >
-                        <ImageBackground
-                          source={{ uri: p.image }}
-                          style={styles.otherMineThumb}
-                          imageStyle={{ borderRadius: radius.sm }}
-                        />
-                        <Text style={styles.otherMineTitle} numberOfLines={2}>{p.title}</Text>
-                        <Text style={styles.otherMineMeta}>{p.timeAgo}・拍手 {p.claps}</Text>
+                        {item.kind === 'real' ? (
+                          <View style={styles.otherMineThumb}>
+                            <RenkeiVideo uri={item.videoUrl} style={styles.otherMineThumbVideo} contentFit="cover" muted />
+                          </View>
+                        ) : (
+                          <ImageBackground
+                            source={{ uri: item.image }}
+                            style={styles.otherMineThumb}
+                            imageStyle={{ borderRadius: radius.sm }}
+                          />
+                        )}
+                        <Text style={styles.otherMineTitle} numberOfLines={2}>{item.title}</Text>
+                        <Text style={styles.otherMineMeta}>{item.meta}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -364,7 +544,10 @@ export default function HomeScreen({ navigation }: any) {
         {/* 交流フィード（旧コミュニティを統合）— 青海波を敷く */}
         <SeigaihaBand width={SCREEN_W} height={16} color={colors.gold} opacity={0.28} style={styles.feedWave} />
         <View style={styles.feedHead}>
-          <Text style={styles.feedCategory}>連の広場</Text>
+          <View style={styles.feedCategoryRow}>
+            <IconWagasa size={13} color={colors.gold} />
+            <Text style={styles.feedCategory}>　連の広場</Text>
+          </View>
           <Text style={styles.feedTitle}>みんなの演舞と門下生の声</Text>
         </View>
 
@@ -392,6 +575,58 @@ export default function HomeScreen({ navigation }: any) {
         </ScrollView>
 
         <View style={styles.feedList}>
+          {/* 実データ：交流広場に投稿された演舞（新着順。ヒーローに出している自分の最新分は除く） */}
+          {feedRealPosts.length > 0 ? (
+            <>
+              {feedRealPosts.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.feedCard}
+                  activeOpacity={0.85}
+                  onPress={() => openPost(p.id)}
+                >
+                  <View style={styles.feedThumb}>
+                    {p.videoUrl ? (
+                      <RenkeiVideo uri={p.videoUrl} style={styles.feedThumbVideo} contentFit="cover" muted />
+                    ) : null}
+                    <View style={styles.feedCatMark}>
+                      <IconEnbuPlay size={12} color={colors.goldBright} />
+                    </View>
+                    <View style={styles.feedKime}>
+                      <Text style={styles.feedKimeText}>極め {p.score}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.feedBody}>
+                    <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
+                    <View style={styles.feedAuthorRow}>
+                      <RenMon size={18} color={colors.gold}>
+                        <Text style={styles.feedAvatarChar}>{p.authorName.slice(0, 1)}</Text>
+                      </RenMon>
+                      <Text style={styles.feedMeta} numberOfLines={1}>
+                        　{p.authorName}{p.userId && p.userId === uid ? '（あなた）' : ''}
+                      </Text>
+                    </View>
+                    {p.tags.length > 0 ? (
+                      <Text style={styles.feedTags} numberOfLines={1}>{p.tags.join('  ')}</Text>
+                    ) : null}
+                    <View style={styles.feedStats}>
+                      <IconNaruko size={13} color={colors.gold} />
+                      <Text style={styles.feedStatText}>{p.likeCount}</Text>
+                      <View style={{ marginLeft: spacing.md, flexDirection: 'row', alignItems: 'center' }}>
+                        <IconMakimono size={13} color={colors.textMuted} />
+                        <Text style={styles.feedStatText}>{p.commentCount}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              <View style={styles.sampleDivider}>
+                <KumihimoRule width={16} />
+                <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
+              </View>
+            </>
+          ) : null}
+
           {visibleFeed.length === 0 ? (
             <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>
           ) : (
@@ -459,10 +694,48 @@ export default function HomeScreen({ navigation }: any) {
                 <X size={20} color={colors.gold} />
               </TouchableOpacity>
             </View>
-            <View style={styles.modalPicker}>
-              <IconEnbuPlay size={26} color={colors.gold} />
-              <Text style={styles.modalPickerText}>演舞の動画を選ぶ（ダミー）</Text>
-            </View>
+            {videoUri ? (
+              <TouchableOpacity
+                style={styles.modalPicker}
+                onPress={pickVideo}
+                activeOpacity={0.85}
+                disabled={submitting}
+              >
+                <RenkeiVideo uri={videoUri} style={styles.modalPickerVideo} contentFit="cover" muted />
+                <View style={styles.modalPickerSelected}>
+                  <Text style={styles.modalPickerText}>動画を選び直す</Text>
+                </View>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.pickRow}>
+                <TouchableOpacity
+                  style={styles.pickBtn}
+                  onPress={recordVideo}
+                  activeOpacity={0.85}
+                  disabled={submitting}
+                >
+                  <IconEnbuPlay size={22} color={colors.gold} />
+                  <Text style={styles.pickBtnText}>今すぐ撮る</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.pickBtn}
+                  onPress={pickVideo}
+                  activeOpacity={0.85}
+                  disabled={submitting}
+                >
+                  <IconMakimono size={22} color={colors.gold} />
+                  <Text style={styles.pickBtnText}>ライブラリから選ぶ</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <Text style={styles.modalPickerHint}>
+              初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。選ばない場合は見本として保存されます。
+            </Text>
+            {videoUri ? (
+              <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Text style={styles.reRecordText}>撮り直す</Text>
+              </TouchableOpacity>
+            ) : null}
             <Text style={styles.modalLabel}>演舞の題</Text>
             <TextInput
               style={styles.modalInput}
@@ -471,9 +744,18 @@ export default function HomeScreen({ navigation }: any) {
               placeholder="例：男踊り 基本の足運び"
               placeholderTextColor={colors.textMuted}
             />
+            <Text style={styles.modalLabel}>概要（任意）</Text>
+            <TextInput
+              style={[styles.modalInput, styles.modalTextarea]}
+              value={draftDesc}
+              onChangeText={setDraftDesc}
+              placeholder="どんな演舞か、見てほしい所など"
+              placeholderTextColor={colors.textMuted}
+              multiline
+            />
             <Text style={styles.modalLabel}>調子・型のしるし</Text>
             <View style={styles.modalTagWrap}>
-              {feedTags.slice(1).map((t) => (
+              {POST_TAG_OPTIONS.map((t) => (
                 <Chip
                   key={t}
                   label={t}
@@ -484,12 +766,18 @@ export default function HomeScreen({ navigation }: any) {
               ))}
             </View>
             <TouchableOpacity
-              style={[styles.modalSubmit, !draftTitle.trim() && styles.modalSubmitDisabled]}
+              style={[styles.modalSubmit, (!draftTitle.trim() || submitting) && styles.modalSubmitDisabled]}
               onPress={submitPost}
-              disabled={!draftTitle.trim()}
+              disabled={!draftTitle.trim() || submitting}
               activeOpacity={0.85}
             >
-              <Text style={styles.modalSubmitText}>広場へ披露する</Text>
+              {submitting ? (
+                <ActivityIndicator color={colors.textOnGold} />
+              ) : (
+                <Text style={styles.modalSubmitText}>
+                  {videoUri ? '広場へ披露する' : '見本として保存する'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -559,6 +847,7 @@ const styles = StyleSheet.create({
   hero: { borderBottomWidth: 1, borderBottomColor: colors.indigoLine },
   heroImageWrap: { height: HERO_H, overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },
+  heroVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.indigo },
   heroImgGrad: { flex: 1, padding: spacing.lg, paddingBottom: spacing.lg, justifyContent: 'flex-end' },
   heroGarland: { position: 'absolute', top: 0, left: 0, right: 0 },
   heroEyebrowTop: {
@@ -612,7 +901,8 @@ const styles = StyleSheet.create({
   otherMineLabel: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.xl, marginBottom: spacing.sm },
   otherMineRow: { paddingRight: spacing.lg },
   otherMineCard: { width: 128, marginRight: spacing.md },
-  otherMineThumb: { width: '100%', height: 78, backgroundColor: colors.indigoRaised },
+  otherMineThumb: { width: '100%', height: 78, backgroundColor: colors.indigoRaised, borderRadius: radius.sm, overflow: 'hidden' },
+  otherMineThumbVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   otherMineTitle: { ...typography.caption, color: colors.textPrimary, fontWeight: '700', marginTop: spacing.sm },
   otherMineMeta: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 2 },
 
@@ -693,7 +983,8 @@ const styles = StyleSheet.create({
 
   /* --- 交流フィード --- */
   feedHead: { paddingHorizontal: spacing.lg, marginTop: spacing.md, marginBottom: spacing.md },
-  feedCategory: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.xs },
+  feedCategoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
+  feedCategory: { ...typography.sectionLabel, color: colors.gold },
   feedTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
   searchWrap: { paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
@@ -722,7 +1013,10 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  feedThumb: { width: 92, height: 92, backgroundColor: colors.indigoRaised, justifyContent: 'flex-end' },
+  feedThumb: { width: 92, height: 92, backgroundColor: colors.indigoRaised, justifyContent: 'flex-end', borderRadius: radius.sm, overflow: 'hidden' },
+  feedThumbVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  sampleDivider: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: spacing.md },
+  sampleDividerText: { ...typography.caption, color: colors.textMuted },
   feedCatMark: {
     position: 'absolute',
     top: 4,
@@ -775,8 +1069,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.indigo,
     marginBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  modalPickerVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  modalPickerSelected: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingVertical: 4,
+    alignItems: 'center',
+    backgroundColor: colors.overlay,
   },
   modalPickerText: { ...typography.caption, color: colors.gold, marginTop: spacing.sm },
+  modalPickerHint: { ...typography.caption, color: colors.textMuted, fontSize: 10, lineHeight: 15, marginBottom: spacing.md },
+  pickRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  pickBtn: {
+    flex: 1,
+    height: 84,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: colors.gold,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.indigo,
+  },
+  pickBtnText: { ...typography.caption, color: colors.gold, marginTop: spacing.xs, fontSize: 12 },
+  reRecordText: { ...typography.caption, color: colors.gold, textAlign: 'center', marginBottom: spacing.sm, textDecorationLine: 'underline' },
+  modalTextarea: { minHeight: 64, textAlignVertical: 'top' },
   modalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, marginTop: spacing.sm },
   modalInput: {
     backgroundColor: colors.indigoRaised,

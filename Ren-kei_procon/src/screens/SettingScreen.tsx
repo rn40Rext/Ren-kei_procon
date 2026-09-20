@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-na
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft } from 'lucide-react-native';
 import AppMenu from '../components/AppMenu';
+import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { colors, spacing, typography } from '../theme';
 
 export default function SettingScreen() {
@@ -17,8 +18,11 @@ export default function SettingScreen() {
         <Text style={styles.headerTitle}>アプリ設定</Text>
         <AppMenu />
       </View>
+      <HeaderSeam />
       <View style={styles.body}>
+        <KumihimoRule width={36} />
         <Text style={styles.placeholder}>設定ページ</Text>
+        <Text style={styles.sub}>通知・表示・アカウントの設定をここにまとめる予定です。</Text>
       </View>
     </SafeAreaView>
   );
@@ -39,5 +43,6 @@ const styles = StyleSheet.create({
   backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  placeholder: { ...typography.body, color: colors.textMuted },
+  placeholder: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
+  sub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center', maxWidth: 260 },
 });

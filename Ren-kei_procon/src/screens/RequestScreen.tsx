@@ -17,12 +17,13 @@ import {
   Alert,
 } from 'react-native';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { X, Send, MapPin, UserPlus, Check, Trash2, ChevronLeft } from 'lucide-react-native';
+import { X, Send, MapPin, UserPlus, Check, Trash2, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, Chip } from '../components/ui';
 import AppMenu from '../components/AppMenu';
 import { KasaGarland, RenMon, NarutoLoader } from '../components/motifs';
 import { IconWagasa, IconUchiwa, categoryIcon } from '../components/awaIcons';
+import { auth } from '../config/firebaseConfig';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import { freeDancers, sentInvitations, Invitation, InviteStatus, FreeDancer } from '../data/mockRequests';
 import {
@@ -141,6 +142,15 @@ export default function RequestScreen() {
   const openRealInvite = (d: OtherDancer) => {
     setTarget({ kind: 'real', id: d.id, name: d.name, meta: d.danceStyle ? DANCE_LABEL[d.danceStyle] : '' });
     setMessage(`${d.name}さん、いつも演舞を拝見しています。うちの連の稽古に一度いらっしゃいませんか。`);
+  };
+
+  // お誘いの前後でも直接やり取りできるよう、既存の1対1チャットに繋ぐ（DM）
+  const chatWith = (otherUid: string, otherName: string) => {
+    const myUid = auth.currentUser?.uid;
+    if (!myUid) return;
+    if (otherUid === myUid) return;
+    const chatId = [myUid, otherUid].sort().join('_');
+    navigation.navigate('Chat', { chatId, recipientName: otherName });
   };
 
   const openDummyInvite = (d: FreeDancer) => {
@@ -356,17 +366,27 @@ export default function RequestScreen() {
                         <Text style={styles.dancerNote} numberOfLines={2}>
                           {d.profile || 'まだ自己紹介は書かれていません。'}
                         </Text>
-                        <TouchableOpacity
-                          style={[styles.inviteBtn, already && styles.inviteBtnDone]}
-                          onPress={() => !already && openRealInvite(d)}
-                          activeOpacity={0.85}
-                          disabled={already}
-                        >
-                          <UserPlus size={14} color={already ? colors.textMuted : colors.textOnGold} />
-                          <Text style={[styles.inviteBtnText, already && styles.inviteBtnTextDone]}>
-                            {already ? 'お誘い済み' : '連に招く'}
-                          </Text>
-                        </TouchableOpacity>
+                        <View style={styles.cardBtnRow}>
+                          <TouchableOpacity
+                            style={[styles.inviteBtn, styles.inviteBtnInRow, already && styles.inviteBtnDone]}
+                            onPress={() => !already && openRealInvite(d)}
+                            activeOpacity={0.85}
+                            disabled={already}
+                          >
+                            <UserPlus size={14} color={already ? colors.textMuted : colors.textOnGold} />
+                            <Text style={[styles.inviteBtnText, already && styles.inviteBtnTextDone]}>
+                              {already ? 'お誘い済み' : '連に招く'}
+                            </Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.chatBtn}
+                            onPress={() => chatWith(d.id, d.name)}
+                            activeOpacity={0.85}
+                          >
+                            <MessageCircle size={14} color={colors.gold} />
+                            <Text style={styles.chatBtnText}>話す</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
                   );
@@ -441,23 +461,33 @@ export default function RequestScreen() {
                       <Badge label={REAL_STATUS_LABEL[inv.status]} tone={STATUS_TONE[REAL_STATUS_LABEL[inv.status]]} />
                     </View>
                     <Text style={styles.sentMsg}>{inv.message}</Text>
-                    {inv.status === 'pending' ? (
+                    <View style={styles.cardBtnRow}>
                       <TouchableOpacity
-                        style={styles.cancelBtn}
-                        onPress={() => cancel(inv.id)}
-                        disabled={cancelingId === inv.id}
+                        style={styles.chatBtn}
+                        onPress={() => chatWith(inv.toUserId, inv.toUserName)}
                         activeOpacity={0.85}
                       >
-                        {cancelingId === inv.id ? (
-                          <ActivityIndicator color={colors.textSecondary} size="small" />
-                        ) : (
-                          <>
-                            <Trash2 size={13} color={colors.textSecondary} />
-                            <Text style={styles.cancelBtnText}>取り消す</Text>
-                          </>
-                        )}
+                        <MessageCircle size={13} color={colors.gold} />
+                        <Text style={styles.chatBtnText}>話す</Text>
                       </TouchableOpacity>
-                    ) : null}
+                      {inv.status === 'pending' ? (
+                        <TouchableOpacity
+                          style={[styles.cancelBtn, styles.cancelBtnInRow]}
+                          onPress={() => cancel(inv.id)}
+                          disabled={cancelingId === inv.id}
+                          activeOpacity={0.85}
+                        >
+                          {cancelingId === inv.id ? (
+                            <ActivityIndicator color={colors.textSecondary} size="small" />
+                          ) : (
+                            <>
+                              <Trash2 size={13} color={colors.textSecondary} />
+                              <Text style={styles.cancelBtnText}>取り消す</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
                   </View>
                 ))}
                 <View style={styles.sampleDivider}>
@@ -500,37 +530,47 @@ export default function RequestScreen() {
                     ) : null}
                   </View>
                   <Text style={styles.sentMsg}>{inv.message}</Text>
-                  {inv.status === 'pending' ? (
-                    <View style={styles.respondRow}>
-                      <TouchableOpacity
-                        style={styles.declineBtn}
-                        onPress={() => respond(inv.id, 'declined')}
-                        disabled={respondingId === inv.id}
-                        activeOpacity={0.85}
-                      >
-                        {respondingId === inv.id ? (
-                          <ActivityIndicator color={colors.textSecondary} size="small" />
-                        ) : (
-                          <Text style={styles.declineBtnText}>辞退する</Text>
-                        )}
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.acceptBtn}
-                        onPress={() => respond(inv.id, 'accepted')}
-                        disabled={respondingId === inv.id}
-                        activeOpacity={0.85}
-                      >
-                        {respondingId === inv.id ? (
-                          <ActivityIndicator color={colors.textOnGold} size="small" />
-                        ) : (
-                          <>
-                            <Check size={14} color={colors.textOnGold} />
-                            <Text style={styles.acceptBtnText}>承諾する</Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  ) : null}
+                  <View style={styles.cardBtnRow}>
+                    <TouchableOpacity
+                      style={styles.chatBtn}
+                      onPress={() => chatWith(inv.fromUserId, inv.fromUserName)}
+                      activeOpacity={0.85}
+                    >
+                      <MessageCircle size={13} color={colors.gold} />
+                      <Text style={styles.chatBtnText}>話す</Text>
+                    </TouchableOpacity>
+                    {inv.status === 'pending' ? (
+                      <>
+                        <TouchableOpacity
+                          style={styles.declineBtn}
+                          onPress={() => respond(inv.id, 'declined')}
+                          disabled={respondingId === inv.id}
+                          activeOpacity={0.85}
+                        >
+                          {respondingId === inv.id ? (
+                            <ActivityIndicator color={colors.textSecondary} size="small" />
+                          ) : (
+                            <Text style={styles.declineBtnText}>辞退する</Text>
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.acceptBtn}
+                          onPress={() => respond(inv.id, 'accepted')}
+                          disabled={respondingId === inv.id}
+                          activeOpacity={0.85}
+                        >
+                          {respondingId === inv.id ? (
+                            <ActivityIndicator color={colors.textOnGold} size="small" />
+                          ) : (
+                            <>
+                              <Check size={14} color={colors.textOnGold} />
+                              <Text style={styles.acceptBtnText}>承諾する</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </>
+                    ) : null}
+                  </View>
                 </View>
               ))
             )}
@@ -663,6 +703,8 @@ const styles = StyleSheet.create({
   enbuTitle: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
   dancerNote: { ...typography.caption, color: colors.textMuted, marginTop: 4, lineHeight: 16 },
 
+  cardBtnRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  inviteBtnInRow: { marginTop: 0 },
   inviteBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -677,6 +719,17 @@ const styles = StyleSheet.create({
   inviteBtnDone: { backgroundColor: colors.indigoRaised },
   inviteBtnText: { ...typography.button, color: colors.textOnGold, marginLeft: 6, fontSize: 12 },
   inviteBtnTextDone: { color: colors.textMuted },
+  chatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.gold,
+  },
+  chatBtnText: { ...typography.button, color: colors.gold, marginLeft: 6, fontSize: 12 },
 
   sentCard: {
     backgroundColor: colors.indigo,
@@ -698,9 +751,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     paddingVertical: 4,
   },
+  cancelBtnInRow: { marginTop: 0, alignSelf: 'center' },
   cancelBtnText: { ...typography.caption, color: colors.textSecondary, marginLeft: 4 },
-
-  respondRow: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
   declineBtn: {
     flex: 1,
     alignItems: 'center',

@@ -222,13 +222,18 @@ export default function RequestScreen() {
   const pendingReceivedCount = receivedReal.filter((i) => i.status === 'pending').length;
 
   const q = search.trim().toLowerCase();
+  // プロフィールを書いている人ほど「声を掛けてほしい」意思が明確なので上に出す
+  const profileCompleteness = (d: OtherDancer) =>
+    (d.profile.trim() ? 1 : 0) + (d.danceStyle ? 1 : 0) + (d.icon ? 1 : 0);
   const filteredOtherDancers = useMemo(
     () =>
-      otherDancers.filter((d) => {
-        const styleOk = styleFilter === 'all' || d.danceStyle === styleFilter;
-        const searchOk = !q || d.name.toLowerCase().includes(q) || d.profile.toLowerCase().includes(q);
-        return styleOk && searchOk;
-      }),
+      otherDancers
+        .filter((d) => {
+          const styleOk = styleFilter === 'all' || d.danceStyle === styleFilter;
+          const searchOk = !q || d.name.toLowerCase().includes(q) || d.profile.toLowerCase().includes(q);
+          return styleOk && searchOk;
+        })
+        .sort((a, b) => profileCompleteness(b) - profileCompleteness(a)),
     [otherDancers, styleFilter, q],
   );
   const filteredFreeDancers = useMemo(
@@ -300,6 +305,11 @@ export default function RequestScreen() {
                   placeholder="名前・自己紹介で探す"
                   placeholderTextColor={colors.textMuted}
                 />
+                {search.length > 0 ? (
+                  <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <X size={15} color={colors.textMuted} />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
             <View style={styles.filterRow}>
@@ -318,6 +328,8 @@ export default function RequestScreen() {
                 <NarutoLoader size={22} color={colors.gold} />
                 <Text style={styles.loadingText}>踊り手を探しています…</Text>
               </View>
+            ) : filteredOtherDancers.length === 0 && filteredFreeDancers.length === 0 && q ? (
+              <Text style={styles.lead}>「{search}」に一致する踊り手が見つかりませんでした。</Text>
             ) : filteredOtherDancers.length > 0 ? (
               <>
                 <Text style={styles.lead}>同じ広場にいる踊り手たち。プロフィールを見て声を掛けられます。</Text>
@@ -367,10 +379,9 @@ export default function RequestScreen() {
               <Text style={styles.lead}>絞り込みに一致する踊り手がいません。</Text>
             ) : null}
 
-            <Text style={styles.lead}>連に所属していない踊り手たち。演舞を見て声を掛けられます。</Text>
-            {filteredFreeDancers.length === 0 ? (
-              <Text style={styles.lead}>絞り込みに一致する踊り手がいません。</Text>
-            ) : null}
+            {filteredFreeDancers.length > 0 && (
+              <Text style={styles.lead}>連に所属していない踊り手たち。演舞を見て声を掛けられます。</Text>
+            )}
             {filteredFreeDancers.map((d) => {
               const already = invitedDummyNames.has(d.name);
               return (

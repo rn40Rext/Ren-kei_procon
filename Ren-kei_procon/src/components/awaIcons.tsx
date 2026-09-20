@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
-import Svg, { Path, Circle, Line, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Rect, G } from 'react-native-svg';
 import { colors } from '../theme';
 
 /**
@@ -36,13 +36,15 @@ function Base({
   );
 }
 
-/** 団扇（うちわ）— 女踊り・披露 */
+/** 団扇（うちわ）— 女踊り・披露。丸い扇面＋柄のみの単純な形にして小さくても判別できるようにする。 */
 export function IconUchiwa(p: IconProps) {
   return (
     <Base {...p}>
-      <Path d="M12 3c4.2 0 7 3 7 6.5S16.2 16 12 16 5 12 5 9.5 7.8 3 12 3z" />
-      <Path d="M8.4 9.5h7.2M12 4.2v11.6M9.6 5.2l4.8 9.6M14.4 5.2l-4.8 9.6" />
-      <Path d="M12 16l-1.4 4.2M12 16l1.4 4.2M10.6 20.2h2.8" />
+      <Circle cx="12" cy="9.5" r="6.3" />
+      <Path d="M12 15.8v5.2" />
+      <Path d="M10.6 20.6h2.8" />
+      <Path d="M6.3 9.5h11.4" />
+      <Path d="M12 4.4v10.2" />
     </Base>
   );
 }
@@ -70,14 +72,13 @@ export function IconNaruko(p: IconProps) {
   );
 }
 
-/** 巻物（まきもの）— 稽古録・門下生の声 */
+/** 巻物（まきもの）— 稽古録・門下生の声。左右の軸を同じ高さに揃えた横向きの巻物。 */
 export function IconMakimono(p: IconProps) {
   return (
     <Base {...p}>
-      <Path d="M7 6.5h8.5c1.4 0 2.5 1.1 2.5 2.5v6c0 1.4-1.1 2.5-2.5 2.5H7" />
-      <Path d="M7 6.5C5.6 6.5 4.5 7.6 4.5 9S5.6 11.5 7 11.5V6.5z" />
-      <Path d="M15.5 17.5c1.4 0 2.5-1.1 2.5-2.5s-1.1-2.5-2.5-2.5V17.5z" />
-      <Path d="M8 9.5h6M8 12.5h4" />
+      <Circle cx="7" cy="12" r="4" />
+      <Circle cx="17" cy="12" r="4" />
+      <Path d="M7 8h10M7 16h10" />
     </Base>
   );
 }
@@ -94,13 +95,12 @@ export function IconTaiko(p: IconProps) {
   );
 }
 
-/** 下駄（げた）— 男踊り・足捌き */
+/** 下駄（げた）— 男踊り・足捌き。台（俵形）に鼻緒のＶ字だけの単純な形。 */
 export function IconGeta(p: IconProps) {
   return (
     <Base {...p}>
-      <Path d="M5 7h14l-1.5 9.5a3 3 0 0 1-3 2.5H9.5a3 3 0 0 1-3-2.5z" />
-      <Path d="M12 7v11.5" />
-      <Path d="M9 4c0 1.2.8 2 1.8 2M15 4c0 1.2-.8 2-1.8 2M12 3v3" />
+      <Rect x="3.5" y="9" width="17" height="8" rx="4" ry="4" />
+      <Path d="M12 10 8.6 15M12 10 15.4 15" />
     </Base>
   );
 }
@@ -175,16 +175,16 @@ export function IconOnnaOdori(p: IconProps) {
   );
 }
 
-/** 和傘（開いた傘）— 連（れん）。傘連にちなみ、連・仲間を表す。 */
+/** 和傘（開いた傘）— 連（れん）。傘連にちなみ、連・仲間を表す。定番の傘の意匠（丸い屋根＋軸＋柄）。 */
 export function IconWagasa(p: IconProps) {
   return (
     <Base {...p}>
-      {/* 傘の面 */}
-      <Path d="M3.6 12Q12 -2 20.4 12Z" />
-      {/* 骨 */}
-      <Path d="M8 11.4 12 5M12 11.7 12 5M16 11.4 12 5" />
+      {/* 傘の面（丸屋根） */}
+      <Path d="M4 13a8 8 0 0 1 16 0" />
+      <Path d="M4 13h16" />
       {/* 中棒と柄 */}
-      <Path d="M12 2.6 12 21q0 1.9 -2.4 1.9" />
+      <Path d="M12 13v8" />
+      <Path d="M12 21q0 1.6 -2 1.6" />
     </Base>
   );
 }

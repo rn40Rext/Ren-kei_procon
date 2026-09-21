@@ -6,11 +6,26 @@
  * 混同させない表示にする(D-04)。
  */
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, SafeAreaView } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  SafeAreaView,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { X } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
+import { fetchVideo } from '../repositories/videos';
+import { publishExistingVideo } from '../data/community';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { KumihimoRule, NarutoLoader, Chochin, AwaDivider } from '../components/motifs';
 
@@ -39,9 +54,48 @@ export default function ResultScreen() {
   const [result, setResult] = useState<AnalysisResult | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
+  const [shareVisible, setShareVisible] = useState(false);
+  const [shareTitle, setShareTitle] = useState('');
+  const [shareDescription, setShareDescription] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [posted, setPosted] = useState(false);
+
   useEffect(() => {
     return subscribeAnalysisResult(analysisId, setResult, (e) => setError(e.message));
   }, [analysisId]);
+
+  const openShare = () => {
+    setShareError(null);
+    setShareVisible(true);
+  };
+
+  const submitShare = async () => {
+    if (!shareTitle.trim()) {
+      setShareError('タイトルを入力してください');
+      return;
+    }
+    setPosting(true);
+    setShareError(null);
+    try {
+      const video = await fetchVideo(videoId);
+      if (!video?.downloadUrl) {
+        setShareError('動画の準備がまだできていません。少し待ってからもう一度お試しください');
+        return;
+      }
+      await publishExistingVideo({
+        videoUrl: video.downloadUrl,
+        title: shareTitle,
+        description: shareDescription || undefined,
+      });
+      setPosted(true);
+      setShareVisible(false);
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : '投稿に失敗しました');
+    } finally {
+      setPosting(false);
+    }
+  };
 
   if (result === undefined && !error) {
     return (
@@ -131,6 +185,16 @@ export default function ResultScreen() {
           <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、上の{lexicon.aiScore}とは別物です。</Text>
         </View>
 
+        {posted ? (
+          <View style={styles.postedNote}>
+            <Text style={styles.postedNoteText}>交流広場へ投稿しました</Text>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.shareButton} onPress={openShare} activeOpacity={0.85}>
+            <Text style={styles.shareButtonText}>この演舞を交流広場へ投稿する</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring')} activeOpacity={0.85}>
           <Text style={styles.primaryButtonText}>もう一度稽古する</Text>
         </TouchableOpacity>
@@ -140,6 +204,57 @@ export default function ResultScreen() {
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
+
+      <Modal visible={shareVisible} transparent animationType="slide" onRequestClose={() => setShareVisible(false)}>
+        <KeyboardAvoidingView
+          style={styles.shareModalWrap}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.shareModalCard}>
+            <View style={styles.shareModalHead}>
+              <Text style={styles.shareModalTitle}>交流広場へ投稿</Text>
+              <TouchableOpacity onPress={() => setShareVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <X size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.shareModalLead}>この稽古の演舞を、みんなが見られる交流広場に公開します。</Text>
+
+            <Text style={styles.shareModalLabel}>タイトル</Text>
+            <TextInput
+              style={styles.shareModalInput}
+              placeholder="例）今日の女踊り、手の高さを意識しました"
+              placeholderTextColor={colors.textMuted}
+              value={shareTitle}
+              onChangeText={setShareTitle}
+              maxLength={100}
+            />
+            <Text style={styles.shareModalLabel}>ひとこと（任意）</Text>
+            <TextInput
+              style={[styles.shareModalInput, styles.shareModalTextarea]}
+              placeholder="演舞についてのコメントがあれば"
+              placeholderTextColor={colors.textMuted}
+              value={shareDescription}
+              onChangeText={setShareDescription}
+              multiline
+              maxLength={1000}
+            />
+            {shareError ? <Text style={styles.shareModalError}>{shareError}</Text> : null}
+
+            <TouchableOpacity
+              style={[styles.shareModalSubmit, (posting || !shareTitle.trim()) && styles.shareModalSubmitDisabled]}
+              onPress={submitShare}
+              disabled={posting || !shareTitle.trim()}
+              activeOpacity={0.85}
+            >
+              {posting ? (
+                <ActivityIndicator color={colors.textOnGold} size="small" />
+              ) : (
+                <Text style={styles.shareModalSubmitText}>投稿する</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -201,6 +316,62 @@ const styles = StyleSheet.create({
   secondaryButton: { borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.indigo },
   secondaryButtonText: { ...typography.button, color: colors.textPrimary },
 
+  shareButton: {
+    borderWidth: 1,
+    borderColor: colors.gold,
+    paddingVertical: spacing.md,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  shareButtonText: { ...typography.button, color: colors.gold },
+  postedNote: {
+    backgroundColor: colors.goldSoft,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  postedNoteText: { ...typography.button, color: colors.gold },
+
   muted: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
   errorText: { color: colors.aka, marginBottom: spacing.lg, textAlign: 'center' },
+
+  /* --- 投稿モーダル --- */
+  shareModalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,19,43,0.7)' },
+  shareModalCard: {
+    backgroundColor: colors.indigoDeep,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  shareModalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  shareModalTitle: { ...typography.headingSerif, color: colors.textPrimary },
+  shareModalLead: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 17 },
+  shareModalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, marginTop: spacing.sm },
+  shareModalInput: {
+    backgroundColor: colors.indigoRaised,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    color: colors.textPrimary,
+    ...typography.body,
+  },
+  shareModalTextarea: { minHeight: 64, textAlignVertical: 'top' },
+  shareModalError: { ...typography.caption, color: colors.aka, marginTop: spacing.sm },
+  shareModalSubmit: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  shareModalSubmitDisabled: { opacity: 0.4 },
+  shareModalSubmitText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
 });

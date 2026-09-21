@@ -182,6 +182,35 @@ export async function uploadVideoAndPublish(params: {
   return { postId: out.data.postId };
 }
 
+/**
+ * すでに Storage にある動画（自主稽古で撮った videos ドキュメントなど）を
+ * 再アップロードせずそのまま交流広場へ投稿する（解析結果画面の「投稿する」用）。
+ */
+export async function publishExistingVideo(params: {
+  videoUrl: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+}): Promise<{ postId: string }> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('ログインが必要です');
+
+  const authorName = await myDisplayName();
+  const call = httpsCallable<
+    { title: string; description?: string; tags?: string[]; videoUrl: string; authorName: string },
+    { postId: string }
+  >(functions, 'publishPost');
+
+  const out = await call({
+    title: params.title.trim(),
+    description: params.description?.trim() || undefined,
+    tags: params.tags && params.tags.length ? params.tags : undefined,
+    videoUrl: params.videoUrl,
+    authorName,
+  });
+  return { postId: out.data.postId };
+}
+
 /* ------------------------------------------------------------------ */
 /* 1 件取得 / コメント                                                  */
 /* ------------------------------------------------------------------ */

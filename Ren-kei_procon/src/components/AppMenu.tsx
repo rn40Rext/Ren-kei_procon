@@ -19,15 +19,19 @@ import {
   IconWagasa,
   IconGeta,
   IconMakimono,
+  IconAmigasa,
+  IconTaiko,
 } from './awaIcons';
 
 const PANEL_W = Math.min(Math.round(Dimensions.get('window').width * 0.82), 360);
 
-type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request';
+type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request' | 'RenSearch' | 'Group';
 
 const LINKS: { key: NavKey; label: string; note: string; Icon: typeof IconUchiwa }[] = [
   { key: 'Home', label: '踊り広場', note: '演舞の推薦・みんなの投稿・交流', Icon: IconUchiwa },
-  { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く', Icon: IconWagasa },
+  { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く', Icon: IconAmigasa },
+  { key: 'RenSearch', label: '連を探す', note: '気になる連を見つけて参加を申請', Icon: IconWagasa },
+  { key: 'Group', label: 'マイ連', note: '所属する連・活動情報・お知らせ', Icon: IconTaiko },
   { key: 'Scoring', label: '自主稽古・演舞解析', note: '手本同期・二拍子稽古', Icon: IconGeta },
   { key: 'Mypage', label: '稽古手帳', note: '成長記録・段位・連バッジ', Icon: IconMakimono },
 ];

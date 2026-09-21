@@ -2,6 +2,17 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---------- ヘルパー ----------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // 対象連の管理者か(users.roleではなくren/members側のroleで判定する。仕様書10.3)。
+    function isRenAdmin(renId) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/ren/$(renId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/ren/$(renId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // videos: 練習動画(非公開がデフォルト)。所有者のみ読み書き可能。
     // publishPost実行後(visibility=='public')は他ユーザーも閲覧可能。
     match /videos/{videoId} {
@@ -29,20 +40,32 @@ service cloud.firestore {
       // 作成はpublishPost(Cloud Functions/Admin SDK)経由のみ。
       // Admin SDKはRulesを経由しないため、クライアントからは常に拒否する。
       allow create: if false;
-      // 投稿者本人は全フィールド更新可。他の認証済みユーザーは
-      // いいね・コメント機能によるカウンタ更新のみ許可。
+      // 投稿者本人のみ更新可。likeCount/commentCountはonLikeWrite/
+      // onCommentWrite(Cloud Functionsトリガ、count()集計、Admin SDK経由で
+      // Rulesを通らない)のみが更新するため、投稿者本人でもクライアントから
+      // は変更不可。
       allow update: if request.auth != null
-                    && (resource.data.userId == request.auth.uid
-                        || request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['likeCount', 'commentCount']));
+                    && resource.data.userId == request.auth.uid
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['userId', 'likeCount', 'commentCount']);
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
 
       match /comments/{commentId} {
         allow read: if request.auth != null;
+        // type:'instructor'(師匠の教え)はrenIdで「どの連の管理者としての
+        // 発言か」を検証する。isRenAdmin(renId)は呼び出し本人がそのrenIdの
+        // 管理者かどうかを見るため、他人の連を騙ることはできない。
         allow create: if request.auth != null
                       && request.resource.data.userId == request.auth.uid
-                      && request.resource.data.type in ['instructor', 'normal'];
-        allow update, delete: if false;
+                      && request.resource.data.type in ['instructor', 'normal']
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() >= 1
+                      && request.resource.data.text.size() <= 1000
+                      && (request.resource.data.type == 'normal'
+                            || (request.resource.data.renId is string
+                                  && isRenAdmin(request.resource.data.renId)));
+        allow update, delete: if request.auth != null
+                      && resource.data.userId == request.auth.uid;
       }
 
       // likes: ユーザーID をドキュメントIDにすることで二重いいねを防止
@@ -67,6 +90,19 @@ service cloud.firestore {
                     && !request.resource.data.diff(resource.data).affectedKeys()
                           .hasAny(['role', 'uid', 'createdAt']);
       allow delete: if request.auth != null && request.auth.uid == uid;
+
+      match /notifications/{notificationId} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow create: if false; // system(Cloud Functionsトリガ)のみ
+        allow update: if isSignedIn() && request.auth.uid == uid
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+        allow delete: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      match /growthRecords/{recordId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
     }
 
     // chats: チャットIDが "小さいUID_大きいUID" の形式であることを前提に、
@@ -79,8 +115,8 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // invitations: 連へのお誘い（連の実体が未実装のため、ユーザー間の
-    // スカウトとして実装。送信者・宛先本人のみ読み書き可能）。
+    // invitations: 連へのお誘い（個人間スカウト。連そのものへの参加申請とは別物で、
+    // 送信者・宛先本人のみ読み書き可能）。
     match /invitations/{invitationId} {
       allow read: if request.auth != null
                   && (resource.data.fromUserId == request.auth.uid
@@ -102,20 +138,94 @@ service cloud.firestore {
                     && resource.data.status == 'pending';
     }
 
-    // analysisResults: AI解析①（自主稽古）の採点結果。FN-01（Admin SDK）のみが書く。
+    // analysisResults / styleAnalysisResults: スコアはsystem(Cloud Functions/
+    // Admin SDK)のみが書く。クライアントは直接書き込めない(仕様書10.3)。
     match /analysisResults/{analysisId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow write: if false;
     }
+    match /styleAnalysisResults/{styleAnalysisId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create, update: if false;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
 
-    match /users/{uid}/growthRecords/{recordId} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
+    // ren: 作成はcreateRen(Cloud Functions/Admin SDK)経由のみ。
+    // ren本体とmembers(作成者をadminにする)を1つのトランザクションで
+    // 書き込むため、クライアントからの直接createは常に拒否する。
+    match /ren/{renId} {
+      allow read: if isSignedIn();
+      allow create: if false;
+      allow update: if isRenAdmin(renId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['createdBy', 'memberCount', 'createdAt']);
+      allow delete: if isRenAdmin(renId);
+
+      // 役割変更(update)・管理者による除名(delete)は、「最後の管理者を
+      // 降格・削除できない」という不変条件がRules単体(get()のみ、
+      // 集計クエリ不可)では検証できないため、updateMemberRole・
+      // removeMember(Cloud Functions)に一本化する。本人の脱退は
+      // その制約と無関係のため直接deleteを許可したまま。
+      match /members/{uid} {
+        allow read: if isSignedIn();
+        allow create: if false; // createRen(作成者登録)・参加承認経由。Admin SDKはRulesを通らない
+        allow update: if false; // updateMemberRole経由のみ
+        allow delete: if isSignedIn() && request.auth.uid == uid; // 本人の脱退のみ直接許可。管理者による除名はremoveMember経由
+      }
+      match /announcements/{announcementId} {
+        allow read: if isSignedIn();
+        allow write: if isRenAdmin(renId);
+      }
+      match /activities/{activityId} {
+        allow read: if isSignedIn();
+        allow write: if isRenAdmin(renId);
+      }
+    }
+
+    // membersのcollectionGroupクエリ(useAdminRens)用。上のネストした
+    // match /ren/{renId}/members/{uid} のread許可は、そのパス単位のget/list
+    // にのみ適用され、collectionGroupクエリには適用されない(Firestoreの仕様)。
+    // そのためread専用に再帰ワイルドカードで別途許可する(create/update/deleteは
+    // 上のブロックのまま)。
+    match /{path=**}/members/{uid} {
+      allow read: if isSignedIn();
+    }
+
+    // joinRequests: 申請者は取消のみクライアントから直接可能。
+    // 承認・却下はupdateJoinRequestStatus(Cloud Functions/Admin SDK)
+    // 経由のみに一本化する。members作成・notification作成と同一トランザクション
+    // で行う必要があり、Rules側の直接updateを許すとその同期性が保証できなくなる
+    // ため。
+    match /joinRequests/{requestId} {
+      allow read: if isSignedIn()
+                  && (resource.data.userId == request.auth.uid || isRenAdmin(resource.data.renId));
+      // 作成はsubmitJoinRequest(Cloud Functions/Admin SDK)経由のみ。
+      // 重複pending申請・既存メンバーの再申請チェックは複数ドキュメント
+      // にまたがるためRulesでは表現できず、関数側で検証する。
+      allow create: if false;
+      allow update: if isSignedIn()
+                    && resource.data.userId == request.auth.uid
+                    && resource.data.status == 'pending'
+                    && request.resource.data.status == 'cancelled';
+      allow delete: if false;
+    }
+
+    // renStyle*: 連スタイル類似度まわり。参照動画の登録・閲覧は連管理者のみ。
+    // renId はドキュメントのフィールドなので、createではresourceが無くresource.data
+    // を参照できない。request.resource側で判定する(create/update以降で分ける)。
+    match /renStyleReferences/{referenceId} {
+      allow read: if isSignedIn() && isRenAdmin(resource.data.renId);
+      allow create: if isSignedIn() && isRenAdmin(request.resource.data.renId);
+      allow update, delete: if isSignedIn() && isRenAdmin(resource.data.renId);
+    }
+    match /renStyleProfiles/{renId} {
+      allow read: if isSignedIn();
+      allow write: if false; // system(Cloud Functions)のみ
     }
 
     // analysisRules: 判定閾値のマスタ。運用者がコンソール/Functionsから更新する想定。
     match /analysisRules/{ruleId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if false;
     }
   }

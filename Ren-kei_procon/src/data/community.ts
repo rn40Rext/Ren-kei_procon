@@ -5,8 +5,9 @@
  *   firestore.rules で禁止）。クライアントは動画を Storage に上げて videoUrl を渡す。
  * - コメントは posts/{postId}/comments に直接 create（userId==自分・type 制限あり）。
  * - いいねは posts/{postId}/likes/{uid} をドキュメント ID = uid で作成し二重防止。
- *   likeCount / commentCount は当面クライアントが increment で更新する
- *   （rules が hasOnly(['likeCount','commentCount']) を許可。将来は Functions で同期）。
+ *   likeCount / commentCount は onLikeWrite / onCommentWrite（Cloud Functions
+ *   トリガー）が count() 集計で同期する。クライアントからの直接更新は
+ *   rules で拒否される。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth, db, storage, functions } from '../config/firebaseConfig';
@@ -17,10 +18,8 @@ import {
   setDoc,
   getDoc,
   deleteDoc,
-  updateDoc,
   onSnapshot,
   serverTimestamp,
-  increment,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
@@ -269,7 +268,8 @@ export async function addComment(
     text: input.text.trim(),
     createdAt: serverTimestamp(),
   });
-  await updateDoc(doc(db, 'posts', postId), { commentCount: increment(1) });
+  // commentCountはonCommentWrite(Cloud Functions)がcomments件数を数え直して同期する。
+  // クライアントからのincrementはrulesで拒否されるため呼ばない。
 }
 
 /* ------------------------------------------------------------------ */
@@ -287,12 +287,12 @@ export async function toggleLike(postId: string, currentlyLiked: boolean): Promi
   if (!user) throw new Error('ログインが必要です');
   const likeRef = doc(db, 'posts', postId, 'likes', user.uid);
 
+  // likeCountはonLikeWrite(Cloud Functions)がlikes件数を数え直して同期する。
+  // クライアントからのincrementはrulesで拒否されるため呼ばない。
   if (currentlyLiked) {
     await deleteDoc(likeRef);
-    await updateDoc(doc(db, 'posts', postId), { likeCount: increment(-1) });
     return false;
   }
   await setDoc(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
-  await updateDoc(doc(db, 'posts', postId), { likeCount: increment(1) });
   return true;
 }

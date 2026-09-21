@@ -23,6 +23,7 @@ import SettingScreen from "../screens/SettingScreen";
 import CameraScreen from "../screens/CameraScreen";
 import ResultScreen from "../screens/ResultScreen";
 import RequestScreen from "../screens/RequestScreen";
+import RenSearchScreen from "../screens/RenSearchScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import ChatScreen from "../screens/ChatScreen";
 
@@ -36,7 +37,8 @@ export type RootStackParamList = {
   VideoList: undefined;
   ContactInfo: undefined;
   Setting: undefined;
-  Group: undefined;
+  Group: { renId?: string } | undefined;
+  RenSearch: undefined;
   // U-02 本体。baseBpm はリズム判定の基準テンポ(TBD-04 の暫定: ユーザー選択)
   Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
@@ -90,6 +92,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Camera" component={CameraScreen} />
           <Stack.Screen name="Result" component={ResultScreen} />
           <Stack.Screen name="Request" component={RequestScreen} />
+          <Stack.Screen name="RenSearch" component={RenSearchScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
         </>

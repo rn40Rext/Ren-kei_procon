@@ -16,11 +16,18 @@ service firebase.storage {
                     && request.resource.size < 5 * 1024 * 1024;
     }
 
-    // 連(ren)アイコン・スタイル参照動画: 連の管理機能が未実装のため、
-    // クライアントからの書き込みは一律拒否(将来Admin SDK経由に一本化する想定)。
+    // 連(ren)アイコン本体: 直接の書き込みは拒否し、updateRenIcon
+    // (Cloud Functions/Admin SDK)経由に一本化する。
     match /ren/{renId}/icon/{fileName} {
       allow read: if request.auth != null;
       allow write: if false;
+    }
+    // updateRenIconの一時アップロード領域。本人のみ書き込み可能な
+    // 単純なパスにすることで、Cross-Service Rulesの不安定さを回避する。
+    match /users/{uid}/renIconUploads/{renId}/{fileName} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                    && request.resource.size < 5 * 1024 * 1024;
     }
     match /ren/{renId}/styleReferences/{fileName} {
       allow read, write: if false;

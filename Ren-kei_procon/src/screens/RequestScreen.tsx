@@ -277,6 +277,14 @@ export default function RequestScreen() {
         <AppMenu />
       </View>
 
+      <TouchableOpacity
+        style={styles.renSearchLink}
+        onPress={() => navigation.navigate('RenSearch')}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.renSearchLinkText}>連そのものに参加したい方はこちら　→　連を探す</Text>
+      </TouchableOpacity>
+
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabItem, tab === 'scout' && styles.tabItemActive]}
@@ -640,6 +648,15 @@ const styles = StyleSheet.create({
   headerIcon: { marginRight: spacing.md },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
   headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+
+  renSearchLink: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.goldSoft,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  renSearchLinkText: { ...typography.caption, color: colors.gold, fontWeight: '700', textAlign: 'center' },
 
   tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.indigoLine },
   tabItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },

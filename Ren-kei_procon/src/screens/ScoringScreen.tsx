@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } fr
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Music2, Footprints, Hand, User } from 'lucide-react-native';
+import { Footprints, Hand, User } from 'lucide-react-native';
 import AppMenu from '../components/AppMenu';
 import { IconOdoriko } from '../components/awaIcons';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
@@ -26,19 +26,9 @@ const PART_OPTIONS: { key: ScorePart; label: string; note: string; Icon: typeof 
   { key: 'whole', label: '全体の調和', note: '上体のぶれ・二拍子との一致', Icon: User },
 ];
 
-// リズム判定の基準テンポ。既定はさゝゆり連の実測 112 BPM
-const CHO_OPTIONS = [
-  { bpm: 96, label: 'ゆったり' },
-  { bpm: 104, label: 'のんびり調子' },
-  { bpm: 112, label: '基準（標準）' },
-  { bpm: 120, label: '早調子' },
-  { bpm: 128, label: '速い' },
-];
-
 export default function AnalysisScreen() {
   const [danceType, setDanceType] = useState<DanceType | null>(null);
   const [scorePart, setScorePart] = useState<ScorePart | null>(null);
-  const [baseBpm, setBaseBpm] = useState(112);
 
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
   const ready = danceType !== null && scorePart !== null;
@@ -56,30 +46,6 @@ export default function AnalysisScreen() {
       <HeaderSeam />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* ぞめき調子（リズム判定の基準テンポ） */}
-        <View style={styles.sectionHead}>
-          <KumihimoRule width={20} />
-          <Text style={styles.sectionTitleInline}>ぞめき調子（基準テンポ）</Text>
-        </View>
-        <Text style={styles.hint}>お囃子のテンポに合わせて選びます。練習は本番より落としたテンポでも構いません。</Text>
-        <View style={styles.choRow}>
-          {CHO_OPTIONS.map((c) => {
-            const active = baseBpm === c.bpm;
-            return (
-              <TouchableOpacity
-                key={c.bpm}
-                style={[styles.choBtn, active && styles.choBtnActive]}
-                onPress={() => setBaseBpm(c.bpm)}
-                activeOpacity={0.85}
-              >
-                <Music2 size={15} color={active ? colors.textOnGold : colors.gold} />
-                <Text style={[styles.choLabel, active && styles.choLabelActive]}>{c.bpm} BPM</Text>
-                <Text style={[styles.choBpm, active && styles.choLabelActive]}>{c.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
         {/* 踊りの種類 */}
         <View style={styles.sectionHead}>
           <KumihimoRule width={20} />
@@ -132,7 +98,7 @@ export default function AnalysisScreen() {
           style={[styles.nextButton, !ready && styles.nextButtonDisabled]}
           onPress={() => {
             if (danceType === null || scorePart === null) return;
-            navigation.navigate('Camera', { danceType, scorePart, baseBpm });
+            navigation.navigate('Camera', { danceType, scorePart });
           }}
         >
           <Text style={[styles.nextButtonText, !ready && styles.nextButtonTextDisabled]}>
@@ -156,22 +122,6 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.xl, marginBottom: spacing.md },
   sectionHead: { marginTop: spacing.xl, marginBottom: spacing.md },
   sectionTitleInline: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.sm },
-  hint: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 16 },
-
-  choRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  choBtn: {
-    minWidth: '30%',
-    flexGrow: 1,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-    backgroundColor: colors.indigo,
-  },
-  choBtnActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-  choLabel: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.sm },
-  choLabelActive: { color: colors.textOnGold },
-  choBpm: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
 
   optionCard: {
     flexDirection: 'row',

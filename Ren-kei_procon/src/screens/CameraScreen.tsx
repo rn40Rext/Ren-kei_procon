@@ -13,7 +13,7 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import PoseCameraView from "../components/PoseCameraView";
+import PoseCameraView, { POSE_CAMERA_SUPPORTED } from "../components/PoseCameraView";
 import { useAuth } from "../hooks/useAuth";
 import { useLiveAnalysis } from "../features/analysis/useLiveAnalysis";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
@@ -115,6 +115,23 @@ export default function CameraScreen() {
   const gauges = useMemo(() => mergeGauges(snapshot.gauges), [snapshot.gauges]);
   const analyzing = snapshot.status === "analyzing";
   const elapsedSec = Math.floor(snapshot.elapsedMs / 1000);
+
+  // リアルタイム判定はWeb版のみ対応(TBD-01)。スマホアプリでは判定不能な画面を
+  // 中途半端に出さず、その場でわかる案内に差し替える。
+  if (!POSE_CAMERA_SUPPORTED) {
+    return (
+      <View style={styles.unsupportedContainer}>
+        <Text style={styles.unsupportedTitle}>この端末では未対応です</Text>
+        <Text style={styles.unsupportedText}>
+          自主稽古のAI解析（動きのリアルタイム判定）は、現在パソコンのブラウザ版のみ対応しています。{"\n\n"}
+          お手数ですが、パソコンでこのアプリを開いて自主稽古をお試しください。
+        </Text>
+        <TouchableOpacity style={styles.unsupportedButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+          <Text style={styles.unsupportedButtonText}>戻る</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -247,6 +264,12 @@ export default function CameraScreen() {
 }
 
 const styles = StyleSheet.create({
+  unsupportedContainer: { flex: 1, backgroundColor: colors.indigoDeep, alignItems: "center", justifyContent: "center", padding: spacing.xl },
+  unsupportedTitle: { ...typography.titleSerif, color: colors.textPrimary, marginBottom: spacing.md },
+  unsupportedText: { ...typography.body, color: colors.textSecondary, textAlign: "center", lineHeight: 20 },
+  unsupportedButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, paddingHorizontal: spacing.xxl, borderRadius: radius.sm, marginTop: spacing.xl },
+  unsupportedButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
+
   container: { flex: 1, backgroundColor: "#000" },
   videoArea: { flex: 1, position: "relative" },
   topBar: { position: "absolute", left: spacing.md, top: spacing.md, right: spacing.md, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, pointerEvents: "none" },

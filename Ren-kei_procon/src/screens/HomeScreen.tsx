@@ -40,6 +40,8 @@ import {
   subscribePosts,
   loadCachedPosts,
   uploadVideoAndPublish,
+  isLiked,
+  toggleLike,
   POST_TAG_OPTIONS,
   type PostDoc,
 } from '../data/community';
@@ -162,6 +164,40 @@ export default function HomeScreen({ navigation }: any) {
     () => realPosts.filter((p) => p.id !== realHero?.id),
     [realPosts, realHero],
   );
+
+  // フィード上で直接「拍手」できるように、表示中の投稿の自分のいいね状態を持つ
+  // （数そのものはsubscribePostsのライブ購読が反映するので、ここではliked表示だけ管理する）。
+  const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
+  const [clapBusyId, setClapBusyId] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    feedRealPosts.forEach((p) => {
+      if (likedMap[p.id] !== undefined) return;
+      isLiked(p.id).then((v) => {
+        if (alive) setLikedMap((m) => ({ ...m, [p.id]: v }));
+      });
+    });
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedRealPosts]);
+
+  const onFeedClap = async (postId: string) => {
+    if (clapBusyId) return;
+    const currentlyLiked = !!likedMap[postId];
+    setClapBusyId(postId);
+    setLikedMap((m) => ({ ...m, [postId]: !currentlyLiked }));
+    try {
+      await toggleLike(postId, currentlyLiked);
+    } catch {
+      setLikedMap((m) => ({ ...m, [postId]: currentlyLiked }));
+      Alert.alert('エラー', '拍手の送信に失敗しました');
+    } finally {
+      setClapBusyId(null);
+    }
+  };
+
   // ヒーローの下の横並び：自分の実投稿（ヒーロー以外）＋サンプルの自分の投稿
   const otherMineItems = useMemo(
     () => [
@@ -610,8 +646,15 @@ export default function HomeScreen({ navigation }: any) {
                       <Text style={styles.feedTags} numberOfLines={1}>{p.tags.join('  ')}</Text>
                     ) : null}
                     <View style={styles.feedStats}>
-                      <IconNaruko size={13} color={colors.gold} />
-                      <Text style={styles.feedStatText}>{p.likeCount}</Text>
+                      <TouchableOpacity
+                        style={styles.feedClapBtn}
+                        onPress={() => onFeedClap(p.id)}
+                        disabled={clapBusyId === p.id}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <IconNaruko size={13} color={likedMap[p.id] ? colors.aka : colors.gold} />
+                        <Text style={[styles.feedStatText, likedMap[p.id] && styles.feedStatTextActive]}>{p.likeCount}</Text>
+                      </TouchableOpacity>
                       <View style={{ marginLeft: spacing.md, flexDirection: 'row', alignItems: 'center' }}>
                         <IconMakimono size={13} color={colors.textMuted} />
                         <Text style={styles.feedStatText}>{p.commentCount}</Text>
@@ -1044,6 +1087,8 @@ const styles = StyleSheet.create({
   feedTags: { ...typography.caption, color: colors.gold, marginTop: 3 },
   feedStats: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   feedStatText: { ...typography.caption, color: colors.textSecondary, marginLeft: 4 },
+  feedClapBtn: { flexDirection: 'row', alignItems: 'center' },
+  feedStatTextActive: { color: colors.aka, fontWeight: '700' },
   feedTime: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
 
   /* --- 投稿モーダル --- */

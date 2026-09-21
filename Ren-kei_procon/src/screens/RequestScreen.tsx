@@ -405,7 +405,13 @@ export default function RequestScreen() {
               </>
             ) : otherDancers.length > 0 ? (
               <Text style={styles.lead}>絞り込みに一致する踊り手がいません。</Text>
-            ) : null}
+            ) : (
+              <View style={styles.noRealNote}>
+                <Text style={styles.noRealNoteText}>
+                  まだあなた以外に登録している踊り手がいません。誰かがアプリに登録すると、ここに表示されてお誘い・DMができるようになります。
+                </Text>
+              </View>
+            )}
 
             {filteredFreeDancers.length > 0 && (
               <Text style={styles.lead}>連に所属していない踊り手たち。演舞を見て声を掛けられます。</Text>
@@ -666,6 +672,15 @@ const styles = StyleSheet.create({
 
   body: { padding: spacing.lg },
   lead: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 17 },
+  noRealNote: {
+    backgroundColor: colors.indigoRaised,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  noRealNoteText: { ...typography.caption, color: colors.textMuted, lineHeight: 17 },
 
   searchWrap: { marginBottom: spacing.sm },
   searchBar: {

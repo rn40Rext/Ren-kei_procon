@@ -4,6 +4,7 @@ import { Send, ChevronLeft } from 'lucide-react-native';
 import { auth } from '../config/firebaseConfig';
 import { subscribeChatMessages, sendChatMessage } from '../repositories/chats';
 import { ChatMessage } from '../types/firestore';
+import { colors } from '../theme/colors';
 
 export default function ChatScreen({ route, navigation }: any) {
   const { chatId, recipientName } = route.params;
@@ -26,9 +27,9 @@ export default function ChatScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.indigoDeep }}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><ChevronLeft color="#2563EB" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}><ChevronLeft color={colors.gold} /></TouchableOpacity>
         <Text style={styles.headerTitle}>{recipientName} さんとの連絡</Text>
       </View>
 
@@ -36,18 +37,18 @@ export default function ChatScreen({ route, navigation }: any) {
         data={messages}
         inverted
         keyExtractor={item => item.id}
-        renderItem={({item}) => (
+        renderItem={({ item }) => (
           <View style={[styles.bubble, item.senderId === auth.currentUser?.uid ? styles.myBubble : styles.otherBubble]}>
             <Text style={item.senderId === auth.currentUser?.uid ? styles.myText : styles.otherText}>{item.text}</Text>
           </View>
         )}
-        contentContainerStyle={{padding: 20}}
+        contentContainerStyle={{ padding: 20 }}
       />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={100}>
         <View style={styles.inputArea}>
-          <TextInput style={styles.input} value={inputText} onChangeText={setInputText} placeholder="メッセージを入力..." />
-          <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}><Send color="#fff" size={20} /></TouchableOpacity>
+          <TextInput style={styles.input} value={inputText} onChangeText={setInputText} placeholder="メッセージを入力..." placeholderTextColor={colors.textMuted} />
+          <TouchableOpacity onPress={sendMessage} style={styles.sendBtn}><Send color={colors.textOnGold} size={20} /></TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -55,14 +56,14 @@ export default function ChatScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  headerTitle: { fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  headerTitle: { fontSize: 16, fontWeight: 'bold', marginLeft: 10, color: colors.textPrimaryOnIndigo },
   bubble: { maxWidth: '80%', padding: 12, borderRadius: 20, marginBottom: 10 },
-  myBubble: { alignSelf: 'flex-end', backgroundColor: '#2563EB' },
-  otherBubble: { alignSelf: 'flex-start', backgroundColor: '#F1F5F9' },
-  myText: { color: '#fff' },
-  otherText: { color: '#1E293B' },
-  inputArea: { flexDirection: 'row', padding: 15, borderTopWidth: 1, borderColor: '#eee', alignItems: 'center' },
-  input: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 25, paddingHorizontal: 20, height: 45 },
-  sendBtn: { backgroundColor: '#2563EB', width: 45, height: 45, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginLeft: 10 }
+  myBubble: { alignSelf: 'flex-end', backgroundColor: colors.gold },
+  otherBubble: { alignSelf: 'flex-start', backgroundColor: colors.indigoRaised },
+  myText: { color: colors.textOnGold },
+  otherText: { color: colors.textPrimaryOnIndigo },
+  inputArea: { flexDirection: 'row', padding: 15, borderTopWidth: 1, borderColor: colors.indigoLine, alignItems: 'center' },
+  input: { flex: 1, backgroundColor: colors.indigoRaised, borderRadius: 25, paddingHorizontal: 20, height: 45, color: colors.textPrimaryOnIndigo },
+  sendBtn: { backgroundColor: colors.gold, width: 45, height: 45, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginLeft: 10 }
 });

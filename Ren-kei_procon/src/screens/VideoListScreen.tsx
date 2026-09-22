@@ -1,11 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import BottomNav from '../components/BottomNav';
+import { colors } from '../theme/colors';
 
 export default function VideoListScreen() {
     return (
         <View style={styles.container}>
 
-            <Text>自分の上げた動画一覧</Text>
+            <Text style={styles.text}>自分の上げた動画一覧</Text>
 
             <BottomNav />
         </View>
@@ -15,6 +16,10 @@ export default function VideoListScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: colors.indigoDeep,
+    },
+    text: {
+        color: colors.textPrimaryOnIndigo,
+        padding: 20,
     },
 })

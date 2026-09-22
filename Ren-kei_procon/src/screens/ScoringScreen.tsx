@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import BottomNav from '../components/BottomNav';
+import { colors } from '../theme/colors';
 
 type DanceType = "male" | "female";
 type ScorePart = "feet" | "hands" | "whole";
@@ -40,7 +41,7 @@ export default function AnalysisScreen() {
             danceType === 'male' && styles.selectedButton,
           ]}
         >
-          <Text>男踊り</Text>
+          <Text style={styles.buttonText}>男踊り</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -50,7 +51,7 @@ export default function AnalysisScreen() {
             danceType === 'female' && styles.selectedButton,
           ]}
         >
-          <Text>女踊り</Text>
+          <Text style={styles.buttonText}>女踊り</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>
@@ -64,7 +65,7 @@ export default function AnalysisScreen() {
             scorePart === 'feet' && styles.selectedButton,
           ]}
         >
-          <Text>足だけ</Text>
+          <Text style={styles.buttonText}>足だけ</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -74,7 +75,7 @@ export default function AnalysisScreen() {
             scorePart === 'hands' && styles.selectedButton,
           ]}
         >
-          <Text>手だけ</Text>
+          <Text style={styles.buttonText}>手だけ</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -84,7 +85,7 @@ export default function AnalysisScreen() {
             scorePart === 'whole' && styles.selectedButton,
           ]}
         >
-          <Text>全体</Text>
+          <Text style={styles.buttonText}>全体</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>
@@ -97,7 +98,7 @@ export default function AnalysisScreen() {
               onPress={() => setBaseBpm(bpm)}
               style={[styles.bpmButton, baseBpm === bpm && styles.selectedButton]}
             >
-              <Text>{bpm}</Text>
+              <Text style={styles.buttonText}>{bpm}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -105,7 +106,7 @@ export default function AnalysisScreen() {
           お囃子のテンポに合わせて選びます。練習は本番より落としたテンポでも構いません。
         </Text>
 
-        <Text>
+        <Text style={styles.summaryText}>
           選択中の踊り：
           {danceType === 'male'
             ? '男踊り'
@@ -114,7 +115,7 @@ export default function AnalysisScreen() {
               : '未選択'}
         </Text>
 
-        <Text>
+        <Text style={styles.summaryText}>
           採点する部分：
           {scorePart === 'feet'
             ? '足だけ'
@@ -127,7 +128,7 @@ export default function AnalysisScreen() {
 
         <TouchableOpacity
           disabled={danceType === null || scorePart === null}
-          style={styles.nextButton}
+          style={[styles.nextButton, (danceType === null || scorePart === null) && styles.nextButtonDisabled]}
           onPress={() => {
             if (danceType === null || scorePart === null) {
               return;
@@ -138,9 +139,6 @@ export default function AnalysisScreen() {
                 scorePart,
                 baseBpm,
               });
-
-            console.log('踊り:', danceType);
-            console.log('採点部分:', scorePart);
           }}
         >
           <Text style={styles.nextButtonText}>次へ</Text>
@@ -155,47 +153,51 @@ export default function AnalysisScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.indigoDeep,
   },
 
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
+    color: colors.textPrimaryOnIndigo,
     marginBottom: 24,
   },
 
   sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#374151',
+    color: colors.gold,
     marginBottom: 12,
+    marginTop: 8,
   },
 
   danceButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.indigo,
     padding: 20,
     marginBottom: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.indigoLine,
   },
 
+  buttonText: { color: colors.textPrimaryOnIndigo },
+
   selectedButton: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#2563eb',
+    backgroundColor: colors.goldSoft,
+    borderColor: colors.gold,
   },
 
   nextButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.gold,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 20,
   },
+  nextButtonDisabled: { opacity: 0.5 },
 
   nextButtonText: {
-    color: '#ffffff',
+    color: colors.textOnGold,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -213,17 +215,22 @@ const styles = StyleSheet.create({
   },
 
   bpmButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.indigo,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.indigoLine,
   },
 
   hint: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textMuted,
     marginBottom: 16,
+  },
+
+  summaryText: {
+    color: colors.textSecondaryOnIndigo,
+    marginBottom: 4,
   },
 })

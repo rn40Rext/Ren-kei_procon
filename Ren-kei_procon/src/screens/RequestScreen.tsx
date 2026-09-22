@@ -11,14 +11,7 @@ import {
 } from '../repositories/joinRequests';
 import { JoinRequest, Ren } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
-
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-  danger: '#EF4444',
-};
+import { colors } from '../theme/colors';
 
 export default function RequestScreen() {
   const [rens, setRens] = useState<Ren[]>([]);
@@ -132,10 +125,11 @@ export default function RequestScreen() {
 
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Search color="#94A3B8" size={20} />
+          <Search color={colors.textMuted} size={20} />
           <TextInput
             style={styles.searchInput}
             placeholder="連の名前・地域などで検索"
+            placeholderTextColor={colors.textMuted}
             value={keyword}
             onChangeText={setKeyword}
           />
@@ -149,7 +143,7 @@ export default function RequestScreen() {
 
       <ScrollView style={styles.list}>
         {loading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} />
+          <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
         ) : filteredRens.length === 0 ? (
           <Text style={styles.emptyText}>連が見つかりませんでした</Text>
         ) : (
@@ -161,17 +155,17 @@ export default function RequestScreen() {
                   <Text style={styles.renName}>{ren.name}</Text>
                   {ren.location ? (
                     <View style={styles.renRow}>
-                      <MapPin size={13} color={COLORS.textMuted} />
+                      <MapPin size={13} color={colors.textMuted} />
                       <Text style={styles.renRowText}>{ren.location}</Text>
                     </View>
                   ) : null}
                   <View style={styles.renRow}>
-                    <Users size={13} color={COLORS.textMuted} />
+                    <Users size={13} color={colors.textMuted} />
                     <Text style={styles.renRowText}>メンバー {ren.memberCount}人</Text>
                   </View>
                   {pending ? <Text style={styles.pendingBadge}>申請中</Text> : null}
                 </View>
-                <ChevronRight size={20} color="#CBD5E1" />
+                <ChevronRight size={20} color={colors.textMuted} />
               </TouchableOpacity>
             );
           })
@@ -185,14 +179,14 @@ export default function RequestScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedRen?.name}</Text>
               <TouchableOpacity onPress={() => setSelectedRen(null)}>
-                <X color={COLORS.textMain} size={22} />
+                <X color={colors.textMuted} size={22} />
               </TouchableOpacity>
             </View>
 
             {selectedRen?.description ? <Text style={styles.modalDescription}>{selectedRen.description}</Text> : null}
 
             {checkingMembership ? (
-              <ActivityIndicator style={{ marginVertical: 20 }} />
+              <ActivityIndicator color={colors.gold} style={{ marginVertical: 20 }} />
             ) : isMember ? (
               <Text style={styles.infoText}>すでにこの連のメンバーです</Text>
             ) : selectedRen && pendingRequestFor(selectedRen.id) ? (
@@ -215,13 +209,14 @@ export default function RequestScreen() {
                 <TextInput
                   style={styles.messageInput}
                   placeholder="自己紹介や意気込みなど"
+                  placeholderTextColor={colors.textMuted}
                   value={message}
                   onChangeText={setMessage}
                   multiline
                   maxLength={500}
                 />
                 <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={submitting}>
-                  {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>参加を申請する</Text>}
+                  {submitting ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.submitBtnText}>参加を申請する</Text>}
                 </TouchableOpacity>
               </>
             )}
@@ -235,34 +230,34 @@ export default function RequestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', justifyContent: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: COLORS.border },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
-  searchSection: { backgroundColor: '#fff', padding: 15, borderBottomWidth: 1, borderColor: COLORS.border },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 15, height: 45 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 15 },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: { height: 60, backgroundColor: colors.indigo, justifyContent: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
+  searchSection: { backgroundColor: colors.indigo, padding: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigoRaised, borderRadius: 12, paddingHorizontal: 15, height: 45 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 15, color: colors.textPrimaryOnIndigo },
   filterRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: COLORS.border, marginRight: 8 },
-  checkboxChecked: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  filterLabel: { fontSize: 13, color: COLORS.textMain },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: colors.indigoLine, marginRight: 8 },
+  checkboxChecked: { backgroundColor: colors.gold, borderColor: colors.gold },
+  filterLabel: { fontSize: 13, color: colors.textPrimaryOnIndigo },
   list: { flex: 1, padding: 15 },
-  emptyText: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40 },
-  renCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
-  renName: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain },
+  emptyText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
+  renCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigo, borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.indigoLine },
+  renName: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   renRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  renRowText: { marginLeft: 6, fontSize: 12, color: COLORS.textMuted },
-  pendingBadge: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: '#FEF3C7', color: '#92400E', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  renRowText: { marginLeft: 6, fontSize: 12, color: colors.textMuted },
+  pendingBadge: { marginTop: 8, alignSelf: 'flex-start', backgroundColor: colors.goldSoft, color: colors.gold, fontSize: 11, fontWeight: 'bold', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: colors.indigoDeep, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
-  modalDescription: { fontSize: 13, color: COLORS.textMuted, marginBottom: 16, lineHeight: 20 },
-  infoText: { fontSize: 14, color: COLORS.textMain, textAlign: 'center', marginVertical: 16 },
-  label: { fontSize: 13, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 8 },
-  messageInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, padding: 12, minHeight: 80, textAlignVertical: 'top', marginBottom: 16 },
-  submitBtn: { backgroundColor: COLORS.primary, paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
-  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  cancelBtn: { backgroundColor: '#FEF2F2', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
-  cancelBtnText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 15 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
+  modalDescription: { fontSize: 13, color: colors.textMuted, marginBottom: 16, lineHeight: 20 },
+  infoText: { fontSize: 14, color: colors.textPrimaryOnIndigo, textAlign: 'center', marginVertical: 16 },
+  label: { fontSize: 13, fontWeight: 'bold', color: colors.gold, marginBottom: 8 },
+  messageInput: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 10, padding: 12, minHeight: 80, textAlignVertical: 'top', marginBottom: 16, color: colors.textPrimaryOnIndigo },
+  submitBtn: { backgroundColor: colors.gold, paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
+  submitBtnText: { color: colors.textOnGold, fontWeight: 'bold', fontSize: 15 },
+  cancelBtn: { backgroundColor: colors.akaSoft, paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
+  cancelBtnText: { color: colors.aka, fontWeight: 'bold', fontSize: 15 },
 });

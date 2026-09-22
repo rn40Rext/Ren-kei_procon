@@ -8,17 +8,9 @@ import { fetchUserProfile, saveUserProfile, uploadUserIcon } from '../repositori
 import * as ImagePicker from 'expo-image-picker';
 import { useAdminRens } from '../hooks/useAdminRens';
 import BottomNav from '../components/BottomNav';
+import { colors } from '../theme/colors';
 
 type DanceStyle = 'male' | 'female' | null;
-
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-  white: '#FFFFFF',
-  danger: '#EF4444',
-};
 
 export default function MypageScreen() {
   // TODO: NativeStackNavigationProp<RootStackParamList, 'Mypage'>へ置き換える(docs/rules/coding.md 2章)
@@ -139,7 +131,7 @@ export default function MypageScreen() {
             )}
             {editing && (
               <View style={styles.avatarEditBadge}>
-                <Camera size={14} color="#fff" />
+                <Camera size={14} color={colors.textOnGold} />
               </View>
             )}
           </TouchableOpacity>
@@ -151,6 +143,7 @@ export default function MypageScreen() {
                 value={draftNickname}
                 onChangeText={setDraftNickname}
                 placeholder="ニックネーム"
+                placeholderTextColor={colors.textMuted}
               />
 
               <TextInput
@@ -158,6 +151,7 @@ export default function MypageScreen() {
                 value={draftProfile}
                 onChangeText={setDraftProfile}
                 placeholder="自己紹介"
+                placeholderTextColor={colors.textMuted}
                 multiline
               />
 
@@ -182,7 +176,7 @@ export default function MypageScreen() {
                   onPress={() => setEditing(false)}
                   disabled={saving}
                 >
-                  <Text>キャンセル</Text>
+                  <Text style={styles.cancelButtonText}>キャンセル</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -211,27 +205,27 @@ export default function MypageScreen() {
             onPress={() => navigation.navigate('VideoList')}
           >
             <View style={styles.menuLeft}>
-              <Video size={20} color={COLORS.primary} />
+              <Video size={20} color={colors.gold} />
               <Text style={styles.menuText}>自分の練習動画一覧</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Group')}>
             <View style={styles.menuLeft}>
-              <Users size={20} color={COLORS.primary} />
+              <Users size={20} color={colors.gold} />
               <Text style={styles.menuText}>所属グループ・連の設定</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
           {adminRens.length > 0 && (
             <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AdminHome')}>
               <View style={styles.menuLeft}>
-                <Shield size={20} color={COLORS.primary} />
+                <Shield size={20} color={colors.gold} />
                 <Text style={styles.menuText}>連の管理</Text>
               </View>
-              <ChevronRight size={20} color={COLORS.textMuted} />
+              <ChevronRight size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -241,31 +235,31 @@ export default function MypageScreen() {
 
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ContactInfo')}>
             <View style={styles.menuLeft}>
-              <Mail size={20} color={COLORS.textMuted} />
+              <Mail size={20} color={colors.textMuted} />
               <Text style={styles.menuText}>お問い合わせ</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Setting')}>
             <View style={styles.menuLeft}>
-              <Settings size={20} color={COLORS.textMuted} />
+              <Settings size={20} color={colors.textMuted} />
               <Text style={styles.menuText}>アプリ設定</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={20} color={colors.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuLeft}>
-              <ShieldCheck size={20} color={COLORS.textMuted} />
+              <ShieldCheck size={20} color={colors.textMuted} />
               <Text style={styles.menuText}>プライバシーポリシー</Text>
             </View>
-            <ChevronRight size={20} color={COLORS.textMuted} />
+            <ChevronRight size={20} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color={COLORS.danger} />
+          <LogOut size={20} color={colors.aka} />
           <Text style={styles.logoutText}>ログアウト</Text>
         </TouchableOpacity>
 
@@ -278,41 +272,44 @@ export default function MypageScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderColor: COLORS.border },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: { height: 60, backgroundColor: colors.indigo, justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderColor: colors.indigoLine },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   content: { flex: 1 },
-  profileSection: { alignItems: 'center', padding: 30, backgroundColor: '#fff', marginBottom: 10 },
-  avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
+  profileSection: { alignItems: 'center', padding: 30, backgroundColor: colors.indigo, marginBottom: 10 },
+  avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: 15, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
-  avatarTextLarge: { color: '#fff', fontSize: 32, fontWeight: 'bold' },
-  avatarEditBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: COLORS.primary, borderRadius: 10, padding: 4, borderWidth: 2, borderColor: '#fff' },
-  userName: { fontSize: 20, fontWeight: 'bold', color: COLORS.textMain, textAlign: 'center' },
-  userSub: { fontSize: 14, color: COLORS.textMuted, marginTop: 5 },
-  profileText: { fontSize: 13, color: COLORS.textMuted, marginTop: 8, textAlign: 'center' },
-  section: { backgroundColor: '#fff', marginBottom: 10, paddingVertical: 10 },
-  sectionLabel: { fontSize: 12, fontWeight: 'bold', color: COLORS.textMuted, marginLeft: 20, marginBottom: 10, textTransform: 'uppercase' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: '#F1F5F9' },
+  avatarTextLarge: { color: colors.gold, fontSize: 32, fontWeight: 'bold' },
+  avatarEditBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.gold, borderRadius: 10, padding: 4, borderWidth: 2, borderColor: colors.indigo },
+  userName: { fontSize: 20, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, textAlign: 'center' },
+  userSub: { fontSize: 14, color: colors.textMuted, marginTop: 5 },
+  profileText: { fontSize: 13, color: colors.textSecondaryOnIndigo, marginTop: 8, textAlign: 'center' },
+  section: { backgroundColor: colors.indigo, marginBottom: 10, paddingVertical: 10 },
+  sectionLabel: { fontSize: 12, fontWeight: 'bold', color: colors.textMuted, marginLeft: 20, marginBottom: 10, textTransform: 'uppercase' },
+  menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15, paddingHorizontal: 20, borderBottomWidth: 0.5, borderBottomColor: colors.indigoLine },
   menuLeft: { flexDirection: 'row', alignItems: 'center' },
-  menuText: { fontSize: 16, color: COLORS.textMain, marginLeft: 15 },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', paddingVertical: 15, marginTop: 10 },
-  logoutText: { color: COLORS.danger, fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+  menuText: { fontSize: 16, color: colors.textPrimaryOnIndigo, marginLeft: 15 },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.indigo, paddingVertical: 15, marginTop: 10 },
+  logoutText: { color: colors.aka, fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
 
   nameInput: {
     width: '80%',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.indigoLine,
+    backgroundColor: colors.indigoRaised,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     textAlign: 'center',
     fontSize: 18,
+    color: colors.textPrimaryOnIndigo,
   },
 
   profileInput: {
     width: '80%',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.indigoLine,
+    backgroundColor: colors.indigoRaised,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -320,6 +317,7 @@ const styles = StyleSheet.create({
     minHeight: 60,
     textAlignVertical: 'top',
     fontSize: 14,
+    color: colors.textPrimaryOnIndigo,
   },
 
   danceStyleRow: {
@@ -333,21 +331,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.indigoLine,
+    backgroundColor: colors.indigoRaised,
   },
 
   danceStyleBtnActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.gold,
+    borderColor: colors.gold,
   },
 
   danceStyleText: {
-    color: COLORS.textMain,
+    color: colors.textSecondaryOnIndigo,
     fontSize: 13,
   },
 
   danceStyleTextActive: {
-    color: '#fff',
+    color: colors.textOnGold,
     fontWeight: 'bold',
   },
 
@@ -361,23 +360,24 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 15,
   },
+  cancelButtonText: { color: colors.textSecondaryOnIndigo },
 
   saveButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.gold,
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 8,
   },
 
   saveButtonText: {
-    color: '#fff',
+    color: colors.textOnGold,
     fontWeight: 'bold',
   },
 
   editText: {
     textAlign: 'center',
     fontSize: 12,
-    color: COLORS.textMuted,
+    color: colors.textMuted,
     marginTop: 8,
   },
 });

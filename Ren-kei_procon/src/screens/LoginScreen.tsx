@@ -11,11 +11,10 @@ import { RenKeiWordmark } from "../components/Brand";
 import { ChochinGarland, SeigaihaBand } from "../components/motifs";
 import { IconOdoriko, IconOnnaOdori } from "../components/awaIcons";
 import { colors, spacing, radius, typography } from "../theme";
-import { Dimensions } from "react-native";
-
-const SCREEN_W = Dimensions.get("window").width;
+import { useWindowDimensions } from "react-native";
 
 export default function LoginScreen() {
+  const { width: SCREEN_W } = useWindowDimensions();
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

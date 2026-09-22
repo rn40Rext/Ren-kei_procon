@@ -12,7 +12,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  useWindowDimensions,
   ActivityIndicator,
   Alert,
 } from 'react-native';
@@ -37,7 +37,6 @@ import {
   type InvitationDoc,
 } from '../data/invitations';
 
-const SCREEN_W = Dimensions.get('window').width;
 const STYLE_FILTERS = [
   { key: 'all', label: 'すべて' },
   { key: 'male', label: '男踊り' },
@@ -87,6 +86,7 @@ function targetDisplayMeta(t: InviteTarget | null): string {
 }
 
 export default function RequestScreen() {
+  const { width: SCREEN_W } = useWindowDimensions();
   const route = useRoute<RouteProp<RootStackParamList, 'Request'>>();
   const navigation = useNavigation<any>();
   const [tab, setTab] = useState<Tab>('scout');

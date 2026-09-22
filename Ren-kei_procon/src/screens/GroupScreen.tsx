@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { Users, MapPin, Plus, X, Megaphone, CalendarDays, Search, ChevronLeft, ChevronRight, Shield } from 'lucide-react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -29,8 +29,6 @@ import { useMyRens } from '../hooks/useMyRens';
 import type { Announcement, RenActivity } from '../types/firestore';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
-const SCREEN_W = Dimensions.get('window').width;
-
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -45,6 +43,7 @@ function formatDate(value: any): string {
 }
 
 export default function GroupScreen() {
+  const { width: SCREEN_W } = useWindowDimensions();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, 'Group'>>();
   const requestedRenId = route.params?.renId;

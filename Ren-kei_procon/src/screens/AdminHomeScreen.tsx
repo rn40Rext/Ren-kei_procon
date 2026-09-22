@@ -2,7 +2,7 @@
  * 連の管理ホーム。管理者として所属する連を切り替えつつ、各管理機能へ遷移する。
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone, CalendarDays } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
@@ -14,9 +14,8 @@ import { subscribeUnreadNotificationCount } from '../repositories/notifications'
 import { useAdminRens } from '../hooks/useAdminRens';
 import { useAuth } from '../hooks/useAuth';
 
-const SCREEN_W = Dimensions.get('window').width;
-
 export default function AdminHomeScreen() {
+  const { width: SCREEN_W } = useWindowDimensions();
   const navigation = useNavigation<any>();
   const { uid } = useAuth();
   const { adminRens, loading } = useAdminRens();

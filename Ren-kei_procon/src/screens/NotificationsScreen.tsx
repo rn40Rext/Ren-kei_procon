@@ -3,7 +3,7 @@
  * 通知の作成はサーバ側(Cloud Functionsトリガー)のみ。ここでは購読・既読化・遷移のみ扱う。
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, Dimensions } from 'react-native';
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Bell, Check, CheckCheck, ChevronLeft, MessageSquare, Megaphone, UserCheck } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
@@ -14,8 +14,6 @@ import { markAllNotificationsRead, markNotificationRead, subscribeNotifications 
 import { fetchJoinRequest } from '../repositories/joinRequests';
 import { fetchPost } from '../data/community';
 import type { AppNotification, NotificationType } from '../types/firestore';
-
-const SCREEN_W = Dimensions.get('window').width;
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   comment: MessageSquare,
@@ -31,6 +29,7 @@ function formatDateTime(value: AppNotification['createdAt']): string {
 }
 
 export default function NotificationsScreen() {
+  const { width: SCREEN_W } = useWindowDimensions();
   const navigation = useNavigation<any>();
   const { uid } = useAuth();
 

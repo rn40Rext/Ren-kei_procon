@@ -11,7 +11,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
+  useWindowDimensions,
   Animated,
   ActivityIndicator,
   Alert,
@@ -57,8 +57,6 @@ import {
 import { challenges } from '../data/mockChallenges';
 import { awaImage } from '../data/awaImages';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
 
 /** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
 function daysToFestival(): number {
@@ -112,6 +110,8 @@ function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
 }
 
 export default function HomeScreen({ navigation }: any) {
+  const { width: SCREEN_W } = useWindowDimensions();
+  const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
   const [activeChip, setActiveChip] = useState(filterChips[0]);
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
@@ -439,7 +439,7 @@ export default function HomeScreen({ navigation }: any) {
         {hero ? (
           <View style={styles.hero}>
             <TouchableOpacity
-              style={styles.heroImageWrap}
+              style={[styles.heroImageWrap, { height: HERO_H }]}
               activeOpacity={0.92}
               onPress={hero.onPress}
             >
@@ -920,7 +920,7 @@ const styles = StyleSheet.create({
   sectionAfterDivider: { marginTop: spacing.md },
 
   hero: { borderBottomWidth: 1, borderBottomColor: colors.indigoLine },
-  heroImageWrap: { height: HERO_H, overflow: 'hidden' },
+  heroImageWrap: { overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },
   heroVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.indigo },
   heroImgGrad: { flex: 1, padding: spacing.lg, paddingBottom: spacing.lg, justifyContent: 'flex-end' },

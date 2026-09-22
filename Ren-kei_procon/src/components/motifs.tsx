@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleProp, ViewStyle, Animated, Easing, AccessibilityInfo, Dimensions } from 'react-native';
+import { View, Text, StyleProp, ViewStyle, Animated, Easing, AccessibilityInfo, useWindowDimensions } from 'react-native';
 import Svg, { Path, Circle, G, Rect, Line, Defs, Pattern } from 'react-native-svg';
 import { colors, fontFamily } from '../theme';
 
@@ -360,9 +360,10 @@ export function HeaderSeam({
   opacity?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { width } = useWindowDimensions();
   return (
     <SeigaihaBand
-      width={Dimensions.get('window').width}
+      width={width}
       height={8}
       color={color}
       opacity={opacity}

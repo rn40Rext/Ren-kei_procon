@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
-  TextInput, Modal, ActivityIndicator, Alert, Dimensions,
+  TextInput, Modal, ActivityIndicator, Alert,
 } from 'react-native';
 import { Play, Heart, MessageSquare, Plus, Search, Video as VideoIcon, X, ChevronLeft, Send, Award, User } from 'lucide-react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -26,7 +26,6 @@ import { Post, PostComment } from '../types/firestore';
 import { useAdminRens } from '../hooks/useAdminRens';
 import AppMenu from '../components/AppMenu';
 
-const { width } = Dimensions.get('window');
 const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
 
 export default function CommunityScreen() {

@@ -12,7 +12,7 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { ChevronLeft, ChevronRight, Play, Hand, Send } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,7 +40,6 @@ import {
   type CommentDoc,
 } from '../data/community';
 
-const SCREEN_W = Dimensions.get('window').width;
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
 
 export default function VideoDetailScreen({ navigation, route }: any) {
@@ -54,6 +53,7 @@ export default function VideoDetailScreen({ navigation, route }: any) {
 /* 実データ：交流広場の投稿（posts/{postId}）                            */
 /* ================================================================== */
 function RealPostDetail({ postId, navigation }: { postId: string; navigation: any }) {
+  const { width: SCREEN_W } = useWindowDimensions();
   const [post, setPost] = useState<PostDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<CommentDoc[]>([]);
@@ -322,6 +322,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
 /* サンプル（ダミーデータ）表示 — 従来どおり                             */
 /* ================================================================== */
 function SampleDetail({ navigation, route }: any) {
+  const { width: SCREEN_W } = useWindowDimensions();
   const enbuId: string | undefined = route?.params?.id;
   const enbu = useMemo(() => ALL_ENBU.find((e) => e.id === enbuId) ?? todaysEnbu, [enbuId]);
 

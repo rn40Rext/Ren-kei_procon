@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
 import { colors, spacing, typography } from "../theme";
 import { NarutoLoader, ChochinGarland } from "../components/motifs";
 import { RenKeiWordmark } from "../components/Brand";
-
-const SCREEN_W = Dimensions.get("window").width;
 
 // 画面のインポート
 import LoginScreen from "../screens/LoginScreen";
@@ -79,6 +77,7 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
+  const { width: screenW } = useWindowDimensions();
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
 
@@ -93,7 +92,7 @@ export default function AppNavigator() {
   if (initializing) {
     return (
       <View style={bootStyles.wrap}>
-        <ChochinGarland width={SCREEN_W} count={7} height={44} style={bootStyles.garland} />
+        <ChochinGarland width={screenW} count={7} height={44} style={bootStyles.garland} />
         <View style={bootStyles.center}>
           <RenKeiWordmark size={34} />
           <Text style={bootStyles.sub}>稽古と交流の広場</Text>

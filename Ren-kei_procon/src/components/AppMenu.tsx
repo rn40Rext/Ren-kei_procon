@@ -7,7 +7,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { X, ChevronRight } from 'lucide-react-native';
@@ -20,8 +20,6 @@ import {
   IconGeta,
   IconMakimono,
 } from './awaIcons';
-
-const PANEL_W = Math.min(Math.round(Dimensions.get('window').width * 0.82), 360);
 
 type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request';
 
@@ -47,6 +45,8 @@ export default function AppMenu({
   const navigation = useNavigation<any>();
   const route = useRoute();
   const [open, setOpen] = useState(false);
+  const { width: windowWidth } = useWindowDimensions();
+  const panelW = Math.min(Math.round(windowWidth * 0.82), 360);
 
   const go = (key: NavKey) => {
     setOpen(false);
@@ -68,8 +68,8 @@ export default function AppMenu({
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={styles.overlay}>
           <Pressable style={styles.scrim} onPress={() => setOpen(false)} />
-          <View style={styles.panel}>
-            <ChochinGarland width={PANEL_W} count={5} height={38} sag={10} style={styles.panelGarland} />
+          <View style={[styles.panel, { width: panelW }]}>
+            <ChochinGarland width={panelW} count={5} height={38} sag={10} style={styles.panelGarland} />
             <View style={styles.panelHeader}>
               <View style={styles.brandRow}>
                 <RenKeiWordmark size={22} />
@@ -137,7 +137,6 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
   scrim: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)' },
   panel: {
-    width: PANEL_W,
     backgroundColor: colors.indigoDeep,
     borderLeftWidth: 1,
     borderLeftColor: colors.indigoLine,

@@ -7,14 +7,7 @@ import { subscribeActiveMembers, updateMemberRole, removeMember } from '../repos
 import { fetchUserProfile } from '../repositories/users';
 import { RenMember } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
-
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-  danger: '#EF4444',
-};
+import { colors } from '../theme/colors';
 
 interface Profile {
   name: string;
@@ -111,7 +104,7 @@ export default function MemberManagementScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={COLORS.primary} size={24} />
+          <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>メンバー管理</Text>
         <View style={{ width: 24 }} />
@@ -119,7 +112,7 @@ export default function MemberManagementScreen() {
 
       <ScrollView style={styles.list}>
         {loading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} />
+          <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
         ) : members.length === 0 ? (
           <Text style={styles.emptyText}>メンバーがいません</Text>
         ) : (
@@ -135,7 +128,7 @@ export default function MemberManagementScreen() {
                       {isSelf ? <Text style={styles.selfBadge}>自分</Text> : null}
                       {member.role === 'admin' ? (
                         <View style={styles.adminBadge}>
-                          <Shield size={11} color="#fff" />
+                          <Shield size={11} color={colors.textOnGold} />
                           <Text style={styles.adminBadgeText}>管理者</Text>
                         </View>
                       ) : null}
@@ -150,9 +143,9 @@ export default function MemberManagementScreen() {
                   style={styles.profileLink}
                   onPress={() => navigation.navigate('UserProfile', { userId: member.uid, userName: profile?.nickname || profile?.name || '' })}
                 >
-                  <UserIcon size={13} color={COLORS.primary} />
+                  <UserIcon size={13} color={colors.gold} />
                   <Text style={styles.profileLinkText}>プロフィール・投稿履歴を見る</Text>
-                  <ChevronRight size={14} color={COLORS.primary} />
+                  <ChevronRight size={14} color={colors.gold} />
                 </TouchableOpacity>
 
                 {!isSelf && (
@@ -163,7 +156,7 @@ export default function MemberManagementScreen() {
                       onPress={() => handleToggleRole(member)}
                     >
                       {processingUid === member.uid ? (
-                        <ActivityIndicator color={COLORS.primary} size="small" />
+                        <ActivityIndicator color={colors.gold} size="small" />
                       ) : (
                         <Text style={styles.roleBtnText}>{member.role === 'admin' ? 'メンバーにする' : '管理者にする'}</Text>
                       )}
@@ -210,34 +203,34 @@ export default function MemberManagementScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: COLORS.border },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
   backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   list: { flex: 1, padding: 15 },
-  emptyText: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40 },
-  card: { backgroundColor: '#fff', borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  emptyText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
+  card: { backgroundColor: colors.indigo, borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.indigoLine },
   cardTop: { flexDirection: 'row' },
   nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  cardName: { fontSize: 15, fontWeight: 'bold', color: COLORS.textMain },
-  selfBadge: { marginLeft: 8, fontSize: 10, color: COLORS.textMuted, backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  adminBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: COLORS.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  adminBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold', marginLeft: 3 },
-  cardMeta: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
+  cardName: { fontSize: 15, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
+  selfBadge: { marginLeft: 8, fontSize: 10, color: colors.textMuted, backgroundColor: colors.indigoRaised, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  adminBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: colors.gold, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  adminBadgeText: { color: colors.textOnGold, fontSize: 10, fontWeight: 'bold', marginLeft: 3 },
+  cardMeta: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
   profileLink: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  profileLinkText: { flex: 1, marginLeft: 6, fontSize: 12, color: COLORS.primary, fontWeight: 'bold' },
-  cardActions: { flexDirection: 'row', marginTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 12 },
-  roleBtn: { flex: 1, backgroundColor: '#EFF6FF', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginRight: 8 },
-  roleBtnText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 12 },
-  removeBtn: { flex: 1, backgroundColor: '#FEF2F2', paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginLeft: 8 },
-  removeBtnText: { color: COLORS.danger, fontWeight: 'bold', fontSize: 12 },
-  confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 30 },
-  confirmCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%' },
-  confirmTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
-  confirmMessage: { fontSize: 14, color: COLORS.textMain, lineHeight: 20, marginBottom: 24 },
+  profileLinkText: { flex: 1, marginLeft: 6, fontSize: 12, color: colors.gold, fontWeight: 'bold' },
+  cardActions: { flexDirection: 'row', marginTop: 12, borderTopWidth: 1, borderTopColor: colors.indigoLine, paddingTop: 12 },
+  roleBtn: { flex: 1, backgroundColor: colors.goldSoft, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginRight: 8 },
+  roleBtnText: { color: colors.gold, fontWeight: 'bold', fontSize: 12 },
+  removeBtn: { flex: 1, backgroundColor: colors.akaSoft, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginLeft: 8 },
+  removeBtnText: { color: colors.aka, fontWeight: 'bold', fontSize: 12 },
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: 30 },
+  confirmCard: { backgroundColor: colors.indigoDeep, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 16, padding: 24, width: '100%' },
+  confirmTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginBottom: 10 },
+  confirmMessage: { fontSize: 14, color: colors.textSecondaryOnIndigo, lineHeight: 20, marginBottom: 24 },
   confirmActions: { flexDirection: 'row' },
-  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#F1F5F9', marginRight: 8 },
-  confirmCancelText: { color: COLORS.textMain, fontWeight: 'bold', fontSize: 14 },
-  confirmRemoveBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.danger, marginLeft: 8 },
-  confirmRemoveText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: colors.indigoRaised, marginRight: 8 },
+  confirmCancelText: { color: colors.textPrimaryOnIndigo, fontWeight: 'bold', fontSize: 14 },
+  confirmRemoveBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: colors.aka, marginLeft: 8 },
+  confirmRemoveText: { color: colors.textOnAka, fontWeight: 'bold', fontSize: 14 },
 });

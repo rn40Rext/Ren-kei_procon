@@ -8,13 +8,7 @@ import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
 import { subscribeActiveMembers } from '../repositories/renMembership';
 import { Post } from '../types/firestore';
 import BottomNav from '../components/BottomNav';
-
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-};
+import { colors } from '../theme/colors';
 
 type SortMode = 'newest' | 'score' | 'noAdvice';
 
@@ -99,7 +93,7 @@ export default function ManagePostsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={COLORS.primary} size={24} />
+          <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>投稿一覧</Text>
         <View style={{ width: 24 }} />
@@ -107,8 +101,8 @@ export default function ManagePostsScreen() {
 
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Search size={18} color="#94A3B8" />
-          <TextInput style={styles.searchInput} placeholder="タイトル・投稿者・タグで検索" value={keyword} onChangeText={setKeyword} />
+          <Search size={18} color={colors.textMuted} />
+          <TextInput style={styles.searchInput} placeholder="タイトル・投稿者・タグで検索" placeholderTextColor={colors.textMuted} value={keyword} onChangeText={setKeyword} />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
           {([
@@ -125,7 +119,7 @@ export default function ManagePostsScreen() {
 
       <ScrollView style={styles.list}>
         {loading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} />
+          <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
         ) : filteredSortedPosts.length === 0 ? (
           <Text style={styles.emptyText}>該当する投稿はありません</Text>
         ) : (
@@ -142,17 +136,17 @@ export default function ManagePostsScreen() {
                     <Text style={styles.authorName}>{p.authorName}</Text>
                     {isOwnRenMember && (
                       <View style={styles.memberBadge}>
-                        <Shield size={10} color="#fff" />
+                        <Shield size={10} color={colors.textOnGold} />
                         <Text style={styles.memberBadgeText}>自連</Text>
                       </View>
                     )}
                   </View>
                   <View style={styles.metaRow}>
-                    <Award size={13} color={COLORS.textMuted} />
+                    <Award size={13} color={colors.textMuted} />
                     <Text style={styles.metaText}>{formatAiScore(p.score)}</Text>
-                    <Heart size={13} color={COLORS.textMuted} style={{ marginLeft: 10 }} />
+                    <Heart size={13} color={colors.textMuted} style={{ marginLeft: 10 }} />
                     <Text style={styles.metaText}>{p.likeCount}</Text>
-                    <MessageSquare size={13} color={COLORS.textMuted} style={{ marginLeft: 10 }} />
+                    <MessageSquare size={13} color={colors.textMuted} style={{ marginLeft: 10 }} />
                     <Text style={styles.metaText}>{p.commentCount}</Text>
                     {!hasAdviceMap[p.id] && (
                       <View style={styles.noAdviceBadge}>
@@ -169,10 +163,10 @@ export default function ManagePostsScreen() {
       </ScrollView>
 
       <Modal visible={!!selectedPost} animationType="slide" onRequestClose={() => setSelectedPost(null)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView style={styles.detailContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setSelectedPost(null)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ChevronLeft size={24} color={COLORS.primary} />
+              <ChevronLeft size={24} color={colors.gold} />
               <Text style={styles.modalBackText}>戻る</Text>
             </TouchableOpacity>
           </View>
@@ -185,12 +179,9 @@ export default function ManagePostsScreen() {
                 <Text style={styles.detailTitle}>{selectedPost.title}</Text>
 
                 <View style={styles.scoreCard}>
-                  <Award size={20} color="#FACC15" />
+                  <Award size={20} color={colors.gold} />
                   <Text style={styles.scoreCardText}>{formatAiScore(selectedPost.score)}</Text>
                 </View>
-                <Text style={styles.scoreNote}>
-                  ※ 項目別スコアはAI採点(FN-01)が未実装のため表示できません。総合スコアのみ暫定値です
-                </Text>
 
                 <TouchableOpacity
                   style={styles.profileBtn}
@@ -199,12 +190,12 @@ export default function ManagePostsScreen() {
                     navigation.navigate('UserProfile', { userId: selectedPost.userId, userName: selectedPost.authorName });
                   }}
                 >
-                  <UserIcon size={16} color={COLORS.primary} />
-                  <Text style={styles.profileBtnText}>{selectedPost.authorName} のプロフィールを見る</Text>
+                  <UserIcon size={16} color={colors.gold} />
+                  <Text style={styles.detailAuthorTextClick}>{selectedPost.authorName} のプロフィールを見る ＞</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.adviceBtn} onPress={handleSendAdvice}>
-                  <Send size={16} color="#fff" />
+                  <Send size={16} color={colors.textOnGold} />
                   <Text style={styles.adviceBtnText}>アドバイスを送る</Text>
                 </TouchableOpacity>
               </View>
@@ -219,43 +210,43 @@ export default function ManagePostsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: COLORS.border },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
   backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
-  searchSection: { backgroundColor: '#fff', paddingTop: 12, paddingBottom: 4, borderBottomWidth: 1, borderColor: COLORS.border },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 15, height: 42, marginHorizontal: 15 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 14 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
+  searchSection: { backgroundColor: colors.indigo, paddingTop: 12, paddingBottom: 4, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigoRaised, borderRadius: 12, paddingHorizontal: 15, height: 42, marginHorizontal: 15 },
+  searchInput: { flex: 1, marginLeft: 10, fontSize: 14, color: colors.textPrimaryOnIndigo },
   sortRow: { paddingHorizontal: 15, paddingVertical: 10 },
-  sortPill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#F1F5F9', marginRight: 8 },
-  sortPillActive: { backgroundColor: COLORS.primary },
-  sortPillText: { fontSize: 12, color: COLORS.textMain },
-  sortPillTextActive: { color: '#fff', fontWeight: 'bold' },
+  sortPill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.indigoRaised, marginRight: 8 },
+  sortPillActive: { backgroundColor: colors.gold },
+  sortPillText: { fontSize: 12, color: colors.textSecondaryOnIndigo },
+  sortPillTextActive: { color: colors.textOnGold, fontWeight: 'bold' },
   list: { flex: 1, padding: 15 },
-  emptyText: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40 },
-  card: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 14, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  emptyText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
+  card: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: 14, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.indigoLine },
   thumbWrapper: { width: 90, height: 90, borderRadius: 10, backgroundColor: '#000', overflow: 'hidden' },
   cardBody: { flex: 1, marginLeft: 12, justifyContent: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain },
+  cardTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   authorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  authorName: { fontSize: 12, color: COLORS.textMuted },
-  memberBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 },
-  memberBadgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold', marginLeft: 2 },
+  authorName: { fontSize: 12, color: colors.textMuted },
+  memberBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.gold, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 },
+  memberBadgeText: { color: colors.textOnGold, fontSize: 9, fontWeight: 'bold', marginLeft: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, flexWrap: 'wrap' },
-  metaText: { fontSize: 11, color: COLORS.textMuted, marginLeft: 4 },
-  noAdviceBadge: { backgroundColor: '#FEF3C7', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 10 },
-  noAdviceBadgeText: { color: '#92400E', fontSize: 10, fontWeight: 'bold' },
+  metaText: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
+  noAdviceBadge: { backgroundColor: colors.goldSoft, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 10 },
+  noAdviceBadgeText: { color: colors.gold, fontSize: 10, fontWeight: 'bold' },
 
-  modalHeader: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  modalBackText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 4 },
+  detailContainer: { flex: 1, backgroundColor: colors.indigoDeep },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  modalBackText: { color: colors.gold, fontWeight: 'bold', marginLeft: 4 },
   detailVideoBox: { backgroundColor: '#000', height: 260 },
   detailBody: { padding: 20 },
-  detailTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 16 },
-  scoreCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E3A8A', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, alignSelf: 'flex-start' },
-  scoreCardText: { color: '#FACC15', fontWeight: '900', marginLeft: 8, fontSize: 16 },
-  scoreNote: { fontSize: 11, color: COLORS.textMuted, marginTop: 8, marginBottom: 20 },
-  profileBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  profileBtnText: { marginLeft: 8, color: COLORS.primary, fontWeight: 'bold', fontSize: 14 },
-  adviceBtn: { flexDirection: 'row', backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  adviceBtnText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
+  detailTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginBottom: 16 },
+  scoreCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigo, borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, alignSelf: 'flex-start' },
+  scoreCardText: { color: colors.gold, fontWeight: '900', marginLeft: 8, fontSize: 16 },
+  profileBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, marginTop: 20 },
+  detailAuthorTextClick: { marginLeft: 8, color: colors.gold, fontWeight: '600', fontSize: 14 },
+  adviceBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
+  adviceBtnText: { color: colors.textOnGold, fontWeight: 'bold', marginLeft: 8 },
 });

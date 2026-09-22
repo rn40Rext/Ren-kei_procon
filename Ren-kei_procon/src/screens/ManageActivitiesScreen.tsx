@@ -13,16 +13,8 @@ import {
 import { RenActivity } from '../types/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import BottomNav from '../components/BottomNav';
+import { colors } from '../theme/colors';
 
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-  danger: '#EF4444',
-};
-
-// docs/design/data-model.md 3.8章
 interface RenInfo {
   name: string;
   description: string;
@@ -217,7 +209,7 @@ export default function ManageActivitiesScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={COLORS.primary} size={24} />
+          <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>活動情報・連の管理</Text>
         <View style={{ width: 24 }} />
@@ -231,18 +223,18 @@ export default function ManageActivitiesScreen() {
               {draftIconUrl ? (
                 <Image source={{ uri: draftIconUrl }} style={styles.iconImage} />
               ) : (
-                <Camera size={22} color={COLORS.primary} />
+                <Camera size={22} color={colors.gold} />
               )}
             </TouchableOpacity>
 
             <Text style={styles.label}>連の名前</Text>
-            <TextInput style={styles.input} value={draftName} onChangeText={setDraftName} />
+            <TextInput style={styles.input} value={draftName} onChangeText={setDraftName} placeholderTextColor={colors.textMuted} />
 
             <Text style={styles.label}>紹介</Text>
-            <TextInput style={styles.textArea} value={draftDescription} onChangeText={setDraftDescription} multiline />
+            <TextInput style={styles.textArea} value={draftDescription} onChangeText={setDraftDescription} multiline placeholderTextColor={colors.textMuted} />
 
             <Text style={styles.label}>活動地域</Text>
-            <TextInput style={styles.input} value={draftLocation} onChangeText={setDraftLocation} />
+            <TextInput style={styles.input} value={draftLocation} onChangeText={setDraftLocation} placeholderTextColor={colors.textMuted} />
 
             <TouchableOpacity style={styles.checkboxRow} onPress={() => setDraftBeginnerFriendly(!draftBeginnerFriendly)}>
               <View style={[styles.checkbox, draftBeginnerFriendly && styles.checkboxChecked]} />
@@ -250,23 +242,23 @@ export default function ManageActivitiesScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveInfo} disabled={savingInfo}>
-              {savingInfo ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>基本情報を保存</Text>}
+              {savingInfo ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.saveBtnText}>基本情報を保存</Text>}
             </TouchableOpacity>
           </View>
         ) : (
-          <ActivityIndicator style={{ marginBottom: 20 }} />
+          <ActivityIndicator color={colors.gold} style={{ marginBottom: 20 }} />
         )}
 
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionLabel}>活動スケジュール</Text>
           <TouchableOpacity style={styles.addBtn} onPress={openNewActivityForm}>
-            <Plus size={14} color={COLORS.primary} />
+            <Plus size={14} color={colors.gold} />
             <Text style={styles.addBtnText}>追加</Text>
           </TouchableOpacity>
         </View>
 
         {loadingActivities ? (
-          <ActivityIndicator style={{ marginTop: 20 }} />
+          <ActivityIndicator color={colors.gold} style={{ marginTop: 20 }} />
         ) : activities.length === 0 ? (
           <Text style={styles.emptyText}>活動情報はまだありません</Text>
         ) : (
@@ -282,10 +274,10 @@ export default function ManageActivitiesScreen() {
               </View>
               <View style={styles.itemActions}>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => openEditActivityForm(a)}>
-                  <Pencil size={16} color={COLORS.primary} />
+                  <Pencil size={16} color={colors.gold} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => setDeletingActivity(a)}>
-                  <Trash2 size={16} color={COLORS.danger} />
+                  <Trash2 size={16} color={colors.aka} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -300,27 +292,27 @@ export default function ManageActivitiesScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{editingActivity === 'new' ? '活動を追加' : '活動を編集'}</Text>
               <TouchableOpacity onPress={() => setEditingActivity(null)}>
-                <X color={COLORS.textMain} size={22} />
+                <X color={colors.textMuted} size={22} />
               </TouchableOpacity>
             </View>
             <ScrollView style={{ maxHeight: 420 }}>
               <Text style={styles.label}>活動名</Text>
-              <TextInput style={styles.input} placeholder="例：夏祭り合同練習" value={formTitle} onChangeText={setFormTitle} />
+              <TextInput style={styles.input} placeholder="例：夏祭り合同練習" placeholderTextColor={colors.textMuted} value={formTitle} onChangeText={setFormTitle} />
 
               <Text style={styles.label}>開始日時(YYYY-MM-DD HH:mm)</Text>
-              <TextInput style={styles.input} placeholder="2026-08-01 18:00" value={formStartAt} onChangeText={setFormStartAt} />
+              <TextInput style={styles.input} placeholder="2026-08-01 18:00" placeholderTextColor={colors.textMuted} value={formStartAt} onChangeText={setFormStartAt} />
 
               <Text style={styles.label}>終了日時(任意・同形式)</Text>
-              <TextInput style={styles.input} placeholder="2026-08-01 20:00" value={formEndAt} onChangeText={setFormEndAt} />
+              <TextInput style={styles.input} placeholder="2026-08-01 20:00" placeholderTextColor={colors.textMuted} value={formEndAt} onChangeText={setFormEndAt} />
 
               <Text style={styles.label}>場所(任意)</Text>
-              <TextInput style={styles.input} value={formLocation} onChangeText={setFormLocation} />
+              <TextInput style={styles.input} value={formLocation} onChangeText={setFormLocation} placeholderTextColor={colors.textMuted} />
 
               <Text style={styles.label}>説明(任意)</Text>
-              <TextInput style={styles.textArea} value={formDescription} onChangeText={setFormDescription} multiline />
+              <TextInput style={styles.textArea} value={formDescription} onChangeText={setFormDescription} multiline placeholderTextColor={colors.textMuted} />
 
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveActivity} disabled={savingActivity}>
-                {savingActivity ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>保存する</Text>}
+                {savingActivity ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.saveBtnText}>保存する</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -350,47 +342,47 @@ export default function ManageActivitiesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: COLORS.border },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
   backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   list: { flex: 1, padding: 15 },
-  sectionLabel: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
+  sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginBottom: 10 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#EFF6FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, marginBottom: 10 },
-  addBtnText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 12, marginLeft: 3 },
-  formCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: COLORS.border, marginBottom: 24 },
-  iconPicker: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', marginBottom: 16, overflow: 'hidden', alignSelf: 'center' },
+  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.goldSoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, marginBottom: 10 },
+  addBtnText: { color: colors.gold, fontWeight: 'bold', fontSize: 12, marginLeft: 3 },
+  formCard: { backgroundColor: colors.indigo, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: 24 },
+  iconPicker: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.indigoRaised, justifyContent: 'center', alignItems: 'center', marginBottom: 16, overflow: 'hidden', alignSelf: 'center' },
   iconImage: { width: 64, height: 64 },
-  label: { fontSize: 13, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 8 },
-  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 16 },
-  textArea: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 16, minHeight: 80, textAlignVertical: 'top' },
+  label: { fontSize: 13, fontWeight: 'bold', color: colors.gold, marginBottom: 8 },
+  input: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 16, color: colors.textPrimaryOnIndigo },
+  textArea: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 16, minHeight: 80, textAlignVertical: 'top', color: colors.textPrimaryOnIndigo },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: COLORS.border, marginRight: 10 },
-  checkboxChecked: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  checkboxLabel: { fontSize: 14, color: COLORS.textMain },
-  saveBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  saveBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  emptyText: { fontSize: 13, color: COLORS.textMuted, marginBottom: 20 },
-  itemCard: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
-  itemTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain },
-  itemMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 4 },
-  itemBody: { fontSize: 13, color: COLORS.textMain, marginTop: 8, lineHeight: 20 },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: colors.indigoLine, marginRight: 10 },
+  checkboxChecked: { backgroundColor: colors.gold, borderColor: colors.gold },
+  checkboxLabel: { fontSize: 14, color: colors.textPrimaryOnIndigo },
+  saveBtn: { backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  saveBtnText: { color: colors.textOnGold, fontWeight: 'bold', fontSize: 14 },
+  emptyText: { fontSize: 13, color: colors.textMuted, marginBottom: 20 },
+  itemCard: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.indigoLine },
+  itemTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
+  itemMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+  itemBody: { fontSize: 13, color: colors.textSecondaryOnIndigo, marginTop: 8, lineHeight: 20 },
   itemActions: { justifyContent: 'center', marginLeft: 10 },
   iconBtn: { padding: 8 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: colors.indigoDeep, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
 
-  confirmOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 30 },
-  confirmCard: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '100%' },
-  confirmTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 10 },
-  confirmMessage: { fontSize: 14, color: COLORS.textMain, lineHeight: 20, marginBottom: 24 },
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: 30 },
+  confirmCard: { backgroundColor: colors.indigoDeep, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 16, padding: 24, width: '100%' },
+  confirmTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginBottom: 10 },
+  confirmMessage: { fontSize: 14, color: colors.textSecondaryOnIndigo, lineHeight: 20, marginBottom: 24 },
   confirmActions: { flexDirection: 'row' },
-  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#F1F5F9', marginRight: 8 },
-  confirmCancelText: { color: COLORS.textMain, fontWeight: 'bold', fontSize: 14 },
-  confirmDeleteBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.danger, marginLeft: 8 },
-  confirmDeleteText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: colors.indigoRaised, marginRight: 8 },
+  confirmCancelText: { color: colors.textPrimaryOnIndigo, fontWeight: 'bold', fontSize: 14 },
+  confirmDeleteBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: colors.aka, marginLeft: 8 },
+  confirmDeleteText: { color: colors.textOnAka, fontWeight: 'bold', fontSize: 14 },
 });

@@ -32,8 +32,8 @@ const GAUGE_LABELS: Record<string, string> = {
 
 const GRADE_COLORS: Record<string, string> = {
   GREAT: colors.gold,
-  GOOD: "#4ADE80",
-  MISS: colors.vermilion,
+  GOOD: colors.goldBright,
+  MISS: colors.aka,
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -198,7 +198,7 @@ export default function CameraScreen() {
         {snapshot.errorMessage && <Text style={styles.errorText}>{snapshot.errorMessage}</Text>}
         {canRetryFinalize && (
           <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={onRetry}>
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
+            {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
           </TouchableOpacity>
         )}
         <View style={styles.buttons}>
@@ -208,12 +208,12 @@ export default function CameraScreen() {
               disabled={snapshot.status !== "ready" || busy}
               onPress={start}
             >
-              {snapshot.status === "loading" ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>判定を開始</Text>}
+              {snapshot.status === "loading" ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>判定を開始</Text>}
             </TouchableOpacity>
           ) : (
             <>
               <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={onFinish}>
-                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>終了して採点</Text>}
+                {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>終了して採点</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
                 <Text style={styles.secondaryButtonText}>中止</Text>
@@ -239,15 +239,15 @@ const styles = StyleSheet.create({
   videoArea: { flex: 1, position: "relative" },
   topBar: { position: "absolute", left: 12, top: 12, right: 12, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, pointerEvents: "none" },
   statusChip: { backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  statusChipLive: { backgroundColor: colors.vermilion },
+  statusChipLive: { backgroundColor: colors.aka },
   statusText: { color: "#fff", fontWeight: "bold", fontSize: 13, letterSpacing: 1 },
   metaText: { color: "#fff", fontSize: 12, backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  warningChip: { backgroundColor: "rgba(230,0,18,0.85)", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
+  warningChip: { backgroundColor: colors.aka, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
   warningText: { color: "#fff", fontSize: 13, fontWeight: "600" },
   centerOverlay: { position: "absolute", left: 0, right: 0, top: "30%", alignItems: "center", pointerEvents: "none" },
   gradeFlash: { fontSize: 56, fontWeight: "900", letterSpacing: 4, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
   adviceText: { marginTop: 8, color: "#fff", fontSize: 18, fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
-  sidePanel: { position: "absolute", right: 12, top: 56, width: 190, backgroundColor: "rgba(0,30,67,0.8)", borderRadius: 12, padding: 12, pointerEvents: "none" },
+  sidePanel: { position: "absolute", right: 12, top: 56, width: 190, backgroundColor: colors.scrim, borderRadius: 12, padding: 12, pointerEvents: "none" },
   liveLabel: { color: colors.gold, fontSize: 11, fontWeight: "bold", letterSpacing: 2 },
   liveScore: { color: "#fff", fontSize: 40, fontWeight: "900", lineHeight: 44 },
   combo: { color: colors.gold, fontWeight: "bold", marginBottom: 4 },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   gaugeRow: { marginTop: 6 },
   gaugeLabel: { color: "#fff", fontSize: 11, marginBottom: 2 },
   gaugeTrack: { height: 8, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 4, overflow: "hidden" },
-  gaugeFill: { height: 8, backgroundColor: "#60A5FA", borderRadius: 4 },
+  gaugeFill: { height: 8, backgroundColor: colors.goldBright, borderRadius: 4 },
   gaugeFillHolding: { backgroundColor: colors.gold },
   rhythmText: { color: "#fff", fontSize: 12 },
   bottom: { maxHeight: 190, backgroundColor: colors.indigo },
@@ -266,8 +266,8 @@ const styles = StyleSheet.create({
   infoMuted: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
   errorText: { color: "#FCA5A5", marginBottom: 8 },
   buttons: { flexDirection: "row", gap: 10, alignItems: "center", flexWrap: "wrap" },
-  primaryButton: { backgroundColor: colors.vermilion, paddingVertical: 12, paddingHorizontal: 22, borderRadius: 10, minWidth: 140, alignItems: "center" },
-  primaryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  primaryButton: { backgroundColor: colors.gold, paddingVertical: 12, paddingHorizontal: 22, borderRadius: 10, minWidth: 140, alignItems: "center" },
+  primaryButtonText: { color: colors.textOnGold, fontWeight: "bold", fontSize: 16 },
   secondaryButton: { borderWidth: 1, borderColor: "rgba(255,255,255,0.5)", paddingVertical: 12, paddingHorizontal: 18, borderRadius: 10 },
   secondaryButtonText: { color: "#fff", fontWeight: "600" },
   buttonDisabled: { opacity: 0.5 },

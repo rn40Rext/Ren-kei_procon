@@ -181,15 +181,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   badgeText: { ...typography.caption, color: colors.gold, fontSize: 10, fontWeight: '700' },
-  welcomeText: { ...typography.caption, color: colors.textSecondary, fontWeight: '700' },
-  heroTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 22, lineHeight: 32, marginTop: spacing.xs },
+  welcomeText: { ...typography.caption, color: colors.textSecondaryOnIndigo, fontWeight: '700' },
+  heroTitle: { ...typography.titleSerif, color: colors.textPrimaryOnIndigo, fontSize: 22, lineHeight: 32, marginTop: spacing.xs },
   bellButton: { alignItems: 'center', backgroundColor: colors.indigoRaised, padding: spacing.sm, borderRadius: radius.md, marginRight: spacing.sm },
   logoutButton: { alignItems: 'center', backgroundColor: colors.indigoRaised, padding: spacing.sm, borderRadius: radius.md },
   logoutText: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 2, fontWeight: '700' },
 
   menuContainer: { paddingHorizontal: spacing.xl, marginTop: -spacing.xl },
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  sectionTitle: { ...typography.headingSerif, color: colors.textPrimary },
+  sectionTitle: { ...typography.headingSerif, color: colors.textPrimaryOnIndigo },
   menuGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   menuCard: {
     width: (width - spacing.xl * 2 - spacing.md) / 2,
@@ -210,14 +210,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  menuLabel: { ...typography.bodyStrong, color: colors.textPrimary },
+  menuLabel: { ...typography.bodyStrong, color: colors.textPrimaryOnIndigo },
   menuSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
   newBadge: { position: 'absolute', top: spacing.md, right: spacing.md, backgroundColor: colors.aka, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
   newBadgeText: { color: colors.textOnAka, fontSize: 8, fontWeight: '700' },
 
   largeCard: { backgroundColor: colors.indigo, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.xl, borderRadius: radius.lg, marginTop: spacing.xs },
   largeCardContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  largeCardTitle: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 16 },
+  largeCardTitle: { ...typography.bodyStrong, color: colors.textPrimaryOnIndigo, fontSize: 16 },
   largeCardSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
   newsSection: { padding: spacing.xl, marginTop: spacing.sm },
@@ -225,5 +225,5 @@ const styles = StyleSheet.create({
   viewMore: { ...typography.caption, color: colors.gold, fontWeight: '700' },
   newsItem: { backgroundColor: colors.indigo, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, borderRadius: radius.md, flexDirection: 'row', alignItems: 'center' },
   newsDate: { ...typography.caption, color: colors.gold, fontWeight: '700', marginRight: spacing.md },
-  newsText: { flex: 1, ...typography.caption, color: colors.textSecondary, fontWeight: '500' },
+  newsText: { flex: 1, ...typography.caption, color: colors.textSecondaryOnIndigo, fontWeight: '500' },
 });

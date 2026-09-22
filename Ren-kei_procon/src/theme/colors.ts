@@ -50,7 +50,11 @@ export const colors = {
   goldSoft: "rgba(212,175,55,0.12)", // 金の淡い下地
   kinari: "#F4EBD9", // 生成り：和紙・木札の文字色
 
-  // ダークテーマの文字色
+  // ダークテーマの文字色。textPrimary/textSecondaryは旧ライトテーマ用の
+  // 値（暗い文字色）のままなので、ダーク背景の上ではこちらを使う
+  // （名前を流用すると意味が逆転してしまうため別名にしている）。
+  textPrimaryOnIndigo: "#F4EBD9", // 生成り：深藍の上の本文
+  textSecondaryOnIndigo: "#A9B4C9", // 藍がかった淡色：深藍の上の補足
   textMuted: "#6C7794",
   textOnGold: "#0B132B", // 金地の上の文字
   textOnAka: "#F4EBD9", // 茜地の上の文字

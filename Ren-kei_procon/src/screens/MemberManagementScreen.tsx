@@ -6,7 +6,7 @@ import { auth } from '../config/firebaseConfig';
 import { subscribeActiveMembers, updateMemberRole, removeMember } from '../repositories/renMembership';
 import { fetchUserProfile } from '../repositories/users';
 import { RenMember } from '../types/firestore';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 interface Profile {
@@ -107,7 +107,7 @@ export default function MemberManagementScreen() {
           <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>メンバー管理</Text>
-        <View style={{ width: 24 }} />
+        <AppMenu />
       </View>
 
       <ScrollView style={styles.list}>
@@ -196,8 +196,6 @@ export default function MemberManagementScreen() {
           </View>
         </View>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

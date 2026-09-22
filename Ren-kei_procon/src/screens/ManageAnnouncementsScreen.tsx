@@ -4,7 +4,7 @@ import { ChevronLeft, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { subscribeAnnouncements, createAnnouncement } from '../repositories/renAnnouncements';
 import { Announcement } from '../types/firestore';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 function formatDateTime(value: any): string {
@@ -65,7 +65,7 @@ export default function ManageAnnouncementsScreen() {
           <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>お知らせ管理</Text>
-        <View style={{ width: 24 }} />
+        <AppMenu />
       </View>
 
       <ScrollView style={styles.list}>
@@ -112,8 +112,6 @@ export default function ManageAnnouncementsScreen() {
         )}
         <View style={{ height: 100 }} />
       </ScrollView>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

@@ -24,7 +24,7 @@ import {
 } from '../repositories/posts';
 import { Post, PostComment } from '../types/firestore';
 import { useAdminRens } from '../hooks/useAdminRens';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 
 const { width } = Dimensions.get('window');
 const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
@@ -154,7 +154,7 @@ export default function CommunityScreen() {
       <View style={styles.topNav}>
         <View style={styles.logoRow}>
           <View style={styles.logoBox}><Text style={styles.logoText}>連</Text></View>
-          <View style={{ marginLeft: spacing.sm }}>
+          <View style={{ marginLeft: spacing.sm, flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text style={styles.brandName}>ren-kei</Text>
               <View style={styles.badgeGold}><Text style={styles.badgeGoldText}>阿波踊り交流広場</Text></View>
@@ -162,6 +162,7 @@ export default function CommunityScreen() {
             <Text style={styles.brandSub}>練習動画のAI採点・連の絆を深める広場</Text>
           </View>
         </View>
+        <AppMenu />
       </View>
 
       <ScrollView stickyHeaderIndices={[2]}>
@@ -253,8 +254,6 @@ export default function CommunityScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
@@ -386,7 +385,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  topNav: { height: 65, backgroundColor: colors.indigo, justifyContent: 'center', paddingHorizontal: spacing.xl, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  topNav: { height: 65, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigo, paddingHorizontal: spacing.xl, borderBottomWidth: 1, borderColor: colors.indigoLine },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
   logoBox: { width: 36, height: 36, backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.gold, borderRadius: radius.sm, justifyContent: 'center', alignItems: 'center' },
   logoText: { color: colors.gold, fontSize: 18, fontWeight: '900' },

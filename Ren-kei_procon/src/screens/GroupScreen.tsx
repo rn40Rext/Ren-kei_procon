@@ -7,7 +7,7 @@ import { subscribeRenActivities } from '../repositories/renActivities';
 import { subscribeAnnouncements } from '../repositories/renAnnouncements';
 import { Announcement, RenActivity } from '../types/firestore';
 import { useMyRens } from '../hooks/useMyRens';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors } from '../theme/colors';
 
@@ -109,6 +109,7 @@ export default function GroupScreen() {
           <Plus size={16} color={colors.gold} />
           <Text style={styles.createBtnText}>連を作成</Text>
         </TouchableOpacity>
+        <AppMenu />
       </View>
 
       {loading ? (
@@ -230,8 +231,6 @@ export default function GroupScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

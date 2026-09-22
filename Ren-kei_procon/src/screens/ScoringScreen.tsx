@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import BottomNav from '../components/BottomNav';
-import { colors } from '../theme/colors';
+import AppMenu from '../components/AppMenu';
+import { colors, spacing } from '../theme';
 
 type DanceType = "male" | "female";
 type ScorePart = "feet" | "hands" | "whole";
@@ -25,11 +25,13 @@ export default function AnalysisScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.header}>
         <Text style={styles.title}>
           踊り解析画面
         </Text>
-
+        <AppMenu />
+      </View>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.sectionTitle}>
           踊りの種類
         </Text>
@@ -144,9 +146,7 @@ export default function AnalysisScreen() {
           <Text style={styles.nextButtonText}>次へ</Text>
         </TouchableOpacity>
       </ScrollView>
-      <BottomNav />
-    </View >
-
+    </View>
   );
 }
 
@@ -156,11 +156,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.indigoDeep,
   },
 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    backgroundColor: colors.indigo,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.textPrimaryOnIndigo,
-    marginBottom: 24,
   },
 
   sectionTitle: {

@@ -12,7 +12,7 @@ import {
 } from '../repositories/renActivities';
 import { RenActivity } from '../types/firestore';
 import * as ImagePicker from 'expo-image-picker';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 interface RenInfo {
@@ -212,7 +212,7 @@ export default function ManageActivitiesScreen() {
           <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>活動情報・連の管理</Text>
-        <View style={{ width: 24 }} />
+        <AppMenu />
       </View>
 
       <ScrollView style={styles.list}>
@@ -335,8 +335,6 @@ export default function ManageActivitiesScreen() {
           </View>
         </View>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

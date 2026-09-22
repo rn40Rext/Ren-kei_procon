@@ -10,7 +10,7 @@ import {
 import { fetchUserProfile } from '../repositories/users';
 import { fetchPostsByUser } from '../repositories/posts';
 import { JoinRequest, Post, UserProfile } from '../types/firestore';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 type Tab = 'pending' | 'approved' | 'rejected';
@@ -113,7 +113,7 @@ export default function ManageJoinRequestsScreen() {
           <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>参加リクエスト管理</Text>
-        <View style={{ width: 24 }} />
+        <AppMenu />
       </View>
 
       <View style={styles.tabBar}>
@@ -227,8 +227,6 @@ export default function ManageJoinRequestsScreen() {
           </View>
         </View>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

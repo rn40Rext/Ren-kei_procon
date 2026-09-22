@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Dim
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Bell, PlayCircle, ChevronRight, LogOut } from 'lucide-react-native';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import NotificationBadge from '../components/NotificationBadge';
 import { KasaGarland, KumihimoRule } from '../components/motifs';
 import { IconGeta, IconUchiwa, IconWagasa, IconMakimono } from '../components/awaIcons';
@@ -65,6 +65,9 @@ export default function HomeScreen() {
                   <LogOut color={colors.textMuted} size={18} />
                   <Text style={styles.logoutText}>終了</Text>
                 </TouchableOpacity>
+                <View style={{ marginLeft: spacing.sm }}>
+                  <AppMenu />
+                </View>
               </View>
             </View>
           </View>
@@ -146,10 +149,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

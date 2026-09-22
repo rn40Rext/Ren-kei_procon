@@ -6,7 +6,7 @@ import { subscribePendingJoinRequestCount } from '../repositories/joinRequests';
 import { subscribeUnreadNotificationCount } from '../repositories/notifications';
 import { useAdminRens } from '../hooks/useAdminRens';
 import { useAuth } from '../hooks/useAuth';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 export default function AdminHomeScreen() {
@@ -69,6 +69,7 @@ export default function AdminHomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>連の管理</Text>
+        <AppMenu />
       </View>
 
       {adminRens.length > 1 && (
@@ -152,15 +153,13 @@ export default function AdminHomeScreen() {
           <ChevronRight size={18} color={colors.textMuted} />
         </TouchableOpacity>
       </ScrollView>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { height: 60, backgroundColor: colors.indigo, justifyContent: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: colors.indigoLine },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   switcher: { backgroundColor: colors.indigo, paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.indigoLine },
   switcherPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.indigoRaised, marginRight: 8 },

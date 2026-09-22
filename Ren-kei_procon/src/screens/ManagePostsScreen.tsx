@@ -7,7 +7,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
 import { subscribeActiveMembers } from '../repositories/renMembership';
 import { Post } from '../types/firestore';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 type SortMode = 'newest' | 'score' | 'noAdvice';
@@ -96,7 +96,7 @@ export default function ManagePostsScreen() {
           <ChevronLeft color={colors.gold} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>投稿一覧</Text>
-        <View style={{ width: 24 }} />
+        <AppMenu />
       </View>
 
       <View style={styles.searchSection}>
@@ -203,8 +203,6 @@ export default function ManagePostsScreen() {
           )}
         </SafeAreaView>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }

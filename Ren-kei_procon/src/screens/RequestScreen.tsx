@@ -10,7 +10,7 @@ import {
   cancelJoinRequest,
 } from '../repositories/joinRequests';
 import { JoinRequest, Ren } from '../types/firestore';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 export default function RequestScreen() {
@@ -121,6 +121,7 @@ export default function RequestScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>連を探す</Text>
+        <AppMenu />
       </View>
 
       <View style={styles.searchSection}>
@@ -223,15 +224,13 @@ export default function RequestScreen() {
           </View>
         </View>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { height: 60, backgroundColor: colors.indigo, justifyContent: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: colors.indigoLine },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   searchSection: { backgroundColor: colors.indigo, padding: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigoRaised, borderRadius: 12, paddingHorizontal: 15, height: 45 },

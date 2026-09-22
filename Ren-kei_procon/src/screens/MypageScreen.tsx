@@ -7,7 +7,7 @@ import { auth } from '../config/firebaseConfig';
 import { fetchUserProfile, saveUserProfile, uploadUserIcon } from '../repositories/users';
 import * as ImagePicker from 'expo-image-picker';
 import { useAdminRens } from '../hooks/useAdminRens';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 import { colors } from '../theme/colors';
 
 type DanceStyle = 'male' | 'female' | null;
@@ -114,7 +114,9 @@ export default function MypageScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <View style={{ width: 38 }} />
         <Text style={styles.headerTitle}>マイページ</Text>
+        <AppMenu />
       </View>
 
       <ScrollView style={styles.content}>
@@ -263,17 +265,15 @@ export default function MypageScreen() {
           <Text style={styles.logoutText}>ログアウト</Text>
         </TouchableOpacity>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { height: 60, backgroundColor: colors.indigo, justifyContent: 'center', alignItems: 'center', borderBottomWidth: 1, borderColor: colors.indigoLine },
+  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
   content: { flex: 1 },
   profileSection: { alignItems: 'center', padding: 30, backgroundColor: colors.indigo, marginBottom: 10 },

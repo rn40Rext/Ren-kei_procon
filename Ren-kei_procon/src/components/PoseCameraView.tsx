@@ -50,9 +50,11 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 12,
-    backgroundColor: colors.noticeBackground,
+    backgroundColor: colors.goldSoft,
+    borderWidth: 1,
+    borderColor: colors.gold,
     borderRadius: 10,
     padding: 12,
   },
-  noticeText: { color: colors.noticeText, fontSize: 13, lineHeight: 19 },
+  noticeText: { color: colors.goldBright, fontSize: 13, lineHeight: 19 },
 });

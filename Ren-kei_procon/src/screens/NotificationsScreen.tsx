@@ -127,16 +127,16 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft size={26} color={colors.indigo} />
+          <ChevronLeft size={26} color={colors.gold} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>通知</Text>
         {unreadIds.length > 0 ? (
           <TouchableOpacity style={styles.markAllBtn} onPress={onMarkAllRead} disabled={markingAll}>
             {markingAll ? (
-              <ActivityIndicator size="small" color={colors.indigo} />
+              <ActivityIndicator size="small" color={colors.gold} />
             ) : (
               <>
-                <CheckCheck size={16} color={colors.indigo} />
+                <CheckCheck size={16} color={colors.gold} />
                 <Text style={styles.markAllText}>すべて既読</Text>
               </>
             )}
@@ -147,10 +147,10 @@ export default function NotificationsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={colors.indigo} />
+        <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
       ) : notifications.length === 0 ? (
         <View style={styles.emptyState}>
-          <Bell size={40} color={colors.textSecondary} />
+          <Bell size={40} color={colors.textMuted} />
           <Text style={styles.emptyText}>通知はまだありません</Text>
         </View>
       ) : (
@@ -165,7 +165,7 @@ export default function NotificationsScreen() {
                 disabled={openingId === n.id}
               >
                 <View style={[styles.iconWrap, !n.read && styles.iconWrapUnread]}>
-                  <Icon size={18} color={!n.read ? colors.textOnDark : colors.textSecondary} />
+                  <Icon size={18} color={!n.read ? colors.textOnGold : colors.textMuted} />
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={[styles.cardTitle, !n.read && styles.cardTitleUnread]}>{n.title}</Text>
@@ -180,10 +180,10 @@ export default function NotificationsScreen() {
                       onMarkOneRead(n.id);
                     }}
                   >
-                    <Check size={16} color={colors.textSecondary} />
+                    <Check size={16} color={colors.textMuted} />
                   </TouchableOpacity>
                 )}
-                {openingId === n.id && <ActivityIndicator size="small" color={colors.indigo} style={{ marginLeft: 8 }} />}
+                {openingId === n.id && <ActivityIndicator size="small" color={colors.gold} style={{ marginLeft: 8 }} />}
               </TouchableOpacity>
             );
           })}
@@ -194,50 +194,50 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
   },
   backBtn: { padding: 4 },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimary, marginLeft: 4 },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginLeft: 4 },
   markAllBtn: { flexDirection: 'row', alignItems: 'center', minWidth: 80, justifyContent: 'flex-end' },
-  markAllText: { marginLeft: 4, fontSize: 13, color: colors.indigo, fontWeight: '600' },
+  markAllText: { marginLeft: 4, fontSize: 13, color: colors.gold, fontWeight: '600' },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
-  emptyText: { marginTop: 12, color: colors.textSecondary, fontSize: 14 },
+  emptyText: { marginTop: 12, color: colors.textMuted, fontSize: 14 },
 
   list: { padding: 12 },
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
   },
-  cardUnread: { borderColor: colors.indigoLight, backgroundColor: '#F5F8FF' },
+  cardUnread: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
   iconWrap: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.background,
+    backgroundColor: colors.indigoRaised,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
   },
-  iconWrapUnread: { backgroundColor: colors.indigo },
+  iconWrapUnread: { backgroundColor: colors.gold },
   cardBody: { flex: 1 },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  cardTitle: { fontSize: 14, fontWeight: '600', color: colors.textPrimaryOnIndigo },
   cardTitleUnread: { fontWeight: 'bold' },
-  cardText: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  cardTime: { fontSize: 11, color: colors.textSecondary, marginTop: 6 },
+  cardText: { fontSize: 13, color: colors.textSecondaryOnIndigo, marginTop: 2 },
+  cardTime: { fontSize: 11, color: colors.textMuted, marginTop: 6 },
   markOneBtn: { padding: 6, marginLeft: 6 },
 });

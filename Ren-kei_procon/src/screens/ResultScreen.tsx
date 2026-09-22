@@ -25,9 +25,10 @@ import { X } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
 import { fetchVideo } from '../repositories/videos';
-import { publishExistingVideo } from '../data/community';
+import { publishExistingVideo, POST_TAG_OPTIONS } from '../data/community';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
-import { KumihimoRule, NarutoLoader, Chochin, AwaDivider } from '../components/motifs';
+import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
+import { Chip } from '../components/ui';
 
 type ResultNav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultRoute = RouteProp<RootStackParamList, 'Result'>;
@@ -57,6 +58,7 @@ export default function ResultScreen() {
   const [shareVisible, setShareVisible] = useState(false);
   const [shareTitle, setShareTitle] = useState('');
   const [shareDescription, setShareDescription] = useState('');
+  const [shareTags, setShareTags] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [posted, setPosted] = useState(false);
@@ -68,6 +70,10 @@ export default function ResultScreen() {
   const openShare = () => {
     setShareError(null);
     setShareVisible(true);
+  };
+
+  const toggleShareTag = (tag: string) => {
+    setShareTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
   const submitShare = async () => {
@@ -87,6 +93,7 @@ export default function ResultScreen() {
         videoUrl: video.downloadUrl,
         title: shareTitle,
         description: shareDescription || undefined,
+        tags: shareTags,
       });
       setPosted(true);
       setShareVisible(false);
@@ -123,15 +130,7 @@ export default function ResultScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <KumihimoRule width={30} />
         <Text style={styles.title}>解析結果</Text>
-        <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した0〜100の評価です。</Text>
-
-        <View style={styles.totalCard}>
-          <Chochin size={22} lit style={{ marginBottom: spacing.sm }} />
-          <Text style={styles.totalLabel}>{lexicon.aiScore}</Text>
-          <Text style={[styles.totalValue, { color: scoreColor(r.totalScore) }]}>{Math.round(r.totalScore)}</Text>
-          <Text style={styles.totalUnit}>/ 100</Text>
-          <Text style={styles.version}>判定ルール {r.analysisVersion}</Text>
-        </View>
+        <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した項目別の評価です。</Text>
 
         <View style={styles.sectionHead}>
           <KumihimoRule width={18} />
@@ -182,7 +181,7 @@ export default function ResultScreen() {
             GREAT {r.greatCount} / GOOD {r.goodCount} / MISS {r.missCount}
             {typeof r.maxCombo === 'number' ? ` / 最大 ${r.maxCombo} COMBO` : ''}
           </Text>
-          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、上の{lexicon.aiScore}とは別物です。</Text>
+          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、項目別評価とは別物です。</Text>
         </View>
 
         {posted ? (
@@ -238,6 +237,18 @@ export default function ResultScreen() {
               multiline
               maxLength={1000}
             />
+            <Text style={styles.shareModalLabel}>調子・型のしるし（任意）</Text>
+            <View style={styles.shareModalTagWrap}>
+              {POST_TAG_OPTIONS.map((tag) => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  active={shareTags.includes(tag)}
+                  onPress={() => toggleShareTag(tag)}
+                  style={styles.shareModalTag}
+                />
+              ))}
+            </View>
             {shareError ? <Text style={styles.shareModalError}>{shareError}</Text> : null}
 
             <TouchableOpacity
@@ -267,19 +278,6 @@ const styles = StyleSheet.create({
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
   lead: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 17 },
 
-  totalCard: {
-    alignItems: 'center',
-    backgroundColor: colors.indigo,
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-    borderRadius: radius.md,
-    padding: spacing.xl,
-    marginBottom: spacing.xl,
-  },
-  totalLabel: { ...typography.sectionLabel, color: colors.gold },
-  totalValue: { fontSize: 72, fontWeight: '900', lineHeight: 80, fontFamily: typography.displaySerif.fontFamily },
-  totalUnit: { ...typography.caption, color: colors.textMuted, marginTop: -6 },
-  version: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
 
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.md },
   sectionTitle: { ...typography.headingSerif, color: colors.textPrimary },
@@ -364,6 +362,8 @@ const styles = StyleSheet.create({
     ...typography.body,
   },
   shareModalTextarea: { minHeight: 64, textAlignVertical: 'top' },
+  shareModalTagWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  shareModalTag: { marginRight: spacing.sm, marginBottom: spacing.sm },
   shareModalError: { ...typography.caption, color: colors.aka, marginTop: spacing.sm },
   shareModalSubmit: {
     backgroundColor: colors.gold,

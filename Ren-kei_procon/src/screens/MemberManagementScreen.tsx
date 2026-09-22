@@ -1,13 +1,17 @@
+/**
+ * 連のメンバー管理（役割変更・除名）。
+ */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import { ChevronLeft, ChevronRight, Shield, User as UserIcon } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { colors, spacing, radius, typography } from '../theme';
+import { NarutoLoader } from '../components/motifs';
+import AppMenu from '../components/AppMenu';
 import { auth } from '../config/firebaseConfig';
 import { subscribeActiveMembers, updateMemberRole, removeMember } from '../repositories/renMembership';
 import { fetchUserProfile } from '../repositories/users';
-import { RenMember } from '../types/firestore';
-import AppMenu from '../components/AppMenu';
-import { colors } from '../theme/colors';
+import type { RenMember } from '../types/firestore';
 
 interface Profile {
   name: string;
@@ -48,9 +52,7 @@ export default function MemberManagementScreen() {
           if (profiles[m.uid]) return;
           fetchUserProfile(m.uid)
             .then((profile) => {
-              if (profile) {
-                setProfiles((prev) => ({ ...prev, [m.uid]: profile as Profile }));
-              }
+              if (profile) setProfiles((prev) => ({ ...prev, [m.uid]: profile as Profile }));
             })
             .catch(() => undefined);
         });
@@ -59,7 +61,7 @@ export default function MemberManagementScreen() {
         console.error('メンバー一覧の取得に失敗しました', error);
         setLoading(false);
         Alert.alert('エラー', 'メンバー一覧の取得に失敗しました。時間をおいて再度お試しください');
-      }
+      },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renId]);
@@ -73,7 +75,6 @@ export default function MemberManagementScreen() {
       if (error?.code === 'functions/failed-precondition') {
         Alert.alert('お知らせ', '最後の管理者を降格することはできません');
       } else {
-        console.error(error);
         Alert.alert('エラー', '役割の変更に失敗しました');
       }
     } finally {
@@ -92,7 +93,6 @@ export default function MemberManagementScreen() {
       if (error?.code === 'functions/failed-precondition') {
         Alert.alert('お知らせ', '最後の管理者を除名することはできません');
       } else {
-        console.error(error);
         Alert.alert('エラー', '除名に失敗しました');
       }
     } finally {
@@ -103,16 +103,21 @@ export default function MemberManagementScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={colors.gold} size={24} />
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color={colors.gold} size={22} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>メンバー管理</Text>
+        <View style={{ flex: 1 }} />
         <AppMenu />
       </View>
 
-      <ScrollView style={styles.list}>
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
         {loading ? (
-          <ActivityIndicator color={colors.gold} style={{ marginTop: 40 }} />
+          <NarutoLoader size={22} color={colors.gold} style={{ marginTop: 40, alignSelf: 'center' }} />
         ) : members.length === 0 ? (
           <Text style={styles.emptyText}>メンバーがいません</Text>
         ) : (
@@ -121,23 +126,19 @@ export default function MemberManagementScreen() {
             const isSelf = member.uid === currentUid;
             return (
               <View key={member.uid} style={styles.card}>
-                <View style={styles.cardTop}>
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.nameRow}>
-                      <Text style={styles.cardName}>{profile?.nickname || profile?.name || '読み込み中...'}</Text>
-                      {isSelf ? <Text style={styles.selfBadge}>自分</Text> : null}
-                      {member.role === 'admin' ? (
-                        <View style={styles.adminBadge}>
-                          <Shield size={11} color={colors.textOnGold} />
-                          <Text style={styles.adminBadgeText}>管理者</Text>
-                        </View>
-                      ) : null}
+                <View style={styles.nameRow}>
+                  <Text style={styles.cardName}>{profile?.nickname || profile?.name || '読み込み中…'}</Text>
+                  {isSelf ? <Text style={styles.selfBadge}>自分</Text> : null}
+                  {member.role === 'admin' ? (
+                    <View style={styles.adminBadge}>
+                      <Shield size={11} color={colors.textOnGold} />
+                      <Text style={styles.adminBadgeText}>管理者</Text>
                     </View>
-                    <Text style={styles.cardMeta}>
-                      {profile?.danceStyle ? DANCE_STYLE_LABEL[profile.danceStyle] : '踊り種別未設定'} ・ 加入日 {formatDate(member.joinedAt)}
-                    </Text>
-                  </View>
+                  ) : null}
                 </View>
+                <Text style={styles.cardMeta}>
+                  {profile?.danceStyle ? DANCE_STYLE_LABEL[profile.danceStyle] : '踊り種別未設定'}　加入日 {formatDate(member.joinedAt)}
+                </Text>
 
                 <TouchableOpacity
                   style={styles.profileLink}
@@ -154,6 +155,7 @@ export default function MemberManagementScreen() {
                       style={styles.roleBtn}
                       disabled={processingUid === member.uid}
                       onPress={() => handleToggleRole(member)}
+                      activeOpacity={0.85}
                     >
                       {processingUid === member.uid ? (
                         <ActivityIndicator color={colors.gold} size="small" />
@@ -165,6 +167,7 @@ export default function MemberManagementScreen() {
                       style={styles.removeBtn}
                       disabled={processingUid === member.uid}
                       onPress={() => setConfirmingMember(member)}
+                      activeOpacity={0.85}
                     >
                       <Text style={styles.removeBtnText}>除名</Text>
                     </TouchableOpacity>
@@ -186,10 +189,10 @@ export default function MemberManagementScreen() {
               を連から除名しますか？
             </Text>
             <View style={styles.confirmActions}>
-              <TouchableOpacity style={styles.confirmCancelBtn} onPress={() => setConfirmingMember(null)}>
+              <TouchableOpacity style={styles.confirmCancelBtn} onPress={() => setConfirmingMember(null)} activeOpacity={0.85}>
                 <Text style={styles.confirmCancelText}>キャンセル</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmRemoveBtn} onPress={confirmRemove}>
+              <TouchableOpacity style={styles.confirmRemoveBtn} onPress={confirmRemove} activeOpacity={0.85}>
                 <Text style={styles.confirmRemoveText}>除名する</Text>
               </TouchableOpacity>
             </View>
@@ -202,33 +205,48 @@ export default function MemberManagementScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
-  backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
-  list: { flex: 1, padding: 15 },
-  emptyText: { textAlign: 'center', color: colors.textMuted, marginTop: 40 },
-  card: { backgroundColor: colors.indigo, borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.indigoLine },
-  cardTop: { flexDirection: 'row' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  backBtn: { marginRight: spacing.sm },
+  headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
+
+  list: { flex: 1, padding: spacing.lg },
+  emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
+  card: {
+    backgroundColor: colors.indigo,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+  },
   nameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  cardName: { fontSize: 15, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
-  selfBadge: { marginLeft: 8, fontSize: 10, color: colors.textMuted, backgroundColor: colors.indigoRaised, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  adminBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 8, backgroundColor: colors.gold, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  adminBadgeText: { color: colors.textOnGold, fontSize: 10, fontWeight: 'bold', marginLeft: 3 },
-  cardMeta: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
-  profileLink: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  profileLinkText: { flex: 1, marginLeft: 6, fontSize: 12, color: colors.gold, fontWeight: 'bold' },
-  cardActions: { flexDirection: 'row', marginTop: 12, borderTopWidth: 1, borderTopColor: colors.indigoLine, paddingTop: 12 },
-  roleBtn: { flex: 1, backgroundColor: colors.goldSoft, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginRight: 8 },
-  roleBtnText: { color: colors.gold, fontWeight: 'bold', fontSize: 12 },
-  removeBtn: { flex: 1, backgroundColor: colors.akaSoft, paddingVertical: 10, borderRadius: 8, alignItems: 'center', marginLeft: 8 },
-  removeBtnText: { color: colors.aka, fontWeight: 'bold', fontSize: 12 },
-  confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: 30 },
-  confirmCard: { backgroundColor: colors.indigoDeep, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 16, padding: 24, width: '100%' },
-  confirmTitle: { fontSize: 16, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginBottom: 10 },
-  confirmMessage: { fontSize: 14, color: colors.textSecondaryOnIndigo, lineHeight: 20, marginBottom: 24 },
+  cardName: { ...typography.bodyStrong, color: colors.textPrimary },
+  selfBadge: { marginLeft: spacing.sm, fontSize: 10, color: colors.textMuted, backgroundColor: colors.indigoRaised, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  adminBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: spacing.sm, backgroundColor: colors.gold, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  adminBadgeText: { color: colors.textOnGold, fontSize: 10, fontWeight: '700', marginLeft: 3 },
+  cardMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+  profileLink: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
+  profileLinkText: { flex: 1, marginLeft: 6, ...typography.caption, color: colors.gold, fontWeight: '700' },
+  cardActions: { flexDirection: 'row', marginTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.indigoLine, paddingTop: spacing.md },
+  roleBtn: { flex: 1, backgroundColor: colors.goldSoft, paddingVertical: 10, borderRadius: radius.sm, alignItems: 'center', marginRight: spacing.sm },
+  roleBtnText: { color: colors.gold, fontWeight: '700', fontSize: 12 },
+  removeBtn: { flex: 1, borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: 10, borderRadius: radius.sm, alignItems: 'center', marginLeft: spacing.sm },
+  removeBtnText: { color: colors.aka, fontWeight: '700', fontSize: 12 },
+
+  confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  confirmCard: { backgroundColor: colors.indigoDeep, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.xl, width: '100%' },
+  confirmTitle: { ...typography.headingSerif, color: colors.textPrimary, marginBottom: spacing.sm },
+  confirmMessage: { ...typography.body, color: colors.textSecondary, lineHeight: 20, marginBottom: spacing.xl },
   confirmActions: { flexDirection: 'row' },
-  confirmCancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: colors.indigoRaised, marginRight: 8 },
-  confirmCancelText: { color: colors.textPrimaryOnIndigo, fontWeight: 'bold', fontSize: 14 },
-  confirmRemoveBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: colors.aka, marginLeft: 8 },
-  confirmRemoveText: { color: colors.textOnAka, fontWeight: 'bold', fontSize: 14 },
+  confirmCancelBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.indigoRaised, marginRight: spacing.sm },
+  confirmCancelText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },
+  confirmRemoveBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.aka, marginLeft: spacing.sm },
+  confirmRemoveText: { color: colors.textOnAka, fontWeight: '700', fontSize: 14 },
 });

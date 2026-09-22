@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../config/firebaseConfig";
+import { colors, spacing, typography } from "../theme";
+import { NarutoLoader, ChochinGarland } from "../components/motifs";
+import { RenKeiWordmark } from "../components/Brand";
+
+const SCREEN_W = Dimensions.get("window").width;
 
 // 画面のインポート
 import LoginScreen from "../screens/LoginScreen";
-import HomeScreen from "../screens/HomeScreen"; // 💡 追加
+import HomeScreen from "../screens/HomeScreen";
+import VideoDetailScreen from "../screens/VideoDetailScreen";
+import ChallengeDetailScreen from "../screens/ChallengeDetailScreen";
 import CommunityScreen from "../screens/CommunityScreen";
 import MypageScreen from "../screens/MypageScreen";
 import ScoringScreen from "../screens/ScoringScreen";
@@ -17,6 +24,7 @@ import SettingScreen from "../screens/SettingScreen";
 import CameraScreen from "../screens/CameraScreen";
 import ResultScreen from "../screens/ResultScreen";
 import RequestScreen from "../screens/RequestScreen";
+import RenSearchScreen from "../screens/RenSearchScreen";
 import UserProfileScreen from "../screens/UserProfileScreen";
 import ChatScreen from "../screens/ChatScreen";
 import AdminHomeScreen from "../screens/AdminHomeScreen";
@@ -31,7 +39,11 @@ import NotificationsScreen from "../screens/NotificationsScreen";
 
 export type RootStackParamList = {
   Login: undefined;
-  Home: undefined; // 💡 ホームを追加
+  Home: undefined;
+  // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。id: サンプル演舞 / postId: 実データ投稿
+  VideoDetail: { id?: string; postId?: string };
+  // 先輩からのチャレンジの詳細
+  Challenge: { id?: string };
   // shareVideoId: U-03 から「コミュニティへ投稿」で来たとき、その練習動画を投稿フォームに入れる
   // openPostId: 通知(type:'comment')タップ時、該当投稿の詳細を直接開く(#44)
   Community: { shareVideoId?: string; openPostId?: string } | undefined;
@@ -42,13 +54,14 @@ export type RootStackParamList = {
   Setting: undefined;
   // renId: 通知(type:'join_result')タップ時、承認された連を選択した状態で開く(#44)
   Group: { renId?: string } | undefined;
+  RenSearch: undefined;
   // 通知一覧(#44)。仕様書 U-01/R-01 の「通知への導線」の遷移先
   Notifications: undefined;
   // U-02 本体。baseBpm はリズム判定の基準テンポ(TBD-04 の暫定: ユーザー選択)
   Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
   Result: { analysisId: string; videoId: string };
-  Request: undefined;
+  Request: { inviteName?: string; inviteMeta?: string } | undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   // 連スタイル類似度の結果（AI機能②）。表示可否は
   // src/features/style/featureFlags.ts で制御する
@@ -79,8 +92,13 @@ export default function AppNavigator() {
 
   if (initializing) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#2563EB" />
+      <View style={bootStyles.wrap}>
+        <ChochinGarland width={SCREEN_W} count={7} height={44} style={bootStyles.garland} />
+        <View style={bootStyles.center}>
+          <RenKeiWordmark size={34} />
+          <Text style={bootStyles.sub}>稽古と交流の広場</Text>
+          <NarutoLoader size={30} color={colors.gold} style={bootStyles.loader} />
+        </View>
       </View>
     );
   }
@@ -91,6 +109,8 @@ export default function AppNavigator() {
         // 💡 ログイン後に最初に表示されるのは「Home」になります
         <>
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="VideoDetail" component={VideoDetailScreen} />
+          <Stack.Screen name="Challenge" component={ChallengeDetailScreen} />
           <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="Scoring" component={ScoringScreen} />
           <Stack.Screen name="Mypage" component={MypageScreen} />
@@ -102,6 +122,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Camera" component={CameraScreen} />
           <Stack.Screen name="Result" component={ResultScreen} />
           <Stack.Screen name="Request" component={RequestScreen} />
+          <Stack.Screen name="RenSearch" component={RenSearchScreen} />
           <Stack.Screen name="UserProfile" component={UserProfileScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
@@ -120,3 +141,11 @@ export default function AppNavigator() {
     </Stack.Navigator>
   );
 }
+
+const bootStyles = StyleSheet.create({
+  wrap: { flex: 1, backgroundColor: colors.indigoDeep },
+  garland: { position: "absolute", top: 0, left: 0, right: 0 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  sub: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 4 },
+  loader: { marginTop: spacing.xl },
+});

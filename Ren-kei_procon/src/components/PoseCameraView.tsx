@@ -9,7 +9,7 @@ import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { CameraView } from "expo-camera";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
-import { colors } from "../theme/colors";
+import { colors } from "../theme";
 
 export type PoseCameraViewProps = {
   /** 映像ソースが使えるようになったら呼ぶ。未対応なら null */

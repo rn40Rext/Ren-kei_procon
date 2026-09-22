@@ -1,15 +1,17 @@
+/**
+ * 連管理者が投稿へ指導者コメント（師匠の教え）を送る。
+ */
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { ChevronLeft, Send } from 'lucide-react-native';
-import { Video, ResizeMode } from 'expo-av';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { auth } from '../config/firebaseConfig';
-import { addPostComment } from '../repositories/posts';
-import { colors } from '../theme/colors';
+import { colors, spacing, radius, typography } from '../theme';
+import AppMenu from '../components/AppMenu';
+import RenkeiVideo from '../components/RenkeiVideo';
+import { addComment } from '../data/community';
 
 const MAX_LENGTH = 1000;
 
-// R-04: 連管理者が投稿へ指導者コメント(師匠の教え)を送る(#31)
 export default function AdviceComposeScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -19,24 +21,16 @@ export default function AdviceComposeScreen() {
   const [sending, setSending] = useState(false);
 
   const handleSend = async () => {
-    if (!text.trim()) return Alert.alert('エラー', 'アドバイスを入力してください');
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
-
+    if (!text.trim()) {
+      Alert.alert('エラー', 'アドバイスを入力してください');
+      return;
+    }
     setSending(true);
     try {
-      const userName = currentUser.email?.split('@')[0] || '匿名';
-      await addPostComment(postId, {
-        userId: currentUser.uid,
-        userName,
-        text: text.trim(),
-        type: 'instructor',
-        renId,
-      });
+      await addComment(postId, { text: text.trim(), type: 'instructor', renId });
       Alert.alert('完了', 'アドバイスを送信しました');
       navigation.goBack();
-    } catch (error) {
-      console.error(error);
+    } catch {
       Alert.alert('エラー', 'アドバイスの送信に失敗しました');
     } finally {
       setSending(false);
@@ -46,25 +40,34 @@ export default function AdviceComposeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={colors.gold} size={24} />
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color={colors.gold} size={22} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>アドバイスを送る</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ flex: 1 }} />
+        <AppMenu />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.postCard}>
           <View style={styles.thumbWrapper}>
-            <Video style={{ width: '100%', height: '100%' }} source={{ uri: videoUrl }} resizeMode={ResizeMode.COVER} shouldPlay={false} />
+            <RenkeiVideo uri={videoUrl} style={{ width: '100%', height: '100%' }} contentFit="cover" muted />
           </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.postTitle} numberOfLines={2}>{postTitle}</Text>
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text style={styles.postTitle} numberOfLines={2}>
+              {postTitle}
+            </Text>
             <Text style={styles.authorName}>{authorName}</Text>
           </View>
         </View>
 
-        <Text style={styles.label}>アドバイス内容(1〜{MAX_LENGTH}文字)</Text>
+        <Text style={styles.label}>
+          アドバイス内容（1〜{MAX_LENGTH}文字）
+        </Text>
         <TextInput
           style={styles.textArea}
           placeholder="足の運び方、姿勢、リズムなど気づいた点を伝えましょう"
@@ -74,9 +77,11 @@ export default function AdviceComposeScreen() {
           multiline
           maxLength={MAX_LENGTH}
         />
-        <Text style={styles.counter}>{text.length} / {MAX_LENGTH}</Text>
+        <Text style={styles.counter}>
+          {text.length} / {MAX_LENGTH}
+        </Text>
 
-        <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={sending}>
+        <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} onPress={handleSend} disabled={sending} activeOpacity={0.85}>
           {sending ? (
             <ActivityIndicator color={colors.textOnGold} />
           ) : (
@@ -93,17 +98,37 @@ export default function AdviceComposeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
-  backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
-  content: { padding: 20 },
-  postCard: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: 14, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: colors.indigoLine },
-  thumbWrapper: { width: 70, height: 70, borderRadius: 10, backgroundColor: '#000', overflow: 'hidden' },
-  postTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
-  authorName: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
-  label: { fontSize: 13, fontWeight: 'bold', color: colors.gold, marginBottom: 8 },
-  textArea: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, minHeight: 140, textAlignVertical: 'top', color: colors.textPrimaryOnIndigo },
-  counter: { fontSize: 11, color: colors.textMuted, textAlign: 'right', marginTop: 6, marginBottom: 20 },
-  sendBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  sendBtnText: { color: colors.textOnGold, fontWeight: 'bold', marginLeft: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  backBtn: { marginRight: spacing.sm },
+  headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
+
+  content: { padding: spacing.xl },
+  postCard: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.indigoLine },
+  thumbWrapper: { width: 70, height: 70, borderRadius: radius.sm, backgroundColor: '#000', overflow: 'hidden' },
+  postTitle: { ...typography.bodyStrong, color: colors.textPrimary },
+  authorName: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+  label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
+  textArea: {
+    backgroundColor: colors.indigoRaised,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 140,
+    textAlignVertical: 'top',
+    color: colors.textPrimary,
+    ...typography.body,
+  },
+  counter: { ...typography.caption, color: colors.textMuted, textAlign: 'right', marginTop: 6, marginBottom: spacing.xl },
+  sendBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  sendBtnDisabled: { opacity: 0.6 },
+  sendBtnText: { color: colors.textOnGold, fontWeight: '700', marginLeft: spacing.sm },
 });

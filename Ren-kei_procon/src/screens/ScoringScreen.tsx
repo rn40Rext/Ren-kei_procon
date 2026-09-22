@@ -1,245 +1,153 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { Footprints, Hand, User } from 'lucide-react-native';
 import AppMenu from '../components/AppMenu';
-import { colors, spacing } from '../theme';
+import { IconOdoriko } from '../components/awaIcons';
+import { HeaderSeam, KumihimoRule } from '../components/motifs';
+import { colors, spacing, radius, typography, lexicon } from '../theme';
 
 type DanceType = "male" | "female";
 type ScorePart = "feet" | "hands" | "whole";
 
-const BPM_OPTIONS = [96, 104, 112, 120, 128];
-
 type AnalysisScreenNavigationProp =
   NativeStackNavigationProp<RootStackParamList, 'Scoring'>;
 
-export default function AnalysisScreen() {
+const DANCE_OPTIONS: { key: DanceType; label: string; note: string }[] = [
+  { key: 'male', label: '男踊り', note: '腰を落とし地を踏む力強い型' },
+  { key: 'female', label: '女踊り', note: '爪先立ちで流れる優美な型' },
+];
 
+const PART_OPTIONS: { key: ScorePart; label: string; note: string; Icon: typeof Footprints }[] = [
+  { key: 'feet', label: '足捌き', note: '接地・踵の浮き沈み・体重移動', Icon: Footprints },
+  { key: 'hands', label: '手・団扇', note: '肘の高さ・指先・返しの角度', Icon: Hand },
+  { key: 'whole', label: '全体の調和', note: '上体のぶれ・二拍子との一致', Icon: User },
+];
+
+export default function AnalysisScreen() {
   const [danceType, setDanceType] = useState<DanceType | null>(null);
   const [scorePart, setScorePart] = useState<ScorePart | null>(null);
-  // リズム判定の基準テンポ(TBD-04 の暫定決定: ユーザーが選ぶ。既定はさゝゆり連の実測 112 BPM)
-  const [baseBpm, setBaseBpm] = useState<number>(112);
 
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
+  const ready = danceType !== null && scorePart !== null;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>
-          踊り解析画面
-        </Text>
+        <IconOdoriko size={22} color={colors.gold} style={styles.headerIcon} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>自主稽古・演舞解析</Text>
+          <Text style={styles.headerSub}>手本に重ねて撮り、{lexicon.aiAdvice}を受ける</Text>
+        </View>
         <AppMenu />
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>
-          踊りの種類
-        </Text>
+      <HeaderSeam />
 
-        <TouchableOpacity
-          onPress={() => setDanceType('male')}
-          style={[
-            styles.danceButton,
-            danceType === 'male' && styles.selectedButton,
-          ]}
-        >
-          <Text style={styles.buttonText}>男踊り</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setDanceType('female')}
-          style={[
-            styles.danceButton,
-            danceType === 'female' && styles.selectedButton,
-          ]}
-        >
-          <Text style={styles.buttonText}>女踊り</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>
-          採点する部分
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => setScorePart('feet')}
-          style={[
-            styles.danceButton,
-            scorePart === 'feet' && styles.selectedButton,
-          ]}
-        >
-          <Text style={styles.buttonText}>足だけ</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setScorePart('hands')}
-          style={[
-            styles.danceButton,
-            scorePart === 'hands' && styles.selectedButton,
-          ]}
-        >
-          <Text style={styles.buttonText}>手だけ</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setScorePart('whole')}
-          style={[
-            styles.danceButton,
-            scorePart === 'whole' && styles.selectedButton,
-          ]}
-        >
-          <Text style={styles.buttonText}>全体</Text>
-        </TouchableOpacity>
-
-        <Text style={styles.sectionTitle}>
-          基準テンポ(BPM)
-        </Text>
-        <View style={styles.bpmRow}>
-          {BPM_OPTIONS.map((bpm) => (
-            <TouchableOpacity
-              key={bpm}
-              onPress={() => setBaseBpm(bpm)}
-              style={[styles.bpmButton, baseBpm === bpm && styles.selectedButton]}
-            >
-              <Text style={styles.buttonText}>{bpm}</Text>
-            </TouchableOpacity>
-          ))}
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* 踊りの種類 */}
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={20} />
+          <Text style={styles.sectionTitleInline}>踊りの型</Text>
         </View>
-        <Text style={styles.hint}>
-          お囃子のテンポに合わせて選びます。練習は本番より落としたテンポでも構いません。
-        </Text>
+        {DANCE_OPTIONS.map((d) => {
+          const active = danceType === d.key;
+          return (
+            <TouchableOpacity
+              key={d.key}
+              onPress={() => setDanceType(d.key)}
+              style={[styles.optionCard, active && styles.optionCardActive]}
+              activeOpacity={0.85}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{d.label}</Text>
+                <Text style={styles.optionNote}>{d.note}</Text>
+              </View>
+              <View style={[styles.radio, active && styles.radioOn]} />
+            </TouchableOpacity>
+          );
+        })}
 
-        <Text style={styles.summaryText}>
-          選択中の踊り：
-          {danceType === 'male'
-            ? '男踊り'
-            : danceType === 'female'
-              ? '女踊り'
-              : '未選択'}
-        </Text>
-
-        <Text style={styles.summaryText}>
-          採点する部分：
-          {scorePart === 'feet'
-            ? '足だけ'
-            : scorePart === 'hands'
-              ? '手だけ'
-              : scorePart === 'whole'
-                ? '全体'
-                : '未選択'}
-        </Text>
+        {/* 見てほしい部分 */}
+        <View style={styles.sectionHead}>
+          <KumihimoRule width={20} />
+          <Text style={styles.sectionTitleInline}>重点的に見てほしい所</Text>
+        </View>
+        {PART_OPTIONS.map(({ key, label, note, Icon }) => {
+          const active = scorePart === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              onPress={() => setScorePart(key)}
+              style={[styles.optionCard, active && styles.optionCardActive]}
+              activeOpacity={0.85}
+            >
+              <Icon size={19} color={active ? colors.gold : colors.textSecondary} />
+              <View style={{ flex: 1, marginLeft: spacing.md }}>
+                <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{label}</Text>
+                <Text style={styles.optionNote}>{note}</Text>
+              </View>
+              <View style={[styles.radio, active && styles.radioOn]} />
+            </TouchableOpacity>
+          );
+        })}
 
         <TouchableOpacity
-          disabled={danceType === null || scorePart === null}
-          style={[styles.nextButton, (danceType === null || scorePart === null) && styles.nextButtonDisabled]}
+          disabled={!ready}
+          style={[styles.nextButton, !ready && styles.nextButtonDisabled]}
           onPress={() => {
-            if (danceType === null || scorePart === null) {
-              return;
-            }
-            else
-              navigation.navigate('Camera', {
-                danceType,
-                scorePart,
-                baseBpm,
-              });
+            if (danceType === null || scorePart === null) return;
+            navigation.navigate('Camera', { danceType, scorePart });
           }}
         >
-          <Text style={styles.nextButtonText}>次へ</Text>
+          <Text style={[styles.nextButtonText, !ready && styles.nextButtonTextDisabled]}>
+            {ready ? '演舞を撮影する' : '型と重点を選んでください'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.indigoDeep,
-  },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  headerIcon: { marginRight: spacing.md },
+  headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
+  headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
-  header: {
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
+
+  sectionTitle: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.xl, marginBottom: spacing.md },
+  sectionHead: { marginTop: spacing.xl, marginBottom: spacing.md },
+  sectionTitleInline: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.sm },
+
+  optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    backgroundColor: colors.indigo,
-    borderBottomWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.textPrimaryOnIndigo,
-  },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.gold,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-
-  danceButton: {
-    backgroundColor: colors.indigo,
-    padding: 20,
-    marginBottom: 10,
-    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.indigoLine,
+    backgroundColor: colors.indigo,
   },
-
-  buttonText: { color: colors.textPrimaryOnIndigo },
-
-  selectedButton: {
-    backgroundColor: colors.goldSoft,
-    borderColor: colors.gold,
-  },
+  optionCardActive: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
+  optionLabel: { ...typography.bodyStrong, color: colors.textPrimary },
+  optionLabelActive: { color: colors.gold },
+  optionNote: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  radio: { width: 18, height: 18, borderRadius: radius.pill, borderWidth: 2, borderColor: colors.textMuted },
+  radioOn: { borderColor: colors.gold, backgroundColor: colors.gold },
 
   nextButton: {
     backgroundColor: colors.gold,
-    padding: 16,
-    borderRadius: 12,
+    padding: spacing.lg,
+    borderRadius: radius.sm,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: spacing.xl,
   },
-  nextButtonDisabled: { opacity: 0.5 },
-
-  nextButtonText: {
-    color: colors.textOnGold,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-
-  content: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-
-  bpmRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
-  },
-
-  bpmButton: {
-    backgroundColor: colors.indigo,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-
-  hint: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 16,
-  },
-
-  summaryText: {
-    color: colors.textSecondaryOnIndigo,
-    marginBottom: 4,
-  },
-})
+  nextButtonDisabled: { backgroundColor: colors.indigoRaised },
+  nextButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
+  nextButtonTextDisabled: { color: colors.textMuted },
+});

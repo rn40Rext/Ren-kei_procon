@@ -14,24 +14,36 @@ import { X, ChevronRight } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { ChochinGarland } from './motifs';
 import { RenKeiWordmark, RenKeiMark } from './Brand';
-import { IconUchiwa, IconGeta, IconWagasa, IconMakimono } from './awaIcons';
+import {
+  IconUchiwa,
+  IconWagasa,
+  IconGeta,
+  IconMakimono,
+} from './awaIcons';
 
 const PANEL_W = Math.min(Math.round(Dimensions.get('window').width * 0.82), 360);
 
-type NavKey = 'Home' | 'Scoring' | 'Community' | 'Mypage';
+type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request';
 
 const LINKS: { key: NavKey; label: string; note: string; Icon: typeof IconUchiwa }[] = [
-  { key: 'Home', label: 'ホーム', note: '稽古メニュー・お知らせ', Icon: IconUchiwa },
-  { key: 'Scoring', label: 'AI解析・稽古', note: 'フォームを採点', Icon: IconGeta },
-  { key: 'Community', label: '交流広場', note: '仲間の動画を見る', Icon: IconWagasa },
-  { key: 'Mypage', label: 'マイページ', note: '実績と設定', Icon: IconMakimono },
+  { key: 'Home', label: '踊り広場', note: '演舞の推薦・みんなの投稿・交流', Icon: IconUchiwa },
+  { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く・連を探す', Icon: IconWagasa },
+  { key: 'Scoring', label: '自主稽古・演舞解析', note: '手本同期・二拍子稽古', Icon: IconGeta },
+  { key: 'Mypage', label: '稽古手帳', note: '成長記録・段位・連バッジ・所属連', Icon: IconMakimono },
 ];
 
 /**
  * 全画面共通のメニュー。ヘッダー右に置くアイコン1つで、
- * 画面移動をすべてここに集約する（下部のナビゲーションバーの代わり）。
+ * 画面移動をすべてここに集約する（下部のナビゲーションバーは廃止）。
+ * children を渡すと、リンク一覧の上に差し込める（ホームの絞り込みなど）。
  */
-export default function AppMenu({ tint = colors.gold }: { tint?: string }) {
+export default function AppMenu({
+  children,
+  tint = colors.gold,
+}: {
+  children?: React.ReactNode;
+  tint?: string;
+}) {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const [open, setOpen] = useState(false);
@@ -59,7 +71,7 @@ export default function AppMenu({ tint = colors.gold }: { tint?: string }) {
           <View style={styles.panel}>
             <ChochinGarland width={PANEL_W} count={5} height={38} sag={10} style={styles.panelGarland} />
             <View style={styles.panelHeader}>
-              <View>
+              <View style={styles.brandRow}>
                 <RenKeiWordmark size={22} />
                 <Text style={styles.brandSub}>阿波・稽古と交流の広場</Text>
               </View>
@@ -73,6 +85,13 @@ export default function AppMenu({ tint = colors.gold }: { tint?: string }) {
             </View>
 
             <ScrollView contentContainerStyle={styles.panelBody} showsVerticalScrollIndicator={false}>
+              {children ? (
+                <>
+                  <View style={styles.childrenWrap}>{children}</View>
+                  <View style={styles.divider} />
+                </>
+              ) : null}
+
               {LINKS.map((l) => {
                 const active = route.name === l.key;
                 return (
@@ -82,7 +101,7 @@ export default function AppMenu({ tint = colors.gold }: { tint?: string }) {
                     activeOpacity={0.8}
                     onPress={() => go(l.key)}
                   >
-                    <l.Icon size={19} color={active ? colors.gold : colors.textSecondaryOnIndigo} />
+                    <l.Icon size={19} color={active ? colors.gold : colors.textSecondary} />
                     <View style={styles.linkText}>
                       <Text style={[styles.linkLabel, active && styles.linkLabelActive]}>{l.label}</Text>
                       <Text style={styles.linkNote}>{l.note}</Text>
@@ -134,9 +153,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.indigoLine,
   },
+  brandRow: {},
   brandSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 2 },
 
   panelBody: { paddingVertical: spacing.md },
+  childrenWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  divider: { height: 1, backgroundColor: colors.indigoLine, marginVertical: spacing.md },
 
   link: {
     flexDirection: 'row',
@@ -146,7 +168,7 @@ const styles = StyleSheet.create({
   },
   linkActive: { backgroundColor: colors.goldSoft },
   linkText: { flex: 1, marginLeft: spacing.md },
-  linkLabel: { ...typography.bodyStrong, color: colors.textPrimaryOnIndigo },
+  linkLabel: { ...typography.bodyStrong, color: colors.textPrimary },
   linkLabelActive: { color: colors.gold },
   linkNote: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   activeMark: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.aka },

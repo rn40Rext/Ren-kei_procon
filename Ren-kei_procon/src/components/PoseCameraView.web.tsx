@@ -12,7 +12,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Landmark, SKELETON_CONNECTIONS } from "../features/pose/types";
 import { LiveVideoSource, RecordedMedia } from "../features/analysis/liveTypes";
 import { MIN_VISIBILITY } from "../features/pose/normalize";
-import { colors } from "../theme/colors";
+import { colors } from "../theme";
 import type { PoseCameraViewProps } from "./PoseCameraView";
 
 export const POSE_CAMERA_SUPPORTED = true;
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
   },
-  errorText: { color: colors.aka, fontSize: 13, lineHeight: 19 },
+  errorText: { color: colors.textPrimary, fontSize: 13, lineHeight: 19 },
   fileRow: { position: "absolute", left: 12, bottom: 12, flexDirection: "row" },
   fileButton: {
     backgroundColor: "rgba(0,0,0,0.55)",

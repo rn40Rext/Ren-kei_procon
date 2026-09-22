@@ -1,11 +1,15 @@
+/**
+ * 連のお知らせ管理（配信フォーム・配信履歴）。
+ */
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { ChevronLeft, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { subscribeAnnouncements, createAnnouncement } from '../repositories/renAnnouncements';
-import { Announcement } from '../types/firestore';
+import { colors, spacing, radius, typography } from '../theme';
+import { NarutoLoader } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
-import { colors } from '../theme/colors';
+import { subscribeAnnouncements, createAnnouncement } from '../repositories/renAnnouncements';
+import type { Announcement } from '../types/firestore';
 
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
@@ -36,13 +40,14 @@ export default function ManageAnnouncementsScreen() {
         console.error('お知らせの取得に失敗しました', error);
         setLoading(false);
         Alert.alert('エラー', 'お知らせの取得に失敗しました。時間をおいて再度お試しください');
-      }
+      },
     );
   }, [renId]);
 
   const handleSend = async () => {
     if (!title.trim() || !content.trim()) {
-      return Alert.alert('エラー', 'タイトルと本文を入力してください');
+      Alert.alert('エラー', 'タイトルと本文を入力してください');
+      return;
     }
     setSending(true);
     try {
@@ -50,8 +55,7 @@ export default function ManageAnnouncementsScreen() {
       setTitle('');
       setContent('');
       Alert.alert('完了', 'お知らせを配信しました');
-    } catch (error) {
-      console.error(error);
+    } catch {
       Alert.alert('エラー', 'お知らせの配信に失敗しました');
     } finally {
       setSending(false);
@@ -61,19 +65,31 @@ export default function ManageAnnouncementsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={colors.gold} size={24} />
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color={colors.gold} size={22} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>お知らせ管理</Text>
+        <View style={{ flex: 1 }} />
         <AppMenu />
       </View>
 
-      <ScrollView style={styles.list}>
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
         <View style={styles.formCard}>
-          <Text style={styles.label}>タイトル(1〜100文字)</Text>
-          <TextInput style={styles.input} placeholder="例：来週の練習について" placeholderTextColor={colors.textMuted} value={title} onChangeText={setTitle} maxLength={100} />
+          <Text style={styles.label}>タイトル（1〜100文字）</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="例：来週の練習について"
+            placeholderTextColor={colors.textMuted}
+            value={title}
+            onChangeText={setTitle}
+            maxLength={100}
+          />
 
-          <Text style={styles.label}>本文(1〜2000文字)</Text>
+          <Text style={styles.label}>本文（1〜2000文字）</Text>
           <TextInput
             style={styles.textArea}
             placeholder="お知らせの内容"
@@ -84,7 +100,7 @@ export default function ManageAnnouncementsScreen() {
             maxLength={2000}
           />
 
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={sending}>
+          <TouchableOpacity style={[styles.sendBtn, sending && styles.sendBtnDisabled]} onPress={handleSend} disabled={sending} activeOpacity={0.85}>
             {sending ? (
               <ActivityIndicator color={colors.textOnGold} />
             ) : (
@@ -98,7 +114,7 @@ export default function ManageAnnouncementsScreen() {
 
         <Text style={styles.sectionLabel}>配信履歴</Text>
         {loading ? (
-          <ActivityIndicator color={colors.gold} style={{ marginTop: 20 }} />
+          <NarutoLoader size={22} color={colors.gold} style={{ marginTop: spacing.lg, alignSelf: 'center' }} />
         ) : announcements.length === 0 ? (
           <Text style={styles.emptyText}>まだお知らせはありません</Text>
         ) : (
@@ -118,20 +134,51 @@ export default function ManageAnnouncementsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { height: 60, backgroundColor: colors.indigo, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: colors.indigoLine },
-  backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
-  list: { flex: 1, padding: 15 },
-  formCard: { backgroundColor: colors.indigo, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: 'bold', color: colors.gold, marginBottom: 8 },
-  input: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 16, color: colors.textPrimaryOnIndigo },
-  textArea: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, marginBottom: 16, minHeight: 100, textAlignVertical: 'top', color: colors.textPrimaryOnIndigo },
-  sendBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  sendBtnText: { color: colors.textOnGold, fontWeight: 'bold', marginLeft: 8 },
-  sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimaryOnIndigo, marginBottom: 10 },
-  emptyText: { fontSize: 13, color: colors.textMuted, marginBottom: 20 },
-  itemCard: { backgroundColor: colors.indigo, borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.indigoLine },
-  itemTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimaryOnIndigo },
-  itemMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
-  itemBody: { fontSize: 13, color: colors.textSecondaryOnIndigo, marginTop: 8, lineHeight: 20 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  backBtn: { marginRight: spacing.sm },
+  headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
+
+  list: { flex: 1, padding: spacing.lg },
+  formCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: spacing.xl },
+  label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
+  input: {
+    backgroundColor: colors.indigoRaised,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+    color: colors.textPrimary,
+    ...typography.body,
+  },
+  textArea: {
+    backgroundColor: colors.indigoRaised,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    color: colors.textPrimary,
+    ...typography.body,
+  },
+  sendBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  sendBtnDisabled: { opacity: 0.6 },
+  sendBtnText: { ...typography.button, color: colors.textOnGold, marginLeft: spacing.sm },
+  sectionLabel: { ...typography.sectionLabel, color: colors.textPrimary, marginBottom: spacing.sm },
+  emptyText: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.lg },
+  itemCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
+  itemTitle: { ...typography.bodyStrong, color: colors.textPrimary },
+  itemMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4, fontSize: 10 },
+  itemBody: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 18 },
 });

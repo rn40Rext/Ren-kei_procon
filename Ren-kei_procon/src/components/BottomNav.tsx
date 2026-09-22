@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
 import { subscribeUnreadNotificationCount } from '../repositories/notifications';
 import NotificationBadge from './NotificationBadge';
+import { colors } from '../theme';
 
 export default function BottomNav() {
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -23,32 +24,32 @@ export default function BottomNav() {
         <View style={styles.bottomNav}>
             <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Home')}>
                 <View>
-                    <HomeIcon size={24} color={route.name === 'Home' ? "#2563eb" : '#9ca3af'} />
+                    <HomeIcon size={24} color={route.name === 'Home' ? colors.gold : colors.textMuted} />
                     <NotificationBadge count={unreadCount} dotOnly />
                 </View>
-                <Text style={[styles.navText, { color: route.name === 'Home' ? '#2563eb' : '#9ca3af' }]}>ホーム</Text>
+                <Text style={[styles.navText, { color: route.name === 'Home' ? colors.gold : colors.textMuted }]}>ホーム</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Scoring')}>
-                <Camera size={24} color={route.name === 'Scoring' ? '#2563eb' : '#9ca3af'} />
-                <Text style={[styles.navText, { color: route.name === 'Scoring' ? '#2563eb' : '#9ca3af' }]}>解析</Text>
+                <Camera size={24} color={route.name === 'Scoring' ? colors.gold : colors.textMuted} />
+                <Text style={[styles.navText, { color: route.name === 'Scoring' ? colors.gold : colors.textMuted }]}>解析</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Community')}>
-                <Users size={24} color={route.name === 'Community' ? '#2563eb' : '#9ca3af'} />
-                <Text style={[styles.navText, { color: route.name === 'Community' ? '#2563eb' : '#9ca3af' }]}>広場</Text>
+                <Users size={24} color={route.name === 'Community' ? colors.gold : colors.textMuted} />
+                <Text style={[styles.navText, { color: route.name === 'Community' ? colors.gold : colors.textMuted }]}>広場</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('Mypage')}>
-                <User size={24} color={route.name === 'Mypage' ? '#2563eb' : '#9ca3af'} />
-                <Text style={[styles.navText, { color: route.name === 'Mypage' ? '#2563eb' : '#9ca3af' }]}>マイページ</Text>
+                <User size={24} color={route.name === 'Mypage' ? colors.gold : colors.textMuted} />
+                <Text style={[styles.navText, { color: route.name === 'Mypage' ? colors.gold : colors.textMuted }]}>マイページ</Text>
             </TouchableOpacity>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    bottomNav: { flexDirection: 'row', backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e5e7eb', paddingVertical: 10, paddingBottom: 24, position: 'absolute', bottom: 0, width: '100%', justifyContent: 'space-around' },
+    bottomNav: { flexDirection: 'row', backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine, paddingVertical: 10, paddingBottom: 24, position: 'absolute', bottom: 0, width: '100%', justifyContent: 'space-around' },
     navItem: { alignItems: 'center' },
     navText: { fontSize: 10, fontWeight: 'bold', marginTop: 4 },
 });

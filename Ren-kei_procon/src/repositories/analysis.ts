@@ -5,7 +5,7 @@
  * 返ってきた totalScore / 項目別スコア / feedback を表示するだけ。
  * docs/design/api-functions.md FN-01。
  */
-import { doc, getDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, orderBy, query, where, Unsubscribe } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebaseConfig';
 import { FinalizeRequest } from '../features/rules/session';
@@ -57,6 +57,27 @@ export async function finalizeBasicAnalysis(request: FinalizeRequest): Promise<F
 export async function fetchAnalysisResult(analysisId: string): Promise<AnalysisResult | null> {
   const snap = await getDoc(doc(db, 'analysisResults', analysisId));
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as AnalysisResult) : null;
+}
+
+/**
+ * 自分の解析結果を古い順に購読する(U-10成長曲線、#37)。
+ * 複合インデックス userId + createdAt が必要(firestore.indexes.json)。
+ */
+export function subscribeAnalysisResultsByUser(
+  uid: string,
+  onData: (results: AnalysisResult[]) => void,
+  onError?: (e: Error) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'analysisResults'),
+    where('userId', '==', uid),
+    orderBy('createdAt', 'asc')
+  );
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as AnalysisResult))),
+    (e) => onError?.(e)
+  );
 }
 
 export function subscribeAnalysisResult(

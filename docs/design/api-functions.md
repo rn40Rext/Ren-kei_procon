@@ -197,6 +197,15 @@ export async function requireRenAdmin(uid: string, renId: string): Promise<void>
 - **冪等性**: `analysisId = {uid}_{clientRequestId}`（`clientRequestId` は `^[A-Za-z0-9_-]{8,128}$`）。同じ ID の再送は既存の結果を返し、レスポンスに `duplicate: true` が付く。
 - 検証: `videos.userId == uid`（違えば `FORBIDDEN`）、`events` 5,000 件超・成功数が試行数を超える集計・不正な `danceType` / `scorePart` は `invalid-argument`（`INVALID_ARGUMENT:<引数名>`）。クライアントが `totalScore` を含めても無視する。
 - 保存: `analysisResults`（`rawMetrics` に集計値・リズム・イベント件数・踊り種別・部位・所要時間）、`users/{uid}/growthRecords/{analysisId}`、`videos.analysisStatus = 'completed'` / `latestAnalysisId` を 1 トランザクションで書く。
+
+**軽量な改ざん対策（2026-09-24、[#102](../../../issues/102)）**: `assertPlausibleEventTimestamps` / `reconcileMetricsWithEvents`
+
+PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を申告値のまま信用しており、対応する `events` が無くても高スコアを申告できる（例: `attempts:1, greatCount:1` を送るだけ）ことが判明した。完全な防止（動画のサーバ側再解析）はコストが高いため見送り、issue が提案する「軽量なタイムライン整合性チェック」を実装した。
+
+- `events[].timestampMs` が `[0, durationMs + 3000ms]`（非同期到着の猶予）の範囲外なら `invalid-argument` で拒否する
+- `metrics[ruleId]` の `greatCount` / `goodCount` / `missCount` は、申告値を使わず **`events` を数え直した値で必ず上書きする**。対応する `events` が無いルールは 0 に矯正される
+- `attempts` は「申告値」と「`events` から数えた合計」の大きい方を採用する（過少申告で成功率を吊り上げる手口を防ぐ）
+- **残る既知の制約**: `holdRatio`（HIP_LOW / BASE_POSTURE）と `rhythm.userBpm` は `events` から再現できないため対象外。`events` 自体を一貫して偽装する（ありえない `timestampMs` を避けつつ大量の GREAT イベントを作る等）攻撃は依然として可能で、完全な防止には動画のサーバ側再解析が必要（未着手・上記の未決定事項のまま）
 - 動作確認: `cd functions && npm run verify:emulator`（保存・冪等・他人の動画拒否・不正集計の却下）。
 
 ---

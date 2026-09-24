@@ -101,7 +101,7 @@
 
 🔶 **#39 / #42 / #48 は完了。#41 / #47 は実装が入ったが受け入れ条件に未達部分が残る**（#41: ギャラリーから直接投稿する経路の Storage パスが所有者情報を含まない / #47: `analysisStatus == 'completed'` の検証が無く、採点の無い投稿を許容する設計に変わった → **仕様と実装の食い違いとして要判断**）。#40 は Rules の実装・テスト（50 件）は完了し、**本番への反映のみ未確認**。
 
-追加で [#102](../../../issues/102)（`finalizeBasicAnalysis` がクライアント提供の集計値のみで検証している）が**公開前必須**としてこの段階にぶら下がります。
+追加で [#102](../../../issues/102)（`finalizeBasicAnalysis` がクライアント提供の集計値のみで検証している）が**公開前必須**としてこの段階にぶら下がります。2026-09-24に軽量な対策（`events`との整合性チェック）を実装したが、`holdRatio`/`rhythm`は対象外で完全な防止ではないため、issueは**オープンのまま**（公開前に本格対応の要否を判断）。
 
 ### MVP Ren — 連への参加が一連で動く状態
 
@@ -131,11 +131,11 @@
 
 ## 2. マイルストーンに先行して着手すべき項目
 
-### ⚠️ 最優先: スコアの改ざん防止 — [#102](../../../issues/102)（公開前必須）
+### ⚠️ 最優先（一部対応済み）: スコアの改ざん防止 — [#102](../../../issues/102)（公開前必須）
 
-`finalizeBasicAnalysis` は `totalScore` をクライアントが送る `metrics` から計算し、内部整合性（`great + good + miss <= attempts` 等）しか検証していません。**実際には練習していなくても、偽装した集計値を送れば満点を取得でき、その値が `publishPost` 経由で公開投稿の `posts.score` に載ります。**
+`finalizeBasicAnalysis` は `totalScore` をクライアントが送る `metrics` から計算していました。**2026-09-24、軽量な対策を実装しました**（[api-functions.md](../design/api-functions.md) FN-01 節）: `events`に対応しない`greatCount`/`goodCount`/`missCount`の申告は0に矯正し、`attempts`は`events`の実数を下回れないようにし、`timestampMs`が`durationMs`と矛盾する`events`は拒否します。エミュレータでの実機テスト（`npm run verify:emulator`）で、eventsを伴わないmetricsの申告がスコア0になることを確認済みです。
 
-[api-functions.md](../design/api-functions.md) の FN-01 節に既知の制約として明記済みで、開発段階では許容する判断ですが（[safety.md](../rules/safety.md) 0章）、**一般公開前には必須**です。軽量な対策（`events` タイムラインとの整合性チェック、異常値検知）から検討します。
+**ただし完全な防止ではありません。** `holdRatio`（HIP_LOW/BASE_POSTURE）と`rhythm.userBpm`は`events`から再現できないため対象外で、`events`自体を一貫して偽装する攻撃は依然として可能です。完全な防止には動画のサーバ側再解析が必要で未着手のまま（[safety.md](../rules/safety.md) 0章の「開発段階では許容」の範囲内）。**一般公開前には、残る対象範囲の対応要否を判断してください。**
 
 ### 実地データの収集 — [#100](../../../issues/100) / [#101](../../../issues/101)
 

@@ -118,7 +118,7 @@
 
 | # | 内容 | 状態 |
 | --- | --- | --- |
-| **S-12** | **`finalizeBasicAnalysis` がクライアント提供の `metrics` のみでスコアを計算している。** 内部整合性（`great + good + miss <= attempts` 等）しか見ておらず、実際に練習したかを裏付ける検証が無い。**偽装した集計値を送れば満点を取得でき、`posts.score` として公開投稿に載る** | **未対応（[#102](../../../issues/102)）。開発段階では許容の判断だが公開前必須**（[api-functions.md](../design/api-functions.md) FN-01 節に既知の制約として記載） |
+| **S-12** | `finalizeBasicAnalysis` がクライアント提供の `metrics` のみでスコアを計算している。内部整合性（`great + good + miss <= attempts` 等）しか見ておらず、実際に練習したかを裏付ける検証が無かった。**偽装した集計値を送れば満点を取得でき、`posts.score` として公開投稿に載ってしまう** | 🔶 **軽量な対策を実装（2026-09-24、[#102](../../../issues/102)）**。`events` に対応しないルールの `greatCount`/`goodCount`/`missCount` は 0 に矯正し、`attempts` は `events` の実数を下回れないようにし、`timestampMs` が `durationMs` と矛盾する `events` は拒否する。**ただし `holdRatio`（HIP_LOW/BASE_POSTURE）と `rhythm.userBpm` は `events` から再現できず対象外。`events` 自体を一貫して偽装する攻撃は依然として可能**（[api-functions.md](../design/api-functions.md) FN-01 節に記載）。完全な防止には動画のサーバ側再解析が必要で未着手のまま |
 | S-9 | **ギャラリーから直接投稿する経路**の Storage パスが `videos/{Date.now()}.mp4` で所有者情報を含まない（`repositories/posts.ts`）。練習セッション経由の動画は `users/{uid}/videos/{videoId}` へ移行済み | 一部対応（[#41](../../../issues/41)。該当箇所に TODO コメントあり） |
 | S-10 | Storage の `contentType` 検証が無い（サイズ上限のみ） | 意図的な見送り。React Native から正しい値が送られるか実機未検証のため（[#40](../../../issues/40) にコメント済み） |
 | S-11 | 本番プロジェクト `ren-kei` に最新の Rules が反映されているか未確認 | 未確認。プロジェクトへのアクセス権を持つアカウントでのみ確認できる（[#40](../../../issues/40)） |

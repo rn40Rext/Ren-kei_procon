@@ -4,12 +4,27 @@
  * パスは所有者判定ができる users/{uid}/videos/{videoId}(#41)。
  * 動画本体(.webm / .mp4)と姿勢系列(.pose.json)を同じ場所に置く。
  */
-import { addDoc, collection, doc, getDoc, onSnapshot, serverTimestamp, updateDoc, Unsubscribe } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+  FirestoreError,
+  Unsubscribe,
+} from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes, uploadString } from 'firebase/storage';
 import { db, storage } from '../config/firebaseConfig';
 import { PoseSeries } from '../features/pose/types';
 import { DanceType } from '../features/rules/types';
 import { ScorePart } from '../features/rules/session';
+import { FirestoreDate } from '../types/firestore';
 
 export type AnalysisStatus = 'uploaded' | 'analyzing' | 'completed' | 'failed';
 
@@ -24,6 +39,7 @@ export interface PracticeVideo {
   durationMs?: number;
   danceType?: DanceType;
   scorePart?: ScorePart;
+  createdAt?: FirestoreDate;
 }
 
 /**
@@ -64,6 +80,34 @@ export async function uploadPoseSeries(uid: string, videoId: string, series: Pos
   await uploadString(ref(storage, path), JSON.stringify(series), 'raw', { contentType: 'application/json' });
   await updateDoc(doc(db, 'videos', videoId), { poseSeriesPath: path, durationMs });
   return path;
+}
+
+/**
+ * U-09 自分の練習動画一覧(#38)。新しい順に購読する。
+ * 複合インデックス userId + createdAt が必要(firestore.indexes.json)。
+ */
+export function subscribeMyVideos(
+  uid: string,
+  onData: (videos: PracticeVideo[]) => void,
+  onError?: (e: FirestoreError) => void
+): Unsubscribe {
+  const q = query(collection(db, 'videos'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as PracticeVideo))),
+    (e) => onError?.(e)
+  );
+}
+
+/**
+ * 練習動画を削除する。Storage側(動画本体・姿勢系列)はonVideoDeletedトリガが
+ * 追従して削除する(#38、仕様書14.3)。呼び出し前に「投稿済みでないか」を
+ * 呼び出し側で確認すること(投稿はvideoUrlを直接参照しているため、投稿済みの
+ * 動画を削除すると投稿側の再生が壊れる。#47で投稿側が動画を複製するまでの
+ * 既知の制約。docs/status/gap-analysis.md 7章参照)。
+ */
+export async function deleteVideoRecord(videoId: string): Promise<void> {
+  await deleteDoc(doc(db, 'videos', videoId));
 }
 
 export async function fetchVideo(videoId: string): Promise<PracticeVideo | null> {

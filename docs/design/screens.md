@@ -47,7 +47,7 @@
 | 1 対 1 チャット | [ChatScreen.tsx](../../Ren-kei_procon/src/screens/ChatScreen.tsx) | 仕様書外。プロトタイプ限定（[data-model.md 7章](data-model.md#7-仕様書に無い実装の扱いchats)） |
 | 設定 | [SettingScreen.tsx](../../Ren-kei_procon/src/screens/SettingScreen.tsx) | スタブ。U-09 の一部として実装 |
 | お問い合わせ | [ContactInfoScreen.tsx](../../Ren-kei_procon/src/screens/ContactInfoScreen.tsx) | スタブ。U-09 の一部として実装 |
-| 自分の動画一覧 | [VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx) | スタブ。U-09 の「保存動画」に相当 |
+| 自分の動画一覧 | [VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx) | ✅ 実装済み（#38）。U-09 の「保存動画」に相当。新しい順の一覧、解析状況・公開範囲・スコアの表示、U-03への遷移、未投稿の解析済み動画をコミュニティへ投稿、削除（Storage側はonVideoDeletedトリガが追従）。投稿済み動画は削除不可（gap-analysis.md 7章参照） | `videos`（`userId`+`createdAt`、複合インデックス要）, `analysisResults`, `posts` |
 | 通知一覧 | [NotificationsScreen.tsx](../../Ren-kei_procon/src/screens/NotificationsScreen.tsx) | U-01/R-01 の「通知への導線」（仕様書 5.2/6.2）の遷移先。仕様書は一覧画面そのものにU-xxを割り当てていないため、独立画面として実装（#44） |
 
 ## 2. ナビゲーション定義の現状と問題

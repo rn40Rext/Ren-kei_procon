@@ -81,18 +81,22 @@ type HeroLike = {
 /** ヒーロー画像／動画に重ねる帯（見出し・カウントダウン・再生マーク・題）。 */
 function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
   return (
-    <>
-      <View style={styles.heroEyebrowTop}>
-        <KumihimoRule width={18} />
-        <Text style={styles.heroEyebrowText}>
-          　{hero.kind === 'dummy' ? '見本(サンプル)' : 'あなたの直近の投稿'}
-        </Text>
+    <View style={styles.heroOverlayColumn}>
+      <View style={styles.heroTopArea}>
+        <View style={styles.heroTopEyebrowRow}>
+          <KumihimoRule width={18} />
+          <Text style={styles.heroEyebrowText}>
+            　{hero.kind === 'dummy' ? '見本(サンプル)' : 'あなたの直近の投稿'}
+          </Text>
+        </View>
+        <View style={styles.countdownChip}>
+          <Text style={styles.countdownText}>阿波おどり本番まで あと {festivalDays} 日</Text>
+        </View>
       </View>
 
-      <View style={styles.countdownChip}>
-        <Text style={styles.countdownText}>阿波おどり本番まで あと {festivalDays} 日</Text>
-      </View>
-
+      {/* 上(見出し・カウントダウン)と下(タイトル等)の間の残り空間にだけ再生ボタンを
+          置く。固定ピクセルの絶対位置だと、ヒーロー画像が低くなる画面幅で
+          上下の文字と重なっていたため、Flexboxで「絶対に重ならない」構造にした。 */}
       <View style={styles.heroPlayWrap} pointerEvents="none">
         <View style={styles.heroPlayCircle}>
           <IconEnbuPlay size={24} color={colors.textOnGold} />
@@ -112,7 +116,7 @@ function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
         <Text style={styles.heroRen}>{hero.authorRen}</Text>
         <Text style={styles.heroName} numberOfLines={2}>{hero.title}</Text>
       </View>
-    </>
+    </View>
   );
 }
 
@@ -895,9 +899,8 @@ const styles = StyleSheet.create({
   logoSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 3 },
 
   countdownChip: {
-    position: 'absolute',
-    top: 62,
-    left: spacing.lg,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
     backgroundColor: colors.akaDeep,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
@@ -933,26 +936,21 @@ const styles = StyleSheet.create({
   heroImageWrap: { overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },
   heroVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.indigo },
-  heroImgGrad: { flex: 1, padding: spacing.lg, paddingBottom: spacing.lg, justifyContent: 'flex-end' },
+  heroImgGrad: { flex: 1, padding: spacing.lg, paddingBottom: spacing.lg },
   heroGarland: { position: 'absolute', top: 0, left: 0, right: 0 },
-  heroEyebrowTop: {
-    position: 'absolute',
-    top: 38,
-    left: spacing.lg,
+  // 見出し・カウントダウン(上)/再生ボタン(残りの中央)/題名など(下)の3段を
+  // Flexboxで積む。固定ピクセルの絶対位置だと、ヒーロー画像が低くなる画面幅で
+  // 再生ボタンが上下の文字と重なっていたため、絶対に重ならない構造にした。
+  heroOverlayColumn: { flex: 1, justifyContent: 'space-between' },
+  heroTopArea: {},
+  heroTopEyebrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   heroEyebrowText: { ...typography.sectionLabel, color: colors.goldBright, letterSpacing: 3 },
   heroPlayWrap: {
-    position: 'absolute',
-    // 上の見出し・カウントダウン帯(top:38〜top:62あたり)と、下の題名など
-    // フッターの文字と重ならないよう、高さで確保するのではなく固定位置に
-    // 収める(スマホ幅ではヒーロー画像自体が低くなり、bottom指定だと
-    // 再生ボタンがカウントダウン帯に重なっていた)。
-    top: 90,
-    left: 0,
-    right: 0,
-    height: 62,
+    flexGrow: 1,
+    minHeight: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },

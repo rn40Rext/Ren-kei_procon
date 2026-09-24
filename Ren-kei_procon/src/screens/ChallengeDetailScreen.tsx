@@ -7,6 +7,7 @@ import {
   ImageBackground,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { ChevronLeft, UserPlus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,11 +27,10 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
   const role = useMyRole();
   const canScout = isRenLeaderClass(role);
 
+  // 「先輩からのチャレンジ」は現状すべて見本(サンプル)データで、実在しない人物のため、
+  // 実際の招待フロー(RequestScreen)には繋がない(#108レビュー)。
   const scoutPoster = () => {
-    navigation.navigate('Request', {
-      inviteName: ch.poster,
-      inviteMeta: `${ch.category}・${ch.posterRole}`,
-    });
+    Alert.alert('これは見本です', 'このチャレンジは表示用のサンプルのため、実際に招待することはできません。');
   };
 
   return (
@@ -58,7 +58,8 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
               style={styles.bannerScrim}
             >
               <View style={styles.bannerTop}>
-                <Badge label="チャレンジ" tone="aka" />
+                <Badge label="見本(サンプル)" tone="outline" />
+                <Badge label="チャレンジ" tone="aka" style={{ marginLeft: spacing.sm }} />
                 <Badge label={ch.difficulty} tone={DIFFICULTY_TONE[ch.difficulty]} style={{ marginLeft: spacing.sm }} />
               </View>
               <View style={styles.playCircle}>

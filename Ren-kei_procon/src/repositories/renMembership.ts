@@ -120,7 +120,13 @@ function subscribeMembershipsOf(
           )
         );
       }
-      emit();
+      // 新規の連はonSnapshotが非同期にしか発火しないため、ここでemit()すると
+      // ren本体データが未取得のまま(renId・0人など)で一瞬表示されてしまう。
+      // 全ての連について既にデータを持っている(役割変更など、ren本体は
+      // 変わっていないメンバー一覧の更新)場合のみ、ここでemit()する。
+      if ([...renIds].every((renId) => renData.has(renId))) {
+        emit();
+      }
     },
     onError
   );

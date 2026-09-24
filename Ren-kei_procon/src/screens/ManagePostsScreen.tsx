@@ -10,7 +10,8 @@ import { NarutoLoader } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
 import { formatAiScore } from '../features/analysis/format';
-import { subscribePosts, hasInstructorAdvice, type PostDoc } from '../data/community';
+import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
+import type { Post as PostDoc } from '../types/firestore';
 import { subscribeActiveMembers } from '../repositories/renMembership';
 
 type SortMode = 'newest' | 'score' | 'noAdvice';

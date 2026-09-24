@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,16 @@ import {
   IconWagasa,
   IconGeta,
   IconMakimono,
+  IconNaruko,
 } from './awaIcons';
+import { useAuth } from '../hooks/useAuth';
+import { subscribeUnreadNotificationCount } from '../repositories/notifications';
 
-type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request';
+type NavKey = 'Home' | 'Community' | 'Scoring' | 'Mypage' | 'Request';
 
 const LINKS: { key: NavKey; label: string; note: string; Icon: typeof IconUchiwa }[] = [
   { key: 'Home', label: '踊り広場', note: '演舞の推薦・みんなの投稿・交流', Icon: IconUchiwa },
+  { key: 'Community', label: '交流広場', note: 'みんなの投稿を一覧で見る', Icon: IconNaruko },
   { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く・連を探す', Icon: IconWagasa },
   { key: 'Scoring', label: '自主稽古・演舞解析', note: '手本同期・二拍子稽古', Icon: IconGeta },
   { key: 'Mypage', label: '稽古手帳', note: '成長記録・段位・連バッジ・所属連', Icon: IconMakimono },
@@ -47,6 +51,20 @@ export default function AppMenu({
   const [open, setOpen] = useState(false);
   const { width: windowWidth } = useWindowDimensions();
   const panelW = Math.min(Math.round(windowWidth * 0.82), 360);
+  const { uid } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!uid) {
+      setUnreadCount(0);
+      return;
+    }
+    return subscribeUnreadNotificationCount(
+      uid,
+      setUnreadCount,
+      (error) => console.error('未読通知件数の取得に失敗しました', error)
+    );
+  }, [uid]);
 
   const go = (key: NavKey) => {
     setOpen(false);
@@ -60,9 +78,10 @@ export default function AppMenu({
         style={[styles.trigger, { borderColor: tint }]}
         onPress={() => setOpen(true)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityLabel="メニューを開く"
+        accessibilityLabel={unreadCount > 0 ? `メニューを開く(未読通知${unreadCount}件)` : 'メニューを開く'}
       >
         <Menu size={20} color={tint} />
+        {unreadCount > 0 ? <View style={styles.unreadDot} /> : null}
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -131,7 +150,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.indigoRaised,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.aka,
+    borderWidth: 1.5,
+    borderColor: colors.indigoRaised,
   },
 
   overlay: { flex: 1, flexDirection: 'row' },

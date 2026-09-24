@@ -297,7 +297,7 @@ export default function RequestScreen() {
           onPress={() => setTab('sent')}
         >
           <Text style={[styles.tabLabel, tab === 'sent' && styles.tabLabelActive]}>
-            送った（{sent.length + sentReal.length}）
+            送った（{sentReal.length}{sent.length > 0 ? `+サンプル${sent.length}` : ''}）
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -399,9 +399,6 @@ export default function RequestScreen() {
                     </View>
                   );
                 })}
-                <View style={styles.sampleDivider}>
-                  <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
-                </View>
               </>
             ) : otherDancers.length > 0 ? (
               <Text style={styles.lead}>絞り込みに一致する踊り手がいません。</Text>
@@ -413,6 +410,11 @@ export default function RequestScreen() {
               </View>
             )}
 
+            {filteredFreeDancers.length > 0 && (
+              <View style={styles.sampleDivider}>
+                <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
+              </View>
+            )}
             {filteredFreeDancers.length > 0 && (
               <Text style={styles.lead}>連に所属していない踊り手たち。演舞を見て声を掛けられます。</Text>
             )}
@@ -504,10 +506,13 @@ export default function RequestScreen() {
                     </View>
                   </View>
                 ))}
-                <View style={styles.sampleDivider}>
-                  <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
-                </View>
               </>
+            ) : null}
+
+            {sent.length > 0 ? (
+              <View style={styles.sampleDivider}>
+                <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
+              </View>
             ) : null}
 
             {sent.length === 0 && sentReal.length === 0 ? (

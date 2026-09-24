@@ -11,7 +11,9 @@ import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
 import { subscribeRenJoinRequests, updateJoinRequestStatus } from '../repositories/joinRequests';
 import { fetchUserProfile } from '../repositories/users';
-import { fetchPostsByUser, type PostDoc } from '../data/community';
+import { fetchPostsByUser } from '../repositories/posts';
+import { formatAiScoreShort } from '../features/analysis/format';
+import type { Post as PostDoc } from '../types/firestore';
 import type { JoinRequest, UserProfile } from '../types/firestore';
 
 type Tab = 'pending' | 'approved' | 'rejected';
@@ -207,7 +209,7 @@ export default function ManageJoinRequestsScreen() {
                     {applicantPosts.map((p) => (
                       <View key={p.id} style={styles.postThumbWrapper}>
                         <RenkeiVideo uri={p.videoUrl} style={StyleSheet.absoluteFill} contentFit="cover" muted />
-                        <Text style={styles.postScoreBadge}>{p.score}点</Text>
+                        <Text style={styles.postScoreBadge}>{formatAiScoreShort(p.score)}</Text>
                       </View>
                     ))}
                   </ScrollView>

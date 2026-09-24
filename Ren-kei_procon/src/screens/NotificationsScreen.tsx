@@ -12,7 +12,7 @@ import AppMenu from '../components/AppMenu';
 import { useAuth } from '../hooks/useAuth';
 import { markAllNotificationsRead, markNotificationRead, subscribeNotifications } from '../repositories/notifications';
 import { fetchJoinRequest } from '../repositories/joinRequests';
-import { fetchPost } from '../data/community';
+import { fetchPost } from '../repositories/posts';
 import type { AppNotification, NotificationType } from '../types/firestore';
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {

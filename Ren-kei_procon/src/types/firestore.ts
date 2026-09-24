@@ -35,6 +35,7 @@ export interface Post {
   userId: string;
   authorName: string;
   title: string;
+  description?: string;
   videoUrl: string;
   // AI採点(analysisResults.totalScore)の非正規化コピー。採点していない投稿には無い
   // (以前の乱数モックは廃止。#58)

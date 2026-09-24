@@ -44,8 +44,8 @@ import {
   isLiked,
   toggleLike,
   POST_TAG_OPTIONS,
-  type PostDoc,
-} from '../data/community';
+} from '../repositories/posts';
+import type { Post as PostDoc } from '../types/firestore';
 import {
   filterChips,
   feedTags,
@@ -70,8 +70,9 @@ function daysToFestival(): number {
 }
 
 type HeroLike = {
+  kind: 'real' | 'dummy';
   category: string;
-  kimeRate: number;
+  kimeRate: number | undefined;
   timeAgo: string;
   authorRen: string;
   title: string;
@@ -83,7 +84,9 @@ function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
     <>
       <View style={styles.heroEyebrowTop}>
         <KumihimoRule width={18} />
-        <Text style={styles.heroEyebrowText}>　あなたの直近の投稿</Text>
+        <Text style={styles.heroEyebrowText}>
+          　{hero.kind === 'dummy' ? '見本(サンプル)' : 'あなたの直近の投稿'}
+        </Text>
       </View>
 
       <View style={styles.countdownChip}>
@@ -99,7 +102,11 @@ function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
       <View style={styles.heroImgFooter}>
         <View style={styles.heroTopRow}>
           <Badge label={hero.category} tone="aka" />
-          <Badge label={`極め度 ${hero.kimeRate}%`} tone="dark" style={styles.badgeGap} />
+          <Badge
+            label={typeof hero.kimeRate === 'number' ? `極め度 ${hero.kimeRate}%` : '未採点'}
+            tone="dark"
+            style={styles.badgeGap}
+          />
           <Badge label={hero.timeAgo} tone="outline" style={styles.badgeGap} />
         </View>
         <Text style={styles.heroRen}>{hero.authorRen}</Text>
@@ -543,7 +550,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* 先輩からのチャレンジ（横スクロール） */}
         <SectionHeader
           title="先輩からのチャレンジ"
-          note="年長・ベテランの「これ踊ってみよう」。タップでコツが読めます"
+          note="見本(サンプル)です。年長・ベテランの「これ踊ってみよう」。タップでコツが読めます"
           style={styles.sectionAfterDivider}
         />
         <ScrollView
@@ -648,7 +655,9 @@ export default function HomeScreen({ navigation }: any) {
                       <IconEnbuPlay size={12} color={colors.goldBright} />
                     </View>
                     <View style={styles.feedKime}>
-                      <Text style={styles.feedKimeText}>極め {p.score}</Text>
+                      <Text style={styles.feedKimeText}>
+                        {typeof p.score === 'number' ? `極め ${p.score}` : '未採点'}
+                      </Text>
                     </View>
                   </View>
                   <View style={styles.feedBody}>
@@ -682,12 +691,13 @@ export default function HomeScreen({ navigation }: any) {
                   </View>
                 </TouchableOpacity>
               ))}
-              <View style={styles.sampleDivider}>
-                <KumihimoRule width={16} />
-                <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
-              </View>
             </>
           ) : null}
+
+          <View style={styles.sampleDivider}>
+            <KumihimoRule width={16} />
+            <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
+          </View>
 
           {visibleFeed.length === 0 ? (
             <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>

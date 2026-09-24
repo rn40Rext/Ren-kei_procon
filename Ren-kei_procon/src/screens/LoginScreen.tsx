@@ -4,9 +4,9 @@ import {
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from "react-native";
 
-import { auth, db } from "../config/firebaseConfig";
+import { auth } from "../config/firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { createUserDocument } from "../repositories/users";
 import { RenKeiWordmark } from "../components/Brand";
 import { ChochinGarland, SeigaihaBand } from "../components/motifs";
 import { IconOdoriko, IconOnnaOdori } from "../components/awaIcons";
@@ -34,18 +34,7 @@ export default function LoginScreen() {
 
         // #39: users ドキュメントを role: 'user' で作成する
         //（role はクライアントから変更不可。firestore.rules で保護）
-        await setDoc(doc(db, "users", result.user.uid), {
-          uid: result.user.uid,
-          name: result.user.email?.split("@")[0] || "",
-          nickname: "",
-          mail: result.user.email || "",
-          icon: "",
-          profile: "",
-          danceStyle: null,
-          role: "user",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
+        await createUserDocument(result.user.uid, result.user.email);
 
         Alert.alert("登録完了", `${result.user.email} でアカウントを作成しました！`, [{ text: "OK" }]);
       } else {

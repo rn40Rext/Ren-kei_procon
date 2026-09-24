@@ -8,7 +8,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
-import { addComment } from '../data/community';
+import { addComment } from '../repositories/posts';
 
 const MAX_LENGTH = 1000;
 

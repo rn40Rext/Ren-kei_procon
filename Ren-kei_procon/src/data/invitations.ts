@@ -21,7 +21,7 @@ import {
   where,
   serverTimestamp,
 } from 'firebase/firestore';
-import { myDisplayName } from './community';
+import { myDisplayName } from '../repositories/users';
 
 export type InvitationStatus = 'pending' | 'accepted' | 'declined';
 export type DanceStyle = 'male' | 'female' | null;

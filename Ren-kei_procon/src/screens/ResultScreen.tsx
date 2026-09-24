@@ -25,7 +25,7 @@ import { X } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
 import { fetchVideo } from '../repositories/videos';
-import { publishExistingVideo, POST_TAG_OPTIONS } from '../data/community';
+import { publishExistingVideo, POST_TAG_OPTIONS } from '../repositories/posts';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
 import { Chip } from '../components/ui';
@@ -94,6 +94,7 @@ export default function ResultScreen() {
         title: shareTitle,
         description: shareDescription || undefined,
         tags: shareTags,
+        videoId,
       });
       setPosted(true);
       setShareVisible(false);

@@ -11,31 +11,28 @@ import {
   Platform,
 } from 'react-native';
 import { Send, ChevronLeft } from 'lucide-react-native';
-import { db, auth } from '../config/firebaseConfig';
-import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { subscribeChatMessages, sendChatMessage } from '../repositories/chats';
+import { useAuth } from '../hooks/useAuth';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { IconMakimono } from '../components/awaIcons';
 import { colors, spacing, radius, typography } from '../theme';
+import type { ChatMessage } from '../types/firestore';
 
 export default function ChatScreen({ route, navigation }: any) {
   const { chatId, recipientName } = route.params;
-  const [messages, setMessages] = useState<any[]>([]);
+  const { uid } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
 
   useEffect(() => {
-    const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      setMessages(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    return subscribeChatMessages(chatId, setMessages, (error) =>
+      console.error('メッセージの取得に失敗しました', error)
+    );
   }, [chatId]);
 
   const sendMessage = async () => {
-    if (!inputText.trim()) return;
-    await addDoc(collection(db, 'chats', chatId, 'messages'), {
-      text: inputText,
-      senderId: auth.currentUser?.uid,
-      createdAt: serverTimestamp(),
-    });
+    if (!inputText.trim() || !uid) return;
+    await sendChatMessage(chatId, uid, inputText);
     setInputText('');
   };
 
@@ -54,7 +51,7 @@ export default function ChatScreen({ route, navigation }: any) {
         inverted
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
-          const mine = item.senderId === auth.currentUser?.uid;
+          const mine = item.senderId === uid;
           return (
             <View style={[styles.bubble, mine ? styles.myBubble : styles.otherBubble]}>
               <Text style={mine ? styles.myText : styles.otherText}>{item.text}</Text>

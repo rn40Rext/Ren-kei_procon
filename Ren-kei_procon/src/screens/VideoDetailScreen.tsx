@@ -36,9 +36,8 @@ import {
   toggleLike,
   loadCachedPosts,
   loadCachedComments,
-  type PostDoc,
-  type CommentDoc,
-} from '../data/community';
+} from '../repositories/posts';
+import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firestore';
 
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
 
@@ -92,11 +91,15 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
       setLoading(false);
     });
     isLiked(postId).then((v) => alive && setLiked(v));
-    const unsub = subscribeComments(postId, (c) => {
-      if (!alive) return;
-      gotComments = true;
-      setComments(c);
-    });
+    const unsub = subscribeComments(
+      postId,
+      (c) => {
+        if (!alive) return;
+        gotComments = true;
+        setComments(c);
+      },
+      (error) => console.error('コメントの取得に失敗しました', error)
+    );
     return () => {
       alive = false;
       unsub();
@@ -210,7 +213,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
             <Panel style={styles.metricsPanel}>
               <MetricRow
                 items={[
-                  { label: lexicon.aiScore, value: `${post.score}` },
+                  { label: lexicon.aiScore, value: typeof post.score === 'number' ? `${post.score}` : '未採点' },
                   { label: '拍手', value: `${likeCount}` },
                   { label: '声', value: `${post.commentCount}` },
                 ]}

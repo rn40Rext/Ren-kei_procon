@@ -15,10 +15,10 @@ import { colors, spacing, radius, typography } from '../theme';
 import { auth } from '../config/firebaseConfig';
 import {
   subscribePosts,
-  subscribePostComments,
-  addPostComment,
+  subscribeComments,
+  addComment,
   fetchPost,
-  likePost,
+  toggleLike,
   uploadPostVideo,
   publishPost,
 } from '../repositories/posts';
@@ -270,7 +270,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
   const canPostInstructor = adminRens.length > 0;
 
   useEffect(() => {
-    return subscribePostComments(
+    return subscribeComments(
       post.id,
       setComments,
       (error) => console.error('コメントの取得に失敗しました', error)
@@ -282,15 +282,12 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     if (tab === 'instructor' && !canPostInstructor) return;
-    const userName = currentUser.email?.split('@')[0] || "匿名";
 
     setSending(true);
     try {
       // commentCountはCloud Functionsトリガ(onCommentWrite)が
       // count()集計で自動更新するため、ここでは触らない
-      await addPostComment(post.id, {
-        userId: currentUser.uid,
-        userName,
+      await addComment(post.id, {
         text: text.trim(),
         type: tab,
         renId: tab === 'instructor' ? adminRens[0].renId : undefined,
@@ -310,7 +307,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     try {
       // likeCountはCloud Functionsトリガ(onLikeWrite)がcount()集計で
       // 自動更新するため、ここではlikesドキュメントの作成のみ行う
-      await likePost(post.id, currentUser.uid);
+      await toggleLike(post.id, false);
     } catch (e) {
       Alert.alert("失敗", "拍手の送信に失敗しました");
     }

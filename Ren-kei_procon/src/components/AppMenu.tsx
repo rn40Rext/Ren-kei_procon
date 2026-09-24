@@ -10,10 +10,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { X, ChevronRight } from 'lucide-react-native';
+import { X, Menu, ChevronRight } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { ChochinGarland } from './motifs';
-import { RenKeiWordmark, RenKeiMark } from './Brand';
+import { RenKeiWordmark } from './Brand';
 import {
   IconUchiwa,
   IconWagasa,
@@ -62,7 +62,7 @@ export default function AppMenu({
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityLabel="メニューを開く"
       >
-        <RenKeiMark size={30} />
+        <Menu size={20} color={tint} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>

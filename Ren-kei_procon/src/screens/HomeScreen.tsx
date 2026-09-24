@@ -935,10 +935,14 @@ const styles = StyleSheet.create({
   heroEyebrowText: { ...typography.sectionLabel, color: colors.goldBright, letterSpacing: 3 },
   heroPlayWrap: {
     position: 'absolute',
-    top: 24,
+    // 上の見出し・カウントダウン帯(top:38〜top:62あたり)と、下の題名など
+    // フッターの文字と重ならないよう、高さで確保するのではなく固定位置に
+    // 収める(スマホ幅ではヒーロー画像自体が低くなり、bottom指定だと
+    // 再生ボタンがカウントダウン帯に重なっていた)。
+    top: 90,
     left: 0,
     right: 0,
-    bottom: 78,
+    height: 62,
     alignItems: 'center',
     justifyContent: 'center',
   },

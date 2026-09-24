@@ -11,9 +11,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   useWindowDimensions,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, ChevronRight, Play, Hand, Send } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography, lexicon } from '../theme';

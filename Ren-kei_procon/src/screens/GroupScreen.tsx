@@ -11,10 +11,10 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Modal,
   useWindowDimensions,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { Users, MapPin, Plus, X, Megaphone, CalendarDays, Search, ChevronLeft, ChevronRight, Shield } from 'lucide-react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';

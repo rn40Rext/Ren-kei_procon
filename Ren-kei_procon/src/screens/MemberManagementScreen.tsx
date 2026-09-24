@@ -2,7 +2,8 @@
  * 連のメンバー管理（役割変更・除名）。
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, ChevronRight, Shield, User as UserIcon } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';

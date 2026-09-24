@@ -7,8 +7,8 @@ import {
   ImageBackground,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, UserPlus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography } from '../theme';

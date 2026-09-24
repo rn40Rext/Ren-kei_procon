@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Alert } from "../utils/alert";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";

@@ -2,7 +2,8 @@
  * 連管理者が投稿へ指導者コメント（師匠の教え）を送る。
  */
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';

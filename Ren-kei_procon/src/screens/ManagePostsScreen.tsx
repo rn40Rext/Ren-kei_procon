@@ -2,7 +2,8 @@
  * 連管理者向けの投稿一覧（検索・並び替え・詳細からアドバイス送信へ）。
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, Modal } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, Search, Heart, MessageSquare, Award, Shield, User as UserIcon, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';

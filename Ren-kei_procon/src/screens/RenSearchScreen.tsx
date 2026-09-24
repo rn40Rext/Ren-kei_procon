@@ -15,8 +15,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, MapPin, Users, X } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';

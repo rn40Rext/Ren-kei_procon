@@ -14,8 +14,8 @@ import {
   Platform,
   useWindowDimensions,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { X, Send, MapPin, UserPlus, Check, Trash2, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';

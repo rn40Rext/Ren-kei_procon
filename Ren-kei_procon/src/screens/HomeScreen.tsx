@@ -14,8 +14,8 @@ import {
   useWindowDimensions,
   Animated,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Bell } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';

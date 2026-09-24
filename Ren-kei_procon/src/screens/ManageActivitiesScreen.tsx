@@ -2,7 +2,8 @@
  * 連の基本情報編集・活動スケジュール管理。
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Modal, Image } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, Plus, X, Camera, Pencil, Trash2 } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';

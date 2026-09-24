@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Alert,
   Image,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronRight, Settings, Mail, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
 import { IconWagasa, IconEnbuPlay } from '../components/awaIcons';

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from "react-native";
+import { Alert } from "../utils/alert";
 
 import { auth } from "../config/firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";

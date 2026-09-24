@@ -9,7 +9,8 @@
  * この画面はそれを呼び出して表示するだけ（判定ロジックをここに書かない）。
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert } from "../utils/alert";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";

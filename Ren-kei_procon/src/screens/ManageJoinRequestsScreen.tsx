@@ -2,7 +2,8 @@
  * 連の参加リクエスト管理（未対応・承認済み・却下のタブ、申請者詳細、承認/却下）。
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { Alert } from '../utils/alert';
 import { ChevronLeft, X, User as UserIcon, MessageSquare } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';

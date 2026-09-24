@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
-  TextInput, Modal, ActivityIndicator, Alert,
+  TextInput, Modal, ActivityIndicator,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { Play, Heart, MessageSquare, Plus, Search, Video as VideoIcon, X, ChevronLeft, Send, Award, User } from 'lucide-react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';

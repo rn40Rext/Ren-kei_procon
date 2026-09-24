@@ -236,6 +236,37 @@ async function main(): Promise<void> {
     "成功数が試行数を超える集計は却下される",
   );
 
+  // #102: eventsを伴わずmetricsだけで高スコアを申告しても、events側の実数で
+  // 上書きされ通らないことをエンドツーエンドで確認する
+  const forged = await callAs(finalizeBasicAnalysis, "user1", {
+    ...finalizeReq,
+    clientRequestId: "req-0003-forged",
+    events: [], // 対応するeventsを送らない偽装
+    metrics: {
+      HAND_ABOVE_HEAD: {attempts: 1, greatCount: 1, goodCount: 0, missCount: 0},
+      HAND_STOP: {attempts: 1, greatCount: 1, goodCount: 0, missCount: 0},
+    },
+    rhythm: undefined,
+  });
+  check(
+    forged.totalScore === 0,
+    `eventsが無いmetricsの申告は0点になる(#102。実際 ${forged.totalScore})`,
+  );
+  check(
+    (
+      await errorCodeOf(
+        callAs(finalizeBasicAnalysis, "user1", {
+          ...finalizeReq,
+          clientRequestId: "req-0004-badts",
+          events: [
+            {ruleId: "HAND_STOP", grade: "GREAT", timestampMs: 999999, value: 1},
+          ],
+        }),
+      )
+    ).startsWith("INVALID_ARGUMENT"),
+    "durationMsを大きく超えるtimestampMsは拒否される(#102)",
+  );
+
   console.log("--- FN-08 registerStyleReference ---");
   const refA1 = await callAs(registerStyleReference, "adminA", {
     renId: "renA",

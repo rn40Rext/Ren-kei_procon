@@ -36,15 +36,16 @@ function Base({
   );
 }
 
-/** 団扇（うちわ）— 女踊り・披露。丸い扇面＋柄のみの単純な形にして小さくても判別できるようにする。 */
+/** 団扇（うちわ）— 女踊り・披露。柄の付け根から末広がりに骨が伸びる、扇だと分かる形にする。 */
 export function IconUchiwa(p: IconProps) {
   return (
     <Base {...p}>
       <Circle cx="12" cy="9.5" r="6.3" />
       <Path d="M12 15.8v5.2" />
       <Path d="M10.6 20.6h2.8" />
-      <Path d="M6.3 9.5h11.4" />
-      <Path d="M12 4.4v10.2" />
+      <Path d="M12 15.8 12 5.3" />
+      <Path d="M12 15.8 7.1 7.6" />
+      <Path d="M12 15.8 16.9 7.6" />
     </Base>
   );
 }
@@ -72,13 +73,17 @@ export function IconNaruko(p: IconProps) {
   );
 }
 
-/** 巻物（まきもの）— 稽古録・門下生の声。左右の軸を同じ高さに揃えた横向きの巻物。 */
+/** 巻物（まきもの）— 稽古録・門下生の声。左右の軸（芯棒）に紙を渡した、巻物だと分かる形にする。 */
 export function IconMakimono(p: IconProps) {
   return (
     <Base {...p}>
-      <Circle cx="7" cy="12" r="4" />
-      <Circle cx="17" cy="12" r="4" />
-      <Path d="M7 8h10M7 16h10" />
+      <Line x1="7" y1="4" x2="7" y2="20" />
+      <Line x1="17" y1="4" x2="17" y2="20" />
+      <Circle cx="7" cy="4" r="1.3" fill={p.color ?? colors.gold} />
+      <Circle cx="7" cy="20" r="1.3" fill={p.color ?? colors.gold} />
+      <Circle cx="17" cy="4" r="1.3" fill={p.color ?? colors.gold} />
+      <Circle cx="17" cy="20" r="1.3" fill={p.color ?? colors.gold} />
+      <Path d="M7 9.5h10M7 14.5h10" />
     </Base>
   );
 }
@@ -95,12 +100,13 @@ export function IconTaiko(p: IconProps) {
   );
 }
 
-/** 下駄（げた）— 男踊り・足捌き。台（俵形）に鼻緒のＶ字だけの単純な形。 */
+/** 下駄（げた）— 男踊り・足捌き。台（平たい足形）に鼻緒のＶ字と歯を付け、下駄だと分かる形にする。 */
 export function IconGeta(p: IconProps) {
   return (
     <Base {...p}>
-      <Rect x="3.5" y="9" width="17" height="8" rx="4" ry="4" />
-      <Path d="M12 10 8.6 15M12 10 15.4 15" />
+      <Rect x="2.5" y="10.5" width="19" height="5" rx="2.5" ry="2.5" />
+      <Path d="M12 11 8.6 15.5M12 11 15.4 15.5" />
+      <Path d="M7 15.5v2.3M17 15.5v2.3" />
     </Base>
   );
 }

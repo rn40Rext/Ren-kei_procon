@@ -43,6 +43,39 @@ function sortNewest<T extends { createdAt?: { toMillis?: () => number } | null }
   return [...list].sort((a, b) => ms(b) - ms(a));
 }
 
+/**
+ * Firestoreの生データをPostへ正規化する。必須フィールドが欠けた古い/不正な
+ * ドキュメントでも画面側がクラッシュしないよう、必ずフォールバック値を入れる。
+ */
+function mapPost(id: string, d: any): Post {
+  return {
+    id,
+    userId: d.userId ?? '',
+    authorName: d.authorName ?? '踊り子',
+    title: d.title ?? '',
+    description: typeof d.description === 'string' ? d.description : undefined,
+    videoUrl: d.videoUrl ?? '',
+    score: typeof d.score === 'number' ? d.score : typeof d.totalScore === 'number' ? d.totalScore : undefined,
+    videoId: typeof d.videoId === 'string' ? d.videoId : undefined,
+    likeCount: typeof d.likeCount === 'number' ? d.likeCount : 0,
+    commentCount: typeof d.commentCount === 'number' ? d.commentCount : 0,
+    tags: Array.isArray(d.tags) ? d.tags : [],
+    createdAt: d.createdAt ?? undefined,
+  };
+}
+
+function mapComment(id: string, d: any): PostComment {
+  return {
+    id,
+    userId: d.userId ?? '',
+    userName: d.userName ?? d.authorName ?? '匿名',
+    text: d.text ?? '',
+    type: d.type === 'instructor' ? 'instructor' : 'normal',
+    renId: typeof d.renId === 'string' ? d.renId : undefined,
+    createdAt: d.createdAt ?? undefined,
+  };
+}
+
 /** 端末に保存済みの投稿一覧(前回セッションのぶん)。Firestore応答前の即時表示・オフライン用。 */
 export async function loadCachedPosts(): Promise<Post[]> {
   try {
@@ -66,7 +99,7 @@ export function subscribePosts(
   return onSnapshot(
     collection(db, 'posts'),
     (snap) => {
-      const list = sortNewest(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post)));
+      const list = sortNewest(snap.docs.map((d) => mapPost(d.id, d.data())));
       onData(list);
       AsyncStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(list.slice(0, 30))).catch(() => {});
     },
@@ -77,7 +110,7 @@ export function subscribePosts(
 /** 通知(type:'comment')タップ時、投稿詳細へ直接遷移するために1件だけ取得する。 */
 export async function fetchPost(postId: string): Promise<Post | null> {
   const snap = await getDoc(doc(db, 'posts', postId));
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Post) : null;
+  return snap.exists() ? mapPost(snap.id, snap.data()) : null;
 }
 
 /** 特定ユーザーの投稿を新しい順に取得する(参加リクエストの申請者確認で使う。複合インデックス userId + createdAt)。 */
@@ -85,7 +118,7 @@ export async function fetchPostsByUser(userId: string, max: number): Promise<Pos
   const snap = await getDocs(
     query(collection(db, 'posts'), where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(max))
   );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+  return snap.docs.map((d) => mapPost(d.id, d.data()));
 }
 
 /** 投稿に指導者コメント(type: 'instructor')が1件でも付いているか(R-02の「未アドバイス優先」並び替えで使う)。 */
@@ -115,7 +148,7 @@ export function subscribeComments(
   return onSnapshot(
     collection(db, 'posts', postId, 'comments'),
     (snap) => {
-      const list = sortNewest(snap.docs.map((d) => ({ id: d.id, ...d.data() } as PostComment)));
+      const list = sortNewest(snap.docs.map((d) => mapComment(d.id, d.data())));
       onData(list);
       AsyncStorage.setItem(COMMENTS_CACHE_KEY(postId), JSON.stringify(list.slice(0, 50))).catch(() => {});
     },

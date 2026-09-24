@@ -76,12 +76,16 @@ function mapComment(id: string, d: any): PostComment {
   };
 }
 
-/** 端末に保存済みの投稿一覧(前回セッションのぶん)。Firestore応答前の即時表示・オフライン用。 */
+/**
+ * 端末に保存済みの投稿一覧(前回セッションのぶん)。Firestore応答前の即時表示・オフライン用。
+ * 保存形式が古い(このアプリの更新前にキャッシュされた)場合でも安全なように、
+ * 読み込み時にもmapPostで正規化する。
+ */
 export async function loadCachedPosts(): Promise<Post[]> {
   try {
     const raw = await AsyncStorage.getItem(POSTS_CACHE_KEY);
     const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
+    return Array.isArray(arr) ? arr.map((p) => mapPost(p?.id ?? '', p ?? {})) : [];
   } catch {
     return [];
   }
@@ -129,12 +133,15 @@ export async function hasInstructorAdvice(postId: string): Promise<boolean> {
   return !snap.empty;
 }
 
-/** 端末に保存済みのコメント(前回セッション分)。Firestore応答前の即時表示・オフライン用。 */
+/**
+ * 端末に保存済みのコメント(前回セッション分)。Firestore応答前の即時表示・オフライン用。
+ * 読み込み時にもmapCommentで正規化する(理由はloadCachedPostsと同様)。
+ */
 export async function loadCachedComments(postId: string): Promise<PostComment[]> {
   try {
     const raw = await AsyncStorage.getItem(COMMENTS_CACHE_KEY(postId));
     const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
+    return Array.isArray(arr) ? arr.map((c) => mapComment(c?.id ?? '', c ?? {})) : [];
   } catch {
     return [];
   }

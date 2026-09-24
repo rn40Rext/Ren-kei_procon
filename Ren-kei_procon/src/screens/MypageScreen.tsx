@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera, Shield } from 'lucide-react-native';
+import { ChevronRight, Settings, Video, Mail, Users, LogOut, ShieldCheck, Camera, Shield, TrendingUp } from 'lucide-react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebaseConfig';
 import { fetchUserProfile, saveUserProfile, uploadUserIcon } from '../repositories/users';
@@ -205,6 +205,17 @@ export default function MypageScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>アクティビティ</Text>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => navigation.navigate('GrowthChart')}
+          >
+            <View style={styles.menuLeft}>
+              <TrendingUp size={20} color={COLORS.primary} />
+              <Text style={styles.menuText}>成長曲線</Text>
+            </View>
+            <ChevronRight size={20} color={COLORS.textMuted} />
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.menuItem}

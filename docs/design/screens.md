@@ -18,7 +18,7 @@
 | U-07 | 連への参加リクエスト | **未作成**（[RequestScreen.tsx](../../Ren-kei_procon/src/screens/RequestScreen.tsx) は空） | ❌ | `ren` 検索, FN-04 |
 | U-08 | マイ連 | [GroupScreen.tsx](../../Ren-kei_procon/src/screens/GroupScreen.tsx) | ✅ 実装済み（#28） | `ren`, `members`(collectionGroup), `announcements`, `activities` |
 | U-09 | マイページ | [MypageScreen.tsx](../../Ren-kei_procon/src/screens/MypageScreen.tsx) | 🔶 部分実装 | `users/{uid}` |
-| U-10 | 成長曲線 | **未作成** | ❌ | `growthRecords` |
+| U-10 | 成長曲線 | [GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx) | ✅ 実装済み（#37）。総合スコアの推移＋項目別（手の高さ・腰・停止・リズム）の推移、`analysisVersion` 変化点の表示、0〜1件時の空状態に対応。グラフは専用ライブラリを使わず `react-native-svg` で自前実装（N-7で決定） | `analysisResults`（`userId`+`createdAt`、複合インデックス要） |
 
 ### 連管理者（R-01〜R-08）
 

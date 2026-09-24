@@ -17,11 +17,11 @@
 
 **2026-09-13 に AI 解析①（姿勢推定・正規化・Rule Engine・リアルタイム UI・FN-01 によるスコア確定）と AI 解析②（ベースライン Embedding・FN-02/07/08/09・ランキング UI）を実装しました。** 乱数の「AI採点」は廃止され、投稿のスコアは `analysisResults.totalScore` 由来か「未採点」のどちらかです。
 
-**2026-09-18 時点で、通知機能（エピック #11）を含めMVP Renが完了しました。** 子イシューの残りは次の 2 つです。
+**2026-09-18 時点で、通知機能（エピック #11）を含めMVP Renが完了しました。2026-09-23 に成長曲線（U-10、#37）も完了。** 子イシューの残りは次の 2 つです。
 
 | 残り | 内容 |
 | --- | --- |
-| 成長曲線（U-10）・練習動画一覧 | [#37](../../../issues/37) / [#38](../../../issues/38)。`growthRecords` は FN-01 が作っているので表示だけが足りない |
+| 練習動画一覧 | [#38](../../../issues/38)。`VideoListScreen.tsx` がまだスタブのまま |
 | 実地データによる妥当性確認 | [#100](../../../issues/100) / [#101](../../../issues/101)。**実装ではなく計測の作業**で、エピック #5 / #6 の完了条件 |
 
 **通知（NOTI-01〜03）は 2026-09-18 に完了。** 生成（#43）・一覧UI/既読管理（#44）を実装。プッシュ通知（#45）はiOS Web Pushが「ホーム画面に追加」必須でU-02のカメラ安定性の方針と両立しないため、**導入しない決定**にして解決（[data-model.md 3.15章](../design/data-model.md#315-その他)）。
@@ -41,7 +41,7 @@
 | Cloud Functions（FN-01〜09） | 7 関数 + 追加 2 | ✅ FN-01/02/03（縮小版）/04/05/06/07/08/09 とトリガ 5 本 | ■■■■□ 90% |
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ✅ **Web 版**でリアルタイム判定（RULE-01〜07）・LIVE SCORE・FN-01 でスコア確定・履歴保存。ネイティブは未対応（TBD-01 方式 A）。**閾値は暫定・実地検証未実施** | ■■■■□ 80% |
 | スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ✅ バックエンドと UI。姿勢系列は AI① が生成。**実データ検証（8.6 の 1・6・7）が未実施のため「検証中・参考値」表示** | ■■■■□ 75% |
-| 成長記録（HIST-01） | GrowthRecords + 成長曲線 | 🔶 `growthRecords` は FN-01 が作成。U-10 のグラフ画面は未実装、`VideoListScreen` はスタブ | ■■□□□ 40% |
+| 成長記録（HIST-01） | GrowthRecords + 成長曲線 | 🔶 U-10（[GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx)）は実装済み（#37）。`VideoListScreen` はまだスタブ（#38） | ■■■■□ 80% |
 | 通知（NOTI-01） | Notifications | ✅ 生成（[#43](../../../issues/43)）・一覧UI/既読管理（[#44](../../../issues/44)）とも完了。お知らせ配信・参加承認/却下・指導者コメントの 3 経路が `notifications` を書き、Rules テスト 9 件で保護を確認済み。プッシュ通知（[#45](../../../issues/45)）は導入しない決定 | ■■■■■ 100% |
 
 ## 2. 機能 ID 別の詳細
@@ -73,7 +73,7 @@
 | R-06 | メンバー管理 | ✅ | `MemberManagementScreen.tsx` + `updateMemberRole` / `removeMember` |
 | R-07 | お知らせ管理 | ✅ | `ManageAnnouncementsScreen.tsx` + `createAnnouncement` |
 | R-08 | 活動情報管理 | ✅ | `ManageActivitiesScreen.tsx` |
-| HIST-01 | 成長曲線 | 🔶 | `growthRecords` は FN-01 が作成済み。**U-10 のグラフ画面（[#37](../../../issues/37)）と `VideoListScreen`（[#38](../../../issues/38)、19 行のスタブ）が未実装** |
+| HIST-01 | 成長曲線 | 🔶 | `growthRecords` は FN-01 が作成済み。U-10のグラフ画面は[GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx)として実装済み（[#37](../../../issues/37)、2026-09-23）。**`VideoListScreen`（[#38](../../../issues/38)、19 行のスタブ）が未実装** |
 | NOTI-01 | 通知 | ✅ | `createAnnouncement`（バッチ分割で 500 件超に対応）/ `updateJoinRequestStatus` / `onCommentWrite` が `users/{uid}/notifications` を書く。自己通知は抑制。作成はクライアント不可・更新は `read` のみを Rules テストで確認済み（[#43](../../../issues/43) 完了）。一覧 UI と既読管理は `NotificationsScreen.tsx`（[#44](../../../issues/44) 完了）。プッシュ通知（[#45](../../../issues/45)）は導入しない決定でクローズ |
 
 ## 3. データモデルの差分
@@ -189,10 +189,10 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 
 1. **実地データの依頼を出す（[#100](../../../issues/100) / [#101](../../../issues/101)）** — 指導者・連への依頼はリードタイムが長い。AI①② は「動くが妥当性は未確認」の状態から抜けられず、エピック #5 / #6 の完了条件でもある
 2. **[#102](../../../issues/102) スコアの改ざん防止** — S-12。公開前必須
-3. **[#44](../../../issues/44) 通知一覧 UI** — 生成側だけ動いていて、ユーザーに届いていない
-4. **本番への反映** — `firebase deploy --only functions,firestore:rules,firestore:indexes,storage` と `functions npm run seed:rules`（承認が必要）。[#40](../../../issues/40) のクローズ条件（S-11）でもある
-5. **[#37](../../../issues/37) U-10 成長曲線 / [#38](../../../issues/38) 練習動画一覧** — Prototype 3 の残り
-6. **事務作業** — [#8](../../../issues/8) のクローズ（子 6 件すべて完了）、[#41](../../../issues/41) / [#47](../../../issues/47) の受け入れ条件の再確認、[#59](../../../issues/59)
+3. **[#38](../../../issues/38) 練習動画一覧** — Prototype 3 最後の残り（`VideoListScreen` がスタブ）
+4. **事務作業** — [#8](../../../issues/8) のクローズ（子 6 件すべて完了）、[#41](../../../issues/41) / [#47](../../../issues/47) の受け入れ条件の再確認、[#59](../../../issues/59)
+
+✅ 完了: #44通知一覧UI、firestore:rules/indexesの本番反映（`analysisResults`のuserId+createdAt複合インデックスを含む、2026-09-23）、#37 U-10成長曲線（2026-09-23）。
 
 ### 検証の実行結果（2026-09-15）
 

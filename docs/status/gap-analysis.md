@@ -17,11 +17,10 @@
 
 **2026-09-13 に AI 解析①（姿勢推定・正規化・Rule Engine・リアルタイム UI・FN-01 によるスコア確定）と AI 解析②（ベースライン Embedding・FN-02/07/08/09・ランキング UI）を実装しました。** 乱数の「AI採点」は廃止され、投稿のスコアは `analysisResults.totalScore` 由来か「未採点」のどちらかです。
 
-**2026-09-18 時点で、通知機能（エピック #11）を含めMVP Renが完了しました。** 子イシューの残りは次の 2 つです。
+**2026-09-18 時点で、通知機能（エピック #11）を含めMVP Renが完了しました。2026-09-23 に成長曲線（U-10、#37）、2026-09-24 に練習動画一覧（#38）も完了し、Prototype 3（エピック #9）が完走しました。** 子イシューの残りは次の 1 つです。
 
 | 残り | 内容 |
 | --- | --- |
-| 成長曲線（U-10）・練習動画一覧 | [#37](../../../issues/37) / [#38](../../../issues/38)。`growthRecords` は FN-01 が作っているので表示だけが足りない |
 | 実地データによる妥当性確認 | [#100](../../../issues/100) / [#101](../../../issues/101)。**実装ではなく計測の作業**で、エピック #5 / #6 の完了条件 |
 
 **通知（NOTI-01〜03）は 2026-09-18 に完了。** 生成（#43）・一覧UI/既読管理（#44）を実装。プッシュ通知（#45）はiOS Web Pushが「ホーム画面に追加」必須でU-02のカメラ安定性の方針と両立しないため、**導入しない決定**にして解決（[data-model.md 3.15章](../design/data-model.md#315-その他)）。
@@ -41,7 +40,7 @@
 | Cloud Functions（FN-01〜09） | 7 関数 + 追加 2 | ✅ FN-01/02/03（縮小版）/04/05/06/07/08/09 とトリガ 5 本 | ■■■■□ 90% |
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ✅ **Web 版**でリアルタイム判定（RULE-01〜07）・LIVE SCORE・FN-01 でスコア確定・履歴保存。ネイティブは未対応（TBD-01 方式 A）。**閾値は暫定・実地検証未実施** | ■■■■□ 80% |
 | スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ✅ バックエンドと UI。姿勢系列は AI① が生成。**実データ検証（8.6 の 1・6・7）が未実施のため「検証中・参考値」表示** | ■■■■□ 75% |
-| 成長記録（HIST-01） | GrowthRecords + 成長曲線 | 🔶 `growthRecords` は FN-01 が作成。U-10 のグラフ画面は未実装、`VideoListScreen` はスタブ | ■■□□□ 40% |
+| 成長記録（HIST-01） | GrowthRecords + 成長曲線 | ✅ U-10（[GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx)、#37）・練習動画一覧（[VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx)、#38）とも実装済み | ■■■■■ 100% |
 | 通知（NOTI-01） | Notifications | ✅ 生成（[#43](../../../issues/43)）・一覧UI/既読管理（[#44](../../../issues/44)）とも完了。お知らせ配信・参加承認/却下・指導者コメントの 3 経路が `notifications` を書き、Rules テスト 9 件で保護を確認済み。プッシュ通知（[#45](../../../issues/45)）は導入しない決定 | ■■■■■ 100% |
 
 ## 2. 機能 ID 別の詳細
@@ -73,7 +72,7 @@
 | R-06 | メンバー管理 | ✅ | `MemberManagementScreen.tsx` + `updateMemberRole` / `removeMember` |
 | R-07 | お知らせ管理 | ✅ | `ManageAnnouncementsScreen.tsx` + `createAnnouncement` |
 | R-08 | 活動情報管理 | ✅ | `ManageActivitiesScreen.tsx` |
-| HIST-01 | 成長曲線 | 🔶 | `growthRecords` は FN-01 が作成済み。**U-10 のグラフ画面（[#37](../../../issues/37)）と `VideoListScreen`（[#38](../../../issues/38)、19 行のスタブ）が未実装** |
+| HIST-01 | 成長曲線 | ✅ | `growthRecords` は FN-01 が作成済み。U-10のグラフ画面は[GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx)として実装済み（[#37](../../../issues/37)、2026-09-23）。練習動画一覧は[VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx)として実装済み（[#38](../../../issues/38)、2026-09-24） |
 | NOTI-01 | 通知 | ✅ | `createAnnouncement`（バッチ分割で 500 件超に対応）/ `updateJoinRequestStatus` / `onCommentWrite` が `users/{uid}/notifications` を書く。自己通知は抑制。作成はクライアント不可・更新は `read` のみを Rules テストで確認済み（[#43](../../../issues/43) 完了）。一覧 UI と既読管理は `NotificationsScreen.tsx`（[#44](../../../issues/44) 完了）。プッシュ通知（[#45](../../../issues/45)）は導入しない決定でクローズ |
 
 ## 3. データモデルの差分
@@ -119,7 +118,7 @@
 
 | # | 内容 | 状態 |
 | --- | --- | --- |
-| **S-12** | **`finalizeBasicAnalysis` がクライアント提供の `metrics` のみでスコアを計算している。** 内部整合性（`great + good + miss <= attempts` 等）しか見ておらず、実際に練習したかを裏付ける検証が無い。**偽装した集計値を送れば満点を取得でき、`posts.score` として公開投稿に載る** | **未対応（[#102](../../../issues/102)）。開発段階では許容の判断だが公開前必須**（[api-functions.md](../design/api-functions.md) FN-01 節に既知の制約として記載） |
+| **S-12** | `finalizeBasicAnalysis` がクライアント提供の `metrics` のみでスコアを計算している。内部整合性（`great + good + miss <= attempts` 等）しか見ておらず、実際に練習したかを裏付ける検証が無かった。**偽装した集計値を送れば満点を取得でき、`posts.score` として公開投稿に載ってしまう** | 🔶 **軽量な対策を実装（2026-09-24、[#102](../../../issues/102)）**。`events` に対応しないルールの `greatCount`/`goodCount`/`missCount` は 0 に矯正し、`attempts` は `events` の実数を下回れないようにし、`timestampMs` が `durationMs` と矛盾する `events` は拒否する。**ただし `holdRatio`（HIP_LOW/BASE_POSTURE）と `rhythm.userBpm` は `events` から再現できず対象外。`events` 自体を一貫して偽装する攻撃は依然として可能**（[api-functions.md](../design/api-functions.md) FN-01 節に記載）。完全な防止には動画のサーバ側再解析が必要で未着手のまま |
 | S-9 | **ギャラリーから直接投稿する経路**の Storage パスが `videos/{Date.now()}.mp4` で所有者情報を含まない（`repositories/posts.ts`）。練習セッション経由の動画は `users/{uid}/videos/{videoId}` へ移行済み | 一部対応（[#41](../../../issues/41)。該当箇所に TODO コメントあり） |
 | S-10 | Storage の `contentType` 検証が無い（サイズ上限のみ） | 意図的な見送り。React Native から正しい値が送られるか実機未検証のため（[#40](../../../issues/40) にコメント済み） |
 | S-11 | 本番プロジェクト `ren-kei` に最新の Rules が反映されているか未確認 | 未確認。プロジェクトへのアクセス権を持つアカウントでのみ確認できる（[#40](../../../issues/40)） |
@@ -151,7 +150,7 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | B-12 | `useNavigation<any>()` が **13 箇所**残っている。[coding.md](../rules/coding.md) 2 章違反 | 未対応。該当箇所に TODO コメントあり |
 | B-13 | `useAuth()` は追加されたが、**使っているのは 2 画面だけで、10 ファイルが `auth.currentUser` を直接参照している**（22 箇所） | 一部対応。イシュー未作成 |
 | B-14 | `src/theme/colors.ts` は追加されたが、**12 画面がローカルに `COLORS` を定義したまま** | 一部対応。イシュー未作成 |
-| B-15 | `ContactInfoScreen` / `SettingScreen` / `VideoListScreen` が 19 行のスタブ（`UserProfileScreen` は簡易実装） | `VideoListScreen` は [#38](../../../issues/38) で実装予定。他 2 つはイシュー未作成 |
+| B-15 | `ContactInfoScreen` / `SettingScreen` が 19 行のスタブ（`UserProfileScreen` は簡易実装） | `VideoListScreen` は [#38](../../../issues/38) で実装済み（2026-09-24）。他 2 つはイシュー未作成 |
 
 解消済み（前回からの変化）:
 
@@ -184,15 +183,15 @@ GET https://firestore.googleapis.com/v1/projects/ren-kei/databases/(default)/doc
 | お知らせ・活動情報の公開対象 | TBD-15 | ログイン済みなら誰でも read できる | ✅ **現状維持で決定**（[#34](../../../issues/34)）。将来メンバー限定メッセージ機能を別途検討 |
 | 連アイコンの更新経路 | 記載なし | Storage Cross-Service Rules が本番で不安定だったため、Cloud Functions（Admin SDK）経由に変更 | 実装側の判断。[storage.rules](../../storage.rules) にコメントとして記録済み |
 | 通知タップ時の遷移先の精度（#44） | type:'announcement'はannouncementIdからマイ連お知らせへ遷移（issueの参照マッピング表） | announcementIdから所属連(renId)を単独で引く手段が無い（`announcements`ドキュメントにrenIdを持たせていない）ため、マイ連一覧（連未選択）へ遷移するに留めている。comment/join_resultは referenceId から正確に遷移先を解決できている | 実装側のスコープ判断。精度を上げるなら`announcements`ドキュメントに`renId`を非正規化するか、通知に`renId`を追加する形の再設計が必要 |
+| 投稿済み練習動画の削除可否（#38） | issueには明記なし。「Storage実体もあわせて削除する」（仕様書14.3）とのみ記載 | `publishPost`はコミュニティ投稿の`videoUrl`に元の練習動画のStorage URLをそのまま使う（コピーしない）ため、投稿済みの練習動画を削除すると公開中の投稿の動画が再生できなくなる。`VideoListScreen`では投稿済みの動画は削除ボタンを押してもブロックし、その旨をAlertで伝える実装にした | 実装側の判断。恒久対応は[#47](../../../issues/47)（publishPostの本格実装）で投稿時に動画を複製するか、削除時に関連投稿も含めて扱う設計が必要。`repositories/videos.ts`の`deleteVideoRecord`にコメントとして記録済み |
 
 ## 8. 次のアクション
 
 1. **実地データの依頼を出す（[#100](../../../issues/100) / [#101](../../../issues/101)）** — 指導者・連への依頼はリードタイムが長い。AI①② は「動くが妥当性は未確認」の状態から抜けられず、エピック #5 / #6 の完了条件でもある
 2. **[#102](../../../issues/102) スコアの改ざん防止** — S-12。公開前必須
-3. **[#44](../../../issues/44) 通知一覧 UI** — 生成側だけ動いていて、ユーザーに届いていない
-4. **本番への反映** — `firebase deploy --only functions,firestore:rules,firestore:indexes,storage` と `functions npm run seed:rules`（承認が必要）。[#40](../../../issues/40) のクローズ条件（S-11）でもある
-5. **[#37](../../../issues/37) U-10 成長曲線 / [#38](../../../issues/38) 練習動画一覧** — Prototype 3 の残り
-6. **事務作業** — [#8](../../../issues/8) のクローズ（子 6 件すべて完了）、[#41](../../../issues/41) / [#47](../../../issues/47) の受け入れ条件の再確認、[#59](../../../issues/59)
+3. **事務作業** — [#8](../../../issues/8) [#9](../../../issues/9) のクローズ（子issueすべて完了）、[#41](../../../issues/41) / [#47](../../../issues/47) の受け入れ条件の再確認、[#59](../../../issues/59)
+
+✅ 完了: #44通知一覧UI、firestore:rules/indexesの本番反映（`analysisResults`・`videos`のuserId+createdAt複合インデックスを含む、2026-09-23/24）、#37 U-10成長曲線（2026-09-23）、#38 練習動画一覧（2026-09-24）。**Prototype 3（エピック#9）完走。**
 
 ### 検証の実行結果（2026-09-15）
 

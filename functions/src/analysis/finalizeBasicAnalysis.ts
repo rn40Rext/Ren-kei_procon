@@ -22,6 +22,18 @@ const MAX_EVENTS = 5000;
 const GRADES: ReadonlySet<string> = new Set<Grade>(["GREAT", "GOOD", "MISS"]);
 const DANCE_TYPES = new Set(["male", "female"]);
 const SCORE_PARTS = new Set(["feet", "hands", "whole"]);
+/**
+ * events の timestampMs が durationMs を超えてよい猶予(ms)。
+ * 最終イベントの到着が非同期でわずかに遅れる分の余白(#102)。
+ */
+const TIMESTAMP_GRACE_MS = 3000;
+
+export type EventInput = {
+  ruleId: string;
+  grade: Grade;
+  timestampMs: number;
+  value: number;
+};
 
 interface FinalizeRequest {
   videoId: string;
@@ -29,7 +41,7 @@ interface FinalizeRequest {
   analysisVersion: string;
   danceType: "male" | "female";
   scorePart: "feet" | "hands" | "whole";
-  events: {ruleId: string; grade: Grade; timestampMs: number; value: number}[];
+  events: EventInput[];
   metrics: Record<string, RuleMetricSummary>;
   rhythm?: RhythmInput;
   gameScore: number;
@@ -51,6 +63,83 @@ function invalid(name: string): HttpsError {
 
 const isFiniteNumber = (v: unknown): v is number =>
   typeof v === "number" && Number.isFinite(v);
+
+/**
+ * events の timestampMs が durationMs と矛盾していないか検証する(#102)。
+ * クライアントが送るmetrics自体は改ざんされ得るため、events側の整合性を
+ * 軽量にチェックする(完全な改ざん防止ではない。docs/design/api-functions.md参照)。
+ * @param {EventInput[]} events セッション中に発火したイベント
+ * @param {number} durationMs 申告されたセッション長
+ */
+export function assertPlausibleEventTimestamps(
+  events: EventInput[],
+  durationMs: number,
+): void {
+  const upperBound = durationMs + TIMESTAMP_GRACE_MS;
+  for (let i = 0; i < events.length; i++) {
+    const t = events[i].timestampMs;
+    if (t < 0 || t > upperBound) {
+      throw invalid(`events[${i}].timestampMs`);
+    }
+  }
+}
+
+/**
+ * events からルールごとのGREAT/GOOD/MISS件数を数え直す。
+ * @param {EventInput[]} events セッション中に発火したイベント
+ * @return {Record<string, {greatCount: number; goodCount: number; missCount: number}>}
+ *   ルールID別の件数
+ */
+export function deriveGradeCounts(
+  events: EventInput[],
+): Record<string, {greatCount: number; goodCount: number; missCount: number}> {
+  const result: Record<
+    string,
+    {greatCount: number; goodCount: number; missCount: number}
+  > = {};
+  for (const e of events) {
+    if (!result[e.ruleId]) {
+      result[e.ruleId] = {greatCount: 0, goodCount: 0, missCount: 0};
+    }
+    if (e.grade === "GREAT") result[e.ruleId].greatCount++;
+    else if (e.grade === "GOOD") result[e.ruleId].goodCount++;
+    else result[e.ruleId].missCount++;
+  }
+  return result;
+}
+
+/**
+ * クライアント申告のmetrics(greatCount/goodCount/missCount/attempts)を、
+ * events から数え直した値で上書きする(#102)。events に無いルールのカウントは
+ * 0に矯正され、attemptsは数え直した合計を下回れないようにする。これにより
+ * 「eventsを伴わずmetricsだけで高スコアを申告する」forgeryを塞ぐ。
+ * holdRatio(HIP_LOW/BASE_POSTURE)とrhythm(userBpm)はeventsから再現できないため
+ * この関数の対象外(残る既知の制約。docs/design/api-functions.md参照)。
+ * @param {Record<string, RuleMetricSummary>} metrics クライアント申告の集計値
+ * @param {EventInput[]} events セッション中に発火したイベント
+ * @return {Record<string, RuleMetricSummary>} 検証済みの集計値
+ */
+export function reconcileMetricsWithEvents(
+  metrics: Record<string, RuleMetricSummary>,
+  events: EventInput[],
+): Record<string, RuleMetricSummary> {
+  const derived = deriveGradeCounts(events);
+  const result: Record<string, RuleMetricSummary> = {};
+  for (const [ruleId, m] of Object.entries(metrics)) {
+    const counts = derived[ruleId] ?? {
+      greatCount: 0,
+      goodCount: 0,
+      missCount: 0,
+    };
+    const derivedTotal = counts.greatCount + counts.goodCount + counts.missCount;
+    result[ruleId] = {
+      ...m,
+      ...counts,
+      attempts: Math.max(m.attempts, derivedTotal),
+    };
+  }
+  return result;
+}
 
 /**
  * リクエストを検証して型を確定する。
@@ -155,6 +244,10 @@ function parseRequest(data: unknown): FinalizeRequest {
 export const finalizeBasicAnalysis = onCall(async (request) => {
   const uid = requireAuth(request);
   const req = parseRequest(request.data);
+  // events自体の妥当性を検証したうえで、metricsの申告値をeventsで上書きする
+  // (#102: クライアント申告のmetricsだけを信用しない)
+  assertPlausibleEventTimestamps(req.events, req.durationMs);
+  req.metrics = reconcileMetricsWithEvents(req.metrics, req.events);
   const db = getFirestore();
 
   // 他人の動画に結果を付けられない

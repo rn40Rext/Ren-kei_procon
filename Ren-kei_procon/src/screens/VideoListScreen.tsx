@@ -1,131 +1,291 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ImageBackground, SafeAreaView } from 'react-native';
+/**
+ * U-09「保存動画」: 自分の練習動画一覧(#38)。仕様書5章U-09・14.3・9.2、
+ * docs/design/data-model.md 3.2/5章、docs/design/screens.md。
+ */
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View, SafeAreaView } from 'react-native';
+import { Alert } from '../utils/alert';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, Play } from 'lucide-react-native';
+import { Award, ChevronLeft, Film, Lock, Send, Trash2, Unlock } from 'lucide-react-native';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { useAuth } from '../hooks/useAuth';
+import { AnalysisResult, fetchAnalysisResult } from '../repositories/analysis';
+import { fetchPostsByUser } from '../repositories/posts';
+import { AnalysisStatus, PracticeVideo, deleteVideoRecord, subscribeMyVideos, videoDownloadUrl } from '../repositories/videos';
+import { formatAiScore } from '../features/analysis/format';
+import { colors, spacing, radius, typography } from '../theme';
+import { HeaderSeam } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
-import { KumihimoRule, HeaderSeam } from '../components/motifs';
-import { colors, spacing, radius, typography, lexicon } from '../theme';
-import { monkaEnbu } from '../data/mockEnbu';
-import {
-  subscribeMyVideos,
-  ANALYSIS_STATUS_LABEL,
-  DANCE_TYPE_LABEL,
-  SCORE_PART_LABEL,
-  type VideoDoc,
-} from '../data/practice';
 
-// 見本（サンプル）の稽古録。実データの下に表示する
-const SAMPLE_ENBU = [...monkaEnbu, ...monkaEnbu.map((e) => ({ ...e, id: e.id + '-b', kimeRate: e.kimeRate - 6 }))];
+type Nav = NativeStackNavigationProp<RootStackParamList, 'VideoList'>;
 
-function formatDate(v: VideoDoc): string {
-  const d = v.createdAt?.toDate?.();
-  if (!d) return 'たった今';
-  return `${d.getMonth() + 1}月${d.getDate()}日`;
+const DANCE_TYPE_LABEL: Record<string, string> = { male: '男踊り', female: '女踊り' };
+
+const STATUS_LABEL: Record<AnalysisStatus, string> = {
+  uploaded: '未解析',
+  analyzing: '解析中',
+  completed: '解析完了',
+  failed: '解析失敗',
+};
+
+const STATUS_COLOR: Record<AnalysisStatus, string> = {
+  uploaded: colors.textMuted,
+  analyzing: colors.gold,
+  completed: colors.goldBright,
+  failed: colors.aka,
+};
+
+function formatDate(value: PracticeVideo['createdAt']): string {
+  const date = value?.toDate ? value.toDate() : null;
+  if (!date) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 export default function VideoListScreen() {
-  const navigation = useNavigation<any>();
-  const [myVideos, setMyVideos] = useState<VideoDoc[]>([]);
+  const navigation = useNavigation<Nav>();
+  const { uid } = useAuth();
+
+  const [videos, setVideos] = useState<PracticeVideo[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [scores, setScores] = useState<Record<string, AnalysisResult | null>>({});
+  const [postedVideoIds, setPostedVideoIds] = useState<Set<string>>(new Set());
+  const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = subscribeMyVideos(
-      (v) => setMyVideos(v),
-      (e) => console.warn('subscribeMyVideos', e),
-    );
-    return unsub;
-  }, []);
+    if (!uid) return;
+    return subscribeMyVideos(uid, setVideos, (e) => {
+      console.error('練習動画一覧の取得に失敗しました', e);
+      setError('練習動画一覧の取得に失敗しました。時間をおいて再度お試しください');
+    });
+  }, [uid]);
+
+  // どの動画が既に投稿済みかを調べる(投稿はvideoUrlを直接参照しているため、
+  // 投稿済みの動画は削除できないようにする。repositories/videos.tsのコメント参照)。
+  useEffect(() => {
+    if (!uid) return;
+    let cancelled = false;
+    fetchPostsByUser(uid, 200)
+      .then((posts) => {
+        if (cancelled) return;
+        setPostedVideoIds(new Set(posts.filter((p) => p.videoId).map((p) => p.videoId as string)));
+      })
+      .catch((e) => console.error('投稿済み動画の確認に失敗しました', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [uid]);
+
+  // サムネイル用の再生可能URLを取得する(storagePathはStorageのパスであり、
+  // そのままではVideoのsourceに使えない)。
+  useEffect(() => {
+    if (!videos) return;
+    const targets = videos.filter((v) => v.storagePath && !(v.id in thumbUrls));
+    if (targets.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      targets.map(async (v) => {
+        try {
+          const url = await videoDownloadUrl(v.storagePath as string);
+          return [v.id, url] as const;
+        } catch (e) {
+          console.error('動画URLの取得に失敗しました', e);
+          return null;
+        }
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setThumbUrls((prev) => {
+        const next = { ...prev };
+        for (const entry of entries) {
+          if (entry) next[entry[0]] = entry[1];
+        }
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos]);
+
+  // 解析完了済みの動画のスコアを取得する。
+  useEffect(() => {
+    if (!videos) return;
+    const targets = videos.filter((v) => v.analysisStatus === 'completed' && v.latestAnalysisId && !(v.latestAnalysisId in scores));
+    if (targets.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      targets.map(async (v) => {
+        try {
+          const result = await fetchAnalysisResult(v.latestAnalysisId as string);
+          return [v.latestAnalysisId as string, result] as const;
+        } catch (e) {
+          console.error('解析結果の取得に失敗しました', e);
+          return [v.latestAnalysisId as string, null] as const;
+        }
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setScores((prev) => {
+        const next = { ...prev };
+        for (const [analysisId, result] of entries) next[analysisId] = result;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos]);
+
+  const onPressVideo = useCallback(
+    (v: PracticeVideo) => {
+      if (v.analysisStatus === 'completed' && v.latestAnalysisId) {
+        navigation.navigate('Result', { analysisId: v.latestAnalysisId, videoId: v.id });
+      } else if (v.analysisStatus === 'analyzing') {
+        Alert.alert('解析中です', 'しばらくしてから確認してください');
+      } else if (v.analysisStatus === 'failed') {
+        Alert.alert('解析に失敗しました', 'この動画の採点結果はありません');
+      }
+    },
+    [navigation]
+  );
+
+  const onPostToCommunity = useCallback(
+    (v: PracticeVideo) => {
+      navigation.navigate('Community', { shareVideoId: v.id });
+    },
+    [navigation]
+  );
+
+  const onDelete = useCallback(
+    (v: PracticeVideo) => {
+      if (postedVideoIds.has(v.id)) {
+        Alert.alert('削除できません', 'この動画はすでに交流広場へ投稿されています。投稿済みの動画は削除できません。');
+        return;
+      }
+      Alert.alert('動画を削除しますか？', 'この操作は取り消せません', [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除する',
+          style: 'destructive',
+          onPress: async () => {
+            setBusyId(v.id);
+            try {
+              await deleteVideoRecord(v.id);
+            } catch (e) {
+              console.error('動画の削除に失敗しました', e);
+              Alert.alert('エラー', '動画の削除に失敗しました');
+            } finally {
+              setBusyId(null);
+            }
+          },
+        },
+      ]);
+    },
+    [postedVideoIds]
+  );
+
+  const sortedVideos = useMemo(() => videos ?? [], [videos]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
           style={styles.backBtn}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <ChevronLeft size={22} color={colors.gold} />
           <Text style={styles.backText}>稽古手帳</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>自分の演舞・稽古録</Text>
+        <Text style={styles.headerTitle}>自分の練習動画一覧</Text>
         <AppMenu />
       </View>
       <HeaderSeam />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.count}>
-          自主稽古 {myVideos.length} 本（非公開で保存）
-        </Text>
-
-        {myVideos.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>まだ保存した演舞はありません</Text>
-            <Text style={styles.emptySub}>自主稽古から演舞を撮ると、ここに非公開で保存されます</Text>
-            <TouchableOpacity
-              style={styles.emptyBtn}
-              onPress={() => navigation.navigate('Scoring')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.emptyBtnText}>自主稽古へ</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          myVideos.map((v) => {
-            const meta = [
-              v.danceType ? DANCE_TYPE_LABEL[v.danceType] : null,
-              v.scorePart ? SCORE_PART_LABEL[v.scorePart] : null,
-            ]
-              .filter(Boolean)
-              .join('・');
+      {videos === null && !error ? (
+        <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
+      ) : error ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>{error}</Text>
+        </View>
+      ) : sortedVideos.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Film size={40} color={colors.textMuted} />
+          <Text style={styles.emptyText}>まだ練習動画がありません</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.list}>
+          {sortedVideos.map((v) => {
+            const result = v.latestAnalysisId ? scores[v.latestAnalysisId] : undefined;
+            const scoreText = v.analysisStatus === 'completed' ? formatAiScore(result?.totalScore) : null;
+            const posted = postedVideoIds.has(v.id);
             return (
-              <View key={v.id} style={styles.row}>
-                <View style={styles.thumb}>
-                  {v.downloadUrl ? (
-                    <RenkeiVideo uri={v.downloadUrl} style={styles.thumbVideo} contentFit="cover" muted />
-                  ) : null}
-                </View>
-                <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle}>{formatDate(v)} の演舞</Text>
-                  {meta ? <Text style={styles.rowMeta}>{meta}</Text> : null}
-                  <View style={styles.statusRow}>
-                    <View style={styles.statusPill}>
-                      <Text style={styles.statusPillText}>{ANALYSIS_STATUS_LABEL[v.analysisStatus]}</Text>
-                    </View>
-                    <Text style={styles.privateTag}>非公開</Text>
+              <View key={v.id} style={styles.card}>
+                <TouchableOpacity style={styles.cardMain} onPress={() => onPressVideo(v)} activeOpacity={0.85}>
+                  <View style={styles.thumbWrapper}>
+                    {thumbUrls[v.id] ? (
+                      <RenkeiVideo uri={thumbUrls[v.id]} style={StyleSheet.absoluteFill} contentFit="cover" muted />
+                    ) : (
+                      <Film size={24} color={colors.textMuted} />
+                    )}
                   </View>
+                  <View style={styles.cardBody}>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.dateText}>{formatDate(v.createdAt)}</Text>
+                      {v.danceType && <Text style={styles.danceTypeText}>{DANCE_TYPE_LABEL[v.danceType]}</Text>}
+                    </View>
+                    <View style={styles.badgeRow}>
+                      <View style={[styles.statusBadge, { borderColor: STATUS_COLOR[v.analysisStatus] }]}>
+                        <Text style={[styles.statusBadgeText, { color: STATUS_COLOR[v.analysisStatus] }]}>
+                          {STATUS_LABEL[v.analysisStatus]}
+                        </Text>
+                      </View>
+                      <View style={styles.visibilityBadge}>
+                        {v.visibility === 'public' ? (
+                          <Unlock size={12} color={colors.textMuted} />
+                        ) : (
+                          <Lock size={12} color={colors.textMuted} />
+                        )}
+                        <Text style={styles.visibilityText}>{v.visibility === 'public' ? '公開中' : '非公開'}</Text>
+                      </View>
+                    </View>
+                    {scoreText && (
+                      <View style={styles.scoreRow}>
+                        <Award size={14} color={colors.gold} />
+                        <Text style={styles.scoreText}>{scoreText}</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.actionRow}>
+                  {v.analysisStatus === 'completed' && !posted && (
+                    <TouchableOpacity style={styles.postBtn} onPress={() => onPostToCommunity(v)} activeOpacity={0.85}>
+                      <Send size={14} color={colors.textOnGold} />
+                      <Text style={styles.postBtnText}>交流広場へ投稿</Text>
+                    </TouchableOpacity>
+                  )}
+                  {posted && <Text style={styles.postedText}>投稿済み</Text>}
+                  <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(v)} disabled={busyId === v.id}>
+                    {busyId === v.id ? (
+                      <ActivityIndicator size="small" color={colors.aka} />
+                    ) : (
+                      <Trash2 size={16} color={colors.aka} />
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
             );
-          })
-        )}
-
-        <View style={styles.sampleDivider}>
-          <KumihimoRule width={16} />
-          <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
-        </View>
-
-        {SAMPLE_ENBU.map((e) => (
-          <TouchableOpacity
-            key={e.id}
-            style={styles.row}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('VideoDetail', { id: e.id.replace('-b', '') })}
-          >
-            <ImageBackground source={{ uri: e.image }} style={styles.thumb} imageStyle={{ borderRadius: radius.sm }}>
-              <View style={styles.playDot}>
-                <Play size={12} fill={colors.textOnGold} color={colors.textOnGold} />
-              </View>
-            </ImageBackground>
-            <View style={styles.rowBody}>
-              <Text style={styles.rowTitle} numberOfLines={2}>{e.title}</Text>
-              <Text style={styles.rowMeta}>{e.category}・{e.cho}　{e.duration}</Text>
-              <Text style={styles.rowKime}>{lexicon.aiScore} {e.kimeRate}%</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        <View style={{ height: 32 }} />
-      </ScrollView>
+          })}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -143,67 +303,60 @@ const styles = StyleSheet.create({
   },
   backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
   backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
-  headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
-  content: { padding: spacing.lg },
-  count: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md },
+  headerTitle: { ...typography.headingSerif, color: colors.textPrimary, fontSize: 15 },
 
-  emptyCard: {
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
+  emptyText: { marginTop: 12, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
+
+  list: { padding: spacing.md },
+  card: {
     backgroundColor: colors.indigo,
     borderRadius: radius.md,
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  emptyTitle: { ...typography.bodyStrong, color: colors.textPrimary },
-  emptySub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg, textAlign: 'center' },
-  emptyBtn: { backgroundColor: colors.gold, paddingVertical: spacing.sm, paddingHorizontal: spacing.xl, borderRadius: radius.sm },
-  emptyBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 13 },
-
-  sampleDivider: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: spacing.lg },
-  sampleDividerText: { ...typography.caption, color: colors.textMuted },
-
-  row: {
-    flexDirection: 'row',
-    backgroundColor: colors.indigo,
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.indigoLine,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    overflow: 'hidden',
   },
-  thumb: {
+  cardMain: { flexDirection: 'row', padding: spacing.md },
+  thumbWrapper: {
     width: 84,
     height: 84,
-    backgroundColor: colors.indigoRaised,
     borderRadius: radius.sm,
+    backgroundColor: colors.indigoRaised,
     overflow: 'hidden',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
-  },
-  thumbVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  playDot: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.pill,
-    backgroundColor: colors.gold,
-    alignItems: 'center',
     justifyContent: 'center',
-    margin: 4,
+    alignItems: 'center',
   },
-  rowBody: { flex: 1, marginLeft: spacing.md, justifyContent: 'center' },
-  rowTitle: { ...typography.bodyStrong, color: colors.textPrimary },
-  rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  rowKime: { ...typography.caption, color: colors.gold, marginTop: 4 },
+  cardBody: { flex: 1, marginLeft: spacing.md, justifyContent: 'center' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dateText: { fontSize: 12, color: colors.textMuted },
+  danceTypeText: { fontSize: 12, color: colors.textPrimary, fontWeight: '600' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  statusBadge: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  statusBadgeText: { fontSize: 11, fontWeight: '600' },
+  visibilityBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  visibilityText: { fontSize: 11, color: colors.textMuted },
+  scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  scoreText: { fontSize: 13, fontWeight: 'bold', color: colors.textPrimary },
 
-  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  statusPill: {
-    borderWidth: 1,
-    borderColor: colors.gold,
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: 10,
   },
-  statusPillText: { ...typography.caption, color: colors.gold, fontSize: 10 },
-  privateTag: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginLeft: spacing.sm },
+  postBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gold,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  postBtnText: { color: colors.textOnGold, fontSize: 12, fontWeight: '600' },
+  postedText: { fontSize: 12, color: colors.textMuted },
+  deleteBtn: { padding: 6 },
 });

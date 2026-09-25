@@ -34,6 +34,7 @@ import ManagePostsScreen from "../screens/ManagePostsScreen";
 import AdviceComposeScreen from "../screens/AdviceComposeScreen";
 import StyleResultScreen from "../screens/StyleResultScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
+import GrowthChartScreen from "../screens/GrowthChartScreen";
 
 export type RootStackParamList = {
   Login: undefined;
@@ -48,6 +49,8 @@ export type RootStackParamList = {
   Mypage: undefined;
   Scoring: undefined;
   VideoList: undefined;
+  // U-10 成長曲線(#37)。analysisResultsをuserId横断で購読する
+  GrowthChart: undefined;
   ContactInfo: undefined;
   Setting: undefined;
   // renId: 通知(type:'join_result')タップ時、承認された連を選択した状態で開く(#44)
@@ -115,6 +118,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Mypage" component={MypageScreen} />
 
           <Stack.Screen name="VideoList" component={VideoListScreen} />
+          <Stack.Screen name="GrowthChart" component={GrowthChartScreen} />
           <Stack.Screen name="Group" component={GroupScreen} />
           <Stack.Screen name="ContactInfo" component={ConatctInfoScreen} />
           <Stack.Screen name="Setting" component={SettingScreen} />

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Alert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronRight, Settings, Mail, LogOut, ShieldCheck, Camera } from 'lucide-react-native';
+import { ChevronRight, Settings, Mail, LogOut, ShieldCheck, Camera, TrendingUp } from 'lucide-react-native';
 import { IconWagasa, IconEnbuPlay } from '../components/awaIcons';
 import { signOut } from 'firebase/auth';
 import { auth, db, storage } from '../config/firebaseConfig';
@@ -260,6 +260,13 @@ export default function MypageScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>稽古の記録</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('GrowthChart')}>
+            <View style={styles.menuLeft}>
+              <TrendingUp size={19} color={colors.gold} />
+              <Text style={styles.menuText}>成長曲線</Text>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('VideoList')}>
             <View style={styles.menuLeft}>
               <IconEnbuPlay size={19} color={colors.gold} />

@@ -150,7 +150,9 @@
 
 **2026-09-26、`firestore:rules` / `firestore:indexes` / `storage` の本番反映を確認しました**（[#40](../../../issues/40) の受け入れ条件「デプロイで反映済み」はこれで満たされ、クローズ可能）。
 
-残っているのは Functions（FN-01/02/07/08/09）のデプロイと `analysisRules` の投入（`functions npm run seed:rules`）です。**本番デプロイなので承認が必要**です（[safety.md](../rules/safety.md) 2章）。
+**同日、`firebase deploy --only functions` で全Cloud Functionsを本番反映しました**（[#114](../../../issues/114)の通知拡充に伴う対応。FN-02/07/08/09（analyzeStyle/rebuildRenStyleProfile/registerStyleReference/deleteStyleReference/onStyleReferenceWritten）はこの時点で初めて本番にデプロイされた「Successful create operation」だった）。デプロイ前提のpredeploy lintが#102/#40由来のmax-len/JSDocエラーでブロックされていたため、ロジック変更なしで解消してから実施した。
+
+残っているのは `analysisRules` の投入（`functions npm run seed:rules`）です。**本番デプロイなので承認が必要**です（[safety.md](../rules/safety.md) 2章）。
 
 ### 解消済み（着手前の障害だった項目）
 

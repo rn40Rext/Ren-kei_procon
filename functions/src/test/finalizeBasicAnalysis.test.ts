@@ -1,5 +1,6 @@
 /**
- * FN-01 のmetrics/events整合性検証(#102、functions/src/analysis/finalizeBasicAnalysis.ts)のテスト。
+ * FN-01 のmetrics/events整合性検証(#102、
+ * functions/src/analysis/finalizeBasicAnalysis.ts)のテスト。
  * クライアント申告のmetricsだけを信用しない、という改ざん対策の中核部分。
  */
 import * as assert from "node:assert/strict";
@@ -101,7 +102,7 @@ test("assertPlausibleEventTimestamps: 負のtimestampMsは拒否する", () => {
   );
 });
 
-test("assertPlausibleEventTimestamps: durationMsを猶予を超えて上回るtimestampMsは拒否する", () => {
+test("assertPlausibleEventTimestamps: durationMsを猶予超で上回るtimestampMsは拒否", () => {
   assert.throws(() =>
     assertPlausibleEventTimestamps(
       [{ruleId: "HAND_STOP", grade: "GREAT", timestampMs: 20000, value: 1}],

@@ -265,7 +265,12 @@ async function main(): Promise<void> {
           ...finalizeReq,
           clientRequestId: "req-0004-badts",
           events: [
-            {ruleId: "HAND_STOP", grade: "GREAT", timestampMs: 999999, value: 1},
+            {
+              ruleId: "HAND_STOP",
+              grade: "GREAT",
+              timestampMs: 999999,
+              value: 1,
+            },
           ],
         }),
       )

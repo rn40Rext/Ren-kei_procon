@@ -152,7 +152,9 @@
 
 **同日、`firebase deploy --only functions` で全Cloud Functionsを本番反映しました**（[#114](../../../issues/114)の通知拡充に伴う対応。FN-02/07/08/09（analyzeStyle/rebuildRenStyleProfile/registerStyleReference/deleteStyleReference/onStyleReferenceWritten）はこの時点で初めて本番にデプロイされた「Successful create operation」だった）。デプロイ前提のpredeploy lintが#102/#40由来のmax-len/JSDocエラーでブロックされていたため、ロジック変更なしで解消してから実施した。
 
-残っているのは `analysisRules` の投入（`functions npm run seed:rules`）です。**本番デプロイなので承認が必要**です（[safety.md](../rules/safety.md) 2章）。
+**同日、`analysisRules` の投入も完了しました**（`functions npm run seed:rules`、7 written / 0 skipped、version v1。`gcloud auth application-default login`でのADC設定が必要だったため、開発者本人の端末で実行した）。
+
+これで本番環境への反映(Rules・Indexes・Storage・Functions・analysisRules)はすべて完了しました。
 
 ### 解消済み（着手前の障害だった項目）
 

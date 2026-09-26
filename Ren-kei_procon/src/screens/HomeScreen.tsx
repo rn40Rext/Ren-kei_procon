@@ -18,7 +18,6 @@ import {
 import { Alert } from '../utils/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Bell } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography } from '../theme';
 import { SectionHeader, Badge, Chip, MetricRow } from '../components/ui';
 import { ChochinGarland, Noren, SeigaihaBand, RenMon, KumihimoRule, AwaDivider } from '../components/motifs';
@@ -79,10 +78,25 @@ type HeroLike = {
 };
 
 /** ヒーロー画像／動画に重ねる帯（見出し・カウントダウン・再生マーク・題）。 */
-function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
+/**
+ * 動画の上には再生ボタンだけを重ねる(文字を動画に重ねないでほしいという
+ * フィードバックを受け、見出し・タグ・題名などは動画の下(renderHeroInfo)に
+ * 移した)。
+ */
+function renderHeroVideoOverlay() {
   return (
-    <View style={styles.heroOverlayColumn}>
-      <View style={styles.heroTopArea}>
+    <View style={styles.heroPlayWrap} pointerEvents="none">
+      <View style={styles.heroPlayCircle}>
+        <IconEnbuPlay size={24} color={colors.textOnGold} />
+      </View>
+    </View>
+  );
+}
+
+function renderHeroInfo(hero: HeroLike, festivalDays: number) {
+  return (
+    <>
+      <View style={styles.heroInfoTopRow}>
         <View style={styles.heroTopEyebrowRow}>
           <KumihimoRule width={18} />
           <Text style={styles.heroEyebrowText}>
@@ -91,15 +105,6 @@ function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
         </View>
         <View style={styles.countdownChip}>
           <Text style={styles.countdownText}>阿波おどり本番まで あと {festivalDays} 日</Text>
-        </View>
-      </View>
-
-      {/* 上(見出し・カウントダウン)と下(タイトル等)の間の残り空間にだけ再生ボタンを
-          置く。固定ピクセルの絶対位置だと、ヒーロー画像が低くなる画面幅で
-          上下の文字と重なっていたため、Flexboxで「絶対に重ならない」構造にした。 */}
-      <View style={styles.heroPlayWrap} pointerEvents="none">
-        <View style={styles.heroPlayCircle}>
-          <IconEnbuPlay size={24} color={colors.textOnGold} />
         </View>
       </View>
 
@@ -116,7 +121,7 @@ function renderHeroOverlay(hero: HeroLike, festivalDays: number) {
         <Text style={styles.heroRen}>{hero.authorRen}</Text>
         <Text style={styles.heroName} numberOfLines={2}>{hero.title}</Text>
       </View>
-    </View>
+    </>
   );
 }
 
@@ -457,28 +462,17 @@ export default function HomeScreen({ navigation }: any) {
               {hero.kind === 'real' ? (
                 <View style={styles.heroImage}>
                   <RenkeiVideo uri={hero.videoUrl} style={styles.heroVideo} contentFit="cover" muted />
-                  <LinearGradient
-                    colors={['rgba(11,19,43,0.55)', 'rgba(11,19,43,0.1)', 'rgba(11,19,43,0.88)']}
-                    locations={[0, 0.42, 1]}
-                    style={styles.heroImgGrad}
-                  >
-                    {renderHeroOverlay(hero, festivalDays)}
-                  </LinearGradient>
+                  <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
                 </View>
               ) : (
                 <ImageBackground source={{ uri: hero.image }} style={styles.heroImage}>
-                  <LinearGradient
-                    colors={['rgba(11,19,43,0.55)', 'rgba(11,19,43,0.1)', 'rgba(11,19,43,0.88)']}
-                    locations={[0, 0.42, 1]}
-                    style={styles.heroImgGrad}
-                  >
-                    {renderHeroOverlay(hero, festivalDays)}
-                  </LinearGradient>
+                  <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
                 </ImageBackground>
               )}
             </TouchableOpacity>
 
             <View style={styles.heroBody}>
+              {renderHeroInfo(hero, festivalDays)}
               {hero.description ? (
                 <Text style={styles.heroDesc}>{hero.description}</Text>
               ) : null}
@@ -899,8 +893,6 @@ const styles = StyleSheet.create({
   logoSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 3 },
 
   countdownChip: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.sm,
     backgroundColor: colors.akaDeep,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
@@ -936,21 +928,16 @@ const styles = StyleSheet.create({
   heroImageWrap: { overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },
   heroVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.indigo },
-  heroImgGrad: { flex: 1, padding: spacing.lg, paddingBottom: spacing.lg },
+  // 動画の上には再生ボタンだけを重ねる。見出し・タグ・題名などの文字は
+  // 動画に重ねず、下のheroBody(renderHeroInfo)に表示する。
+  heroImgGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   heroGarland: { position: 'absolute', top: 0, left: 0, right: 0 },
-  // 見出し・カウントダウン(上)/再生ボタン(残りの中央)/題名など(下)の3段を
-  // Flexboxで積む。固定ピクセルの絶対位置だと、ヒーロー画像が低くなる画面幅で
-  // 再生ボタンが上下の文字と重なっていたため、絶対に重ならない構造にした。
-  heroOverlayColumn: { flex: 1, justifyContent: 'space-between' },
-  heroTopArea: {},
   heroTopEyebrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  heroEyebrowText: { ...typography.sectionLabel, color: colors.goldBright, letterSpacing: 3 },
+  heroEyebrowText: { ...typography.sectionLabel, color: colors.gold, letterSpacing: 3 },
   heroPlayWrap: {
-    flexGrow: 1,
-    minHeight: 74,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -961,16 +948,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: spacing.sm,
   },
-  heroImgFooter: { marginTop: spacing.sm },
+  heroInfoTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    rowGap: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  heroImgFooter: {},
   heroTopRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: spacing.xs, marginBottom: spacing.sm },
   badgeGap: { marginLeft: spacing.sm },
   heroRen: { ...typography.caption, color: colors.gold, marginBottom: spacing.xs },
   heroName: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 20 },
   heroRole: { ...typography.body, color: colors.goldBright },
 
-  heroBody: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
+  heroBody: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.lg },
   heroDesc: { ...typography.body, color: colors.textSecondary },
   heroMetrics: { marginTop: spacing.md },
   syncBtn: {

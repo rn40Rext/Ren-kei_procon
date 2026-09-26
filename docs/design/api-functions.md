@@ -360,6 +360,7 @@ PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を�
 1. `joinRequests/{requestId}.status` を更新、`handledBy` に管理者 uid を記録
 2. `approve` の場合 `ren/{renId}/members/{userId}` を `role: 'member', status: 'active'` で作成
 3. 申請者へ通知（`type: 'join_result'`）を作成
+4. `approve` の場合、その連の既存メンバー全員（新メンバー本人・承認した管理者を除く）へ通知（`type: 'member_joined'`。トランザクション外・[#114](../../issues/114)）
 
 **検証**
 
@@ -388,8 +389,8 @@ PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を�
 
 **副作用**（トランザクション）
 
-- `updateMemberRole`: `ren/{renId}/members/{uid}.role` を更新
-- `removeMember`: `ren/{renId}/members/{uid}` を削除（本人による脱退は Rules で直接許可済みのため対象外。管理者が他メンバーを除名する場合のみ使う）
+- `updateMemberRole`: `ren/{renId}/members/{uid}.role` を更新。役職が実際に変わった場合、対象本人へ通知（`type: 'role_changed'`。[#114](../../issues/114)）
+- `removeMember`: `ren/{renId}/members/{uid}` を削除（本人による脱退は Rules で直接許可済みのため対象外。管理者が他メンバーを除名する場合のみ使う）。対象本人へ通知（`type: 'member_removed'`。[#114](../../issues/114)）
 - どちらも `ren.memberCount` の再集計は既存の `onMemberWrite` トリガ（#48）に任せる（本関数側では触らない）
 
 **検証**
@@ -539,14 +540,19 @@ PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を�
 | `onDocumentWritten('posts/{postId}/likes/{uid}')` | いいね | `posts.likeCount` を再集計 |
 | `onDocumentWritten('posts/{postId}/comments/{id}')` | コメント | `posts.commentCount` を再集計 |
 | `onDocumentWritten('ren/{renId}/members/{uid}')` | メンバー | `ren.memberCount` を再集計 |
-| `onDocumentCreated('posts/{postId}/comments/{id}')` | コメント | 投稿者へ通知（`type: 'comment'`） |
+| `onDocumentCreated('posts/{postId}/comments/{id}')` | コメント | 投稿者へ通知（`type: 'comment'`。`type:'instructor'`のみ） |
 | `onDocumentDeleted('videos/{videoId}')` | 動画削除 | Storage の実体も削除（仕様書 14.3） |
 | `onDocumentWritten('renStyleReferences/{id}')` | 参照 Embedding | `renStyleProfiles` の代表 Embedding を再計算（**実装済み**） |
+| `onDocumentWritten('invitations/{id}')` | お誘いへの応答 | 送信者へ通知（`type: 'invitation_result'`。**実装済み・2026-09-26・[#114](../../issues/114)**） |
+| `onDocumentCreated('chats/{chatId}/messages/{id}')` | チャットメッセージ | 相手へ通知（`type: 'chat_message'`。**実装済み・2026-09-26・[#114](../../issues/114)**） |
 
 `increment()` ではなく **`count()` 集約クエリで再集計**します。トリガの重複実行（at-least-once 配信）でカウンタがずれるのを防ぐためです。
 
 > #### 実装状況（2026-09-10・#48）
-> 上表のうち `onLikeWrite` / `onCommentWrite` / `onMemberWrite`（`status=='active'` のみ集計） / `onVideoDeleted`（Storage削除は冪等）を `functions/src/triggers/` に実装済み。`onDocumentCreated('posts/{postId}/comments/{id}')` による通知作成は、`notifications` 機能自体が未実装（#43）のため対象外。`ren`/`videos` へのアプリからの書き込みがまだ無いため、`onMemberWrite`/`onVideoDeleted` は現状休眠中。エミュレータで各トリガの発火・カウント・冪等性を確認済み。
+> 上表のうち `onLikeWrite` / `onCommentWrite` / `onMemberWrite`（`status=='active'` のみ集計） / `onVideoDeleted`（Storage削除は冪等）を `functions/src/triggers/` に実装済み。エミュレータで各トリガの発火・カウント・冪等性を確認済み。
+>
+> #### 追記（2026-09-26・[#114](../../issues/114)）
+> `onDocumentCreated('posts/{postId}/comments/{id}')` の通知作成は #43 で実装済み。`invitations`/`chats` はクライアントが直接Firestoreへ書き込む経路（Cloud Functions化されていない、#108のprototype実装）のため、`onInvitationWrite`/`onChatMessageWrite`という新規トリガで通知のみを担当する（カウンタ同期は無い）。通知作成のCloud Functions/トリガ一覧は[data-model.md 3.15章](data-model.md#315-その他)にまとめた。
 
 ## 5. Firestore 直接 CRUD にするもの（仕様書 11.2）
 

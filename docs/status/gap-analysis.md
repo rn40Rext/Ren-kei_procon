@@ -41,7 +41,7 @@
 | 練習・AI解析①（PRACTICE-01〜05） | MediaPipe + Rule Engine + スコア | ✅ **Web 版**でリアルタイム判定（RULE-01〜07）・LIVE SCORE・FN-01 でスコア確定・履歴保存。ネイティブは未対応（TBD-01 方式 A）。**閾値は暫定・実地検証未実施** | ■■■■□ 80% |
 | スタイル判定②（STYLE-01/02） | Motion Encoder + 類似度 | ✅ バックエンドと UI。姿勢系列は AI① が生成。**実データ検証（8.6 の 1・6・7）が未実施のため「検証中・参考値」表示** | ■■■■□ 75% |
 | 成長記録（HIST-01） | GrowthRecords + 成長曲線 | ✅ U-10（[GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx)、#37）・練習動画一覧（[VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx)、#38）とも実装済み | ■■■■■ 100% |
-| 通知（NOTI-01） | Notifications | ✅ 生成（[#43](../../../issues/43)）・一覧UI/既読管理（[#44](../../../issues/44)）とも完了。お知らせ配信・参加承認/却下・指導者コメントの 3 経路が `notifications` を書き、Rules テスト 9 件で保護を確認済み。プッシュ通知（[#45](../../../issues/45)）は導入しない決定 | ■■■■■ 100% |
+| 通知（NOTI-01） | Notifications | ✅ 生成（[#43](../../../issues/43)）・一覧UI/既読管理（[#44](../../../issues/44)）とも完了。**2026-09-26、[#114](../../../issues/114)でtypeを3種類→9種類に拡充**（参加リクエスト受信・除名/役職変更・新メンバー参加・お誘い応答・DM受信を追加）。`notifications`書き込みはクライアント不可、更新はreadフィールドのみをRulesテストで保護。プッシュ通知（[#45](../../../issues/45)）は導入しない決定 | ■■■■■ 100% |
 
 ## 2. 機能 ID 別の詳細
 
@@ -73,7 +73,7 @@
 | R-07 | お知らせ管理 | ✅ | `ManageAnnouncementsScreen.tsx` + `createAnnouncement` |
 | R-08 | 活動情報管理 | ✅ | `ManageActivitiesScreen.tsx` |
 | HIST-01 | 成長曲線 | ✅ | `growthRecords` は FN-01 が作成済み。U-10のグラフ画面は[GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx)として実装済み（[#37](../../../issues/37)、2026-09-23）。練習動画一覧は[VideoListScreen.tsx](../../Ren-kei_procon/src/screens/VideoListScreen.tsx)として実装済み（[#38](../../../issues/38)、2026-09-24） |
-| NOTI-01 | 通知 | ✅ | `createAnnouncement`（バッチ分割で 500 件超に対応）/ `updateJoinRequestStatus` / `onCommentWrite` が `users/{uid}/notifications` を書く。自己通知は抑制。作成はクライアント不可・更新は `read` のみを Rules テストで確認済み（[#43](../../../issues/43) 完了）。一覧 UI と既読管理は `NotificationsScreen.tsx`（[#44](../../../issues/44) 完了）。プッシュ通知（[#45](../../../issues/45)）は導入しない決定でクローズ |
+| NOTI-01 | 通知 | ✅ | `notifyUser()`（`functions/src/lib/notifications.ts`）に集約し、`createAnnouncement` / `submitJoinRequest` / `updateJoinRequestStatus` / `removeMember` / `updateMemberRole` / `onCommentWrite` / `onInvitationWrite` / `onChatMessageWrite` が `users/{uid}/notifications` を書く（9種類のtype。[#114](../../../issues/114)、2026-09-26）。自己通知は抑制。作成はクライアント不可・更新は `read` のみを Rules テストで確認済み（[#43](../../../issues/43) 完了）。一覧 UI と既読管理は `NotificationsScreen.tsx`（[#44](../../../issues/44) 完了）。プッシュ通知（[#45](../../../issues/45)）は導入しない決定でクローズ |
 
 ## 3. データモデルの差分
 

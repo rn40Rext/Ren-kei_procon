@@ -2,6 +2,12 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {requireAuth, requireRenAdmin} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
+import {notifyUser} from "../lib/notifications";
+
+const ROLE_LABEL: Record<"admin" | "member", string> = {
+  admin: "管理者",
+  member: "メンバー",
+};
 
 interface UpdateMemberRoleRequest {
   renId: string;
@@ -49,12 +55,16 @@ export const updateMemberRole = onCall(async (request) => {
   const memberRef = db.doc(`ren/${renId}/members/${uid}`);
 
   await db.runTransaction(async (tx) => {
-    const snap = await tx.get(memberRef);
+    const [snap, renSnap] = await Promise.all([
+      tx.get(memberRef),
+      tx.get(db.doc(`ren/${renId}`)),
+    ]);
     if (!snap.exists) {
       throw new HttpsError("not-found", "member not found");
     }
+    const previousRole = snap.data()?.role;
 
-    if (snap.data()?.role === "admin" && role === "member") {
+    if (previousRole === "admin" && role === "member") {
       const adminsSnap = await db
         .collection(`ren/${renId}/members`)
         .where("role", "==", "admin")
@@ -67,6 +77,21 @@ export const updateMemberRole = onCall(async (request) => {
     }
 
     tx.update(memberRef, {role});
+
+    if (previousRole !== role) {
+      const renName = (renSnap.data()?.name as string) ?? "連";
+      await notifyUser(
+        db,
+        {
+          uid,
+          type: "role_changed",
+          referenceId: renId,
+          title: "役職が変更されました",
+          body: `「${renName}」での役職が「${ROLE_LABEL[role]}」に変更されました。`,
+        },
+        {tx}
+      );
+    }
   });
 
   return {role};

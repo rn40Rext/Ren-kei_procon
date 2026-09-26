@@ -5,7 +5,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Bell, Check, CheckCheck, ChevronLeft, MessageSquare, Megaphone, UserCheck } from 'lucide-react-native';
+import {
+  Bell,
+  Check,
+  CheckCheck,
+  ChevronLeft,
+  Mail,
+  MessageCircle,
+  MessageSquare,
+  Megaphone,
+  Shield,
+  UserCheck,
+  UserMinus,
+  UserPlus,
+  Users,
+} from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { KasaGarland, NarutoLoader } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
@@ -13,12 +27,19 @@ import { useAuth } from '../hooks/useAuth';
 import { markAllNotificationsRead, markNotificationRead, subscribeNotifications } from '../repositories/notifications';
 import { fetchJoinRequest } from '../repositories/joinRequests';
 import { fetchPost } from '../repositories/posts';
+import { fetchUserProfile } from '../repositories/users';
 import type { AppNotification, NotificationType } from '../types/firestore';
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   comment: MessageSquare,
   join_result: UserCheck,
   announcement: Megaphone,
+  join_request: UserPlus,
+  member_removed: UserMinus,
+  role_changed: Shield,
+  member_joined: Users,
+  invitation_result: Mail,
+  chat_message: MessageCircle,
 };
 
 function formatDateTime(value: AppNotification['createdAt']): string {
@@ -102,6 +123,52 @@ export default function NotificationsScreen() {
         if (n.type === 'join_result' && n.referenceId) {
           const request = await fetchJoinRequest(n.referenceId);
           navigation.navigate('Group', request ? { renId: request.renId } : undefined);
+          return;
+        }
+
+        if (n.type === 'join_request' && n.referenceId) {
+          const request = await fetchJoinRequest(n.referenceId);
+          if (request) {
+            navigation.navigate('ManageJoinRequests', { renId: request.renId });
+          } else {
+            navigation.navigate('Group');
+          }
+          return;
+        }
+
+        if (n.type === 'role_changed' && n.referenceId) {
+          navigation.navigate('Group', { renId: n.referenceId });
+          return;
+        }
+
+        if (n.type === 'member_joined' && n.referenceId) {
+          navigation.navigate('Group', { renId: n.referenceId });
+          return;
+        }
+
+        if (n.type === 'member_removed') {
+          // 除名された連の詳細はもう見られないため、マイ連一覧へ留める。
+          navigation.navigate('Group');
+          return;
+        }
+
+        if (n.type === 'invitation_result') {
+          navigation.navigate('Request');
+          return;
+        }
+
+        if (n.type === 'chat_message' && n.referenceId) {
+          const chatId = n.referenceId;
+          const otherUid = chatId.split('_').find((u) => u !== uid);
+          if (otherUid) {
+            const profile = await fetchUserProfile(otherUid);
+            navigation.navigate('Chat', {
+              chatId,
+              recipientName: profile?.nickname || profile?.name || '踊り子',
+            });
+          } else {
+            navigation.navigate('Home');
+          }
           return;
         }
 

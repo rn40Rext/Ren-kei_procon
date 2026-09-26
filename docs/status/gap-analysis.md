@@ -95,7 +95,7 @@
 | GrowthRecord(s) | ✅ `users/{uid}/growthRecords/{analysisId}` | FN-01 が作成。表示（U-10）は未実装 |
 | Notifications | ✅ `users/{uid}/notifications/{id}` | Functions の 3 経路が作成する。read は本人のみ、`read` フィールドの更新のみ許可（Rules テスト 9 件）。**表示する画面が無い**（[#44](../../../issues/44)） |
 | RenStyleReferences / RenStyleProfiles / StyleAnalysisResults | ✅ | FN-08 / FN-07 / FN-02 が書く |
-| AnalysisRules | ✅ `analysisRules/{ruleId}` | read 専用。`functions npm run seed:rules` で投入 |
+| AnalysisRules | ✅ `analysisRules/{ruleId}` | read 専用。2026-09-26、本番へ投入済み（`functions npm run seed:rules`、7 written / 0 skipped、version v1） |
 | （仕様書外） | ➕ `chats/{chatId}/messages` | 仕様書に存在しない 1 対 1 チャット。Rules は当事者 2 人のみに制限済み |
 
 ## 4. AI 採点の実態

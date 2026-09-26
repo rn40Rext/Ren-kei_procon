@@ -25,6 +25,8 @@ export {onLikeWrite} from "./triggers/onLikeWrite";
 export {onCommentWrite} from "./triggers/onCommentWrite";
 export {onMemberWrite} from "./triggers/onMemberWrite";
 export {onVideoDeleted} from "./triggers/onVideoDeleted";
+export {onInvitationWrite} from "./triggers/onInvitationWrite";
+export {onChatMessageWrite} from "./triggers/onChatMessageWrite";
 
 // AI機能① 基本動作トレーニング(#20 / #35): スコア確定はサーバで行う
 export {finalizeBasicAnalysis} from "./analysis/finalizeBasicAnalysis";

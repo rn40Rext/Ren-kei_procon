@@ -119,10 +119,20 @@ export interface JoinRequest {
   createdAt?: FirestoreDate;
 }
 
-export type NotificationType = 'comment' | 'join_result' | 'announcement';
+export type NotificationType =
+  | 'comment'
+  | 'join_result'
+  | 'announcement'
+  | 'join_request'
+  | 'member_removed'
+  | 'role_changed'
+  | 'member_joined'
+  | 'invitation_result'
+  | 'chat_message';
 
 // docs/design/data-model.md 3.13章(仕様書9.3 Notifications)。
-// referenceIdはtypeに応じてpostId/requestId/announcementIdのいずれか(#43)。
+// referenceIdはtypeに応じてpostId/requestId/announcementId/renId/invitationId/
+// chatIdのいずれか(#43、typeごとの対応はNotificationsScreen.tsxを参照)。
 export interface AppNotification {
   id: string;
   userId: string;

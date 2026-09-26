@@ -1,34 +1,112 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   collection,
   doc,
   addDoc,
+  deleteDoc,
   getDoc,
   getDocs,
+  setDoc,
   onSnapshot,
   query,
   orderBy,
   where,
   limit,
-  runTransaction,
   serverTimestamp,
   FirestoreError,
   Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { httpsCallable } from 'firebase/functions';
-import { db, storage, functions } from '../config/firebaseConfig';
+import { auth, db, storage, functions } from '../config/firebaseConfig';
+import { myDisplayName } from './users';
 import { CommentType, Post, PostComment } from '../types/firestore';
 
 /** 交流広場(posts / comments / likes)へのアクセスを集約する(docs/design/data-model.md 3.3〜3.5章)。 */
 
+const POSTS_CACHE_KEY = 'renkei.posts.v1';
+const COMMENTS_CACHE_KEY = (postId: string) => `renkei.comments.${postId}.v1`;
+
+export const POST_TAG_OPTIONS = [
+  '#男踊り',
+  '#女踊り',
+  '#初心者歓迎',
+  '#足の運び',
+  '#鳥追い笠',
+  '#腰落とし',
+  '#2拍子',
+  '#ちびっこ踊り',
+] as const;
+
+function sortNewest<T extends { createdAt?: { toMillis?: () => number } | null }>(list: T[]): T[] {
+  const ms = (v: T) => v.createdAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER;
+  return [...list].sort((a, b) => ms(b) - ms(a));
+}
+
+/**
+ * Firestoreの生データをPostへ正規化する。必須フィールドが欠けた古い/不正な
+ * ドキュメントでも画面側がクラッシュしないよう、必ずフォールバック値を入れる。
+ */
+function mapPost(id: string, d: any): Post {
+  return {
+    id,
+    userId: d.userId ?? '',
+    authorName: d.authorName ?? '踊り子',
+    title: d.title ?? '',
+    description: typeof d.description === 'string' ? d.description : undefined,
+    videoUrl: d.videoUrl ?? '',
+    score: typeof d.score === 'number' ? d.score : typeof d.totalScore === 'number' ? d.totalScore : undefined,
+    videoId: typeof d.videoId === 'string' ? d.videoId : undefined,
+    likeCount: typeof d.likeCount === 'number' ? d.likeCount : 0,
+    commentCount: typeof d.commentCount === 'number' ? d.commentCount : 0,
+    tags: Array.isArray(d.tags) ? d.tags : [],
+    createdAt: d.createdAt ?? undefined,
+  };
+}
+
+function mapComment(id: string, d: any): PostComment {
+  return {
+    id,
+    userId: d.userId ?? '',
+    userName: d.userName ?? d.authorName ?? '匿名',
+    text: d.text ?? '',
+    type: d.type === 'instructor' ? 'instructor' : 'normal',
+    renId: typeof d.renId === 'string' ? d.renId : undefined,
+    createdAt: d.createdAt ?? undefined,
+  };
+}
+
+/**
+ * 端末に保存済みの投稿一覧(前回セッションのぶん)。Firestore応答前の即時表示・オフライン用。
+ * 保存形式が古い(このアプリの更新前にキャッシュされた)場合でも安全なように、
+ * 読み込み時にもmapPostで正規化する。
+ */
+export async function loadCachedPosts(): Promise<Post[]> {
+  try {
+    const raw = await AsyncStorage.getItem(POSTS_CACHE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.map((p) => mapPost(p?.id ?? '', p ?? {})) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * orderByをクエリに付けると、createdAtがまだ確定していない投稿(直後の書き込みで
+ * serverTimestamp()がサーバ確定前)が一覧から丸ごと落ちるため、取得はコレクション
+ * そのまま・並べ替えはクライアント側で行う(新着順、未確定は先頭に置く)。
+ */
 export function subscribePosts(
   onData: (posts: Post[]) => void,
   onError: (error: FirestoreError) => void
 ): Unsubscribe {
-  const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
   return onSnapshot(
-    q,
-    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post))),
+    collection(db, 'posts'),
+    (snap) => {
+      const list = sortNewest(snap.docs.map((d) => mapPost(d.id, d.data())));
+      onData(list);
+      AsyncStorage.setItem(POSTS_CACHE_KEY, JSON.stringify(list.slice(0, 30))).catch(() => {});
+    },
     onError
   );
 }
@@ -36,7 +114,7 @@ export function subscribePosts(
 /** 通知(type:'comment')タップ時、投稿詳細へ直接遷移するために1件だけ取得する。 */
 export async function fetchPost(postId: string): Promise<Post | null> {
   const snap = await getDoc(doc(db, 'posts', postId));
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Post) : null;
+  return snap.exists() ? mapPost(snap.id, snap.data()) : null;
 }
 
 /** 特定ユーザーの投稿を新しい順に取得する(参加リクエストの申請者確認で使う。複合インデックス userId + createdAt)。 */
@@ -44,7 +122,7 @@ export async function fetchPostsByUser(userId: string, max: number): Promise<Pos
   const snap = await getDocs(
     query(collection(db, 'posts'), where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(max))
   );
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Post));
+  return snap.docs.map((d) => mapPost(d.id, d.data()));
 }
 
 /** 投稿に指導者コメント(type: 'instructor')が1件でも付いているか(R-02の「未アドバイス優先」並び替えで使う)。 */
@@ -55,51 +133,84 @@ export async function hasInstructorAdvice(postId: string): Promise<boolean> {
   return !snap.empty;
 }
 
-export function subscribePostComments(
+/**
+ * 端末に保存済みのコメント(前回セッション分)。Firestore応答前の即時表示・オフライン用。
+ * 読み込み時にもmapCommentで正規化する(理由はloadCachedPostsと同様)。
+ */
+export async function loadCachedComments(postId: string): Promise<PostComment[]> {
+  try {
+    const raw = await AsyncStorage.getItem(COMMENTS_CACHE_KEY(postId));
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.map((c) => mapComment(c?.id ?? '', c ?? {})) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function subscribeComments(
   postId: string,
   onData: (comments: PostComment[]) => void,
   onError: (error: FirestoreError) => void
 ): Unsubscribe {
-  const q = query(collection(db, 'posts', postId, 'comments'), orderBy('createdAt', 'desc'));
   return onSnapshot(
-    q,
-    (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data() } as PostComment))),
+    collection(db, 'posts', postId, 'comments'),
+    (snap) => {
+      const list = sortNewest(snap.docs.map((d) => mapComment(d.id, d.data())));
+      onData(list);
+      AsyncStorage.setItem(COMMENTS_CACHE_KEY(postId), JSON.stringify(list.slice(0, 50))).catch(() => {});
+    },
     onError
   );
 }
 
 /**
- * コメント(師匠の教え/応援)を投稿する。type:'instructor'の場合はrenIdが必須
- * (「どの連の管理者としての発言か」の記録。firestore.rulesがrenIdに対する
- * isRenAdmin()を検証するため、管理者でなければ拒否される。#31)。
+ * コメント(師匠の教え/応援)を投稿する。userId/userNameはログイン中ユーザーから解決する。
+ * type:'instructor'の場合はrenIdが必須(「どの連の管理者としての発言か」の記録。
+ * firestore.rulesがrenIdに対するisRenAdmin()を検証するため、管理者でなければ拒否される。#31)。
  * commentCountはCloud Functionsトリガ(onCommentWrite)がcount()集計で更新するため触らない。
  */
-export async function addPostComment(
+export async function addComment(
   postId: string,
-  input: { userId: string; userName: string; text: string; type: CommentType; renId?: string }
+  input: { text: string; type: CommentType; renId?: string }
 ): Promise<void> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('ログインが必要です');
+  const userName = await myDisplayName();
+
   await addDoc(collection(db, 'posts', postId, 'comments'), {
-    userId: input.userId,
-    userName: input.userName,
-    text: input.text,
+    userId: user.uid,
+    userName,
+    text: input.text.trim(),
     type: input.type,
-    ...(input.renId ? {renId: input.renId} : {}),
+    ...(input.renId ? { renId: input.renId } : {}),
     createdAt: serverTimestamp(),
   });
 }
 
+/** 自分がこの投稿にいいね済みか。 */
+export async function isLiked(postId: string): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) return false;
+  const snap = await getDoc(doc(db, 'posts', postId, 'likes', user.uid));
+  return snap.exists();
+}
+
 /**
- * 投稿に拍手する。
+ * いいねを切り替える(いいね⇔取り消し)。
  * likesのドキュメントIDをuidにして1人1回を保証する(increment()は使わない。docs/rules/coding.md 4章)。
- * likeCountはトリガ(onLikeWrite)がcount()集計で更新する。
+ * likeCountはトリガ(onLikeWrite)がcount()集計で更新するため、ここではlikesドキュメントの作成/削除のみ行う。
  */
-export async function likePost(postId: string, uid: string): Promise<void> {
-  const likeRef = doc(db, 'posts', postId, 'likes', uid);
-  await runTransaction(db, async (transaction) => {
-    const likeSnap = await transaction.get(likeRef);
-    if (likeSnap.exists()) return; // 二重いいねを防ぐ
-    transaction.set(likeRef, { userId: uid, createdAt: serverTimestamp() });
-  });
+export async function toggleLike(postId: string, currentlyLiked: boolean): Promise<boolean> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('ログインが必要です');
+  const likeRef = doc(db, 'posts', postId, 'likes', user.uid);
+
+  if (currentlyLiked) {
+    await deleteDoc(likeRef);
+    return false;
+  }
+  await setDoc(likeRef, { userId: user.uid, createdAt: serverTimestamp() });
+  return true;
 }
 
 /** 投稿動画をStorageへアップロードし、表示用URLを返す。 */
@@ -115,8 +226,9 @@ export interface PublishPostInput {
   title: string;
   authorName: string;
   videoUrl: string;
+  description?: string;
   tags: string[];
-  /** 練習動画(videos)から投稿するとき。サーバが AI 採点の結果を投稿に載せる */
+  /** 練習動画(videos)から投稿するとき。サーバがAI採点の結果を投稿に載せる */
   videoId?: string;
 }
 
@@ -124,7 +236,62 @@ export interface PublishPostInput {
  * FN-03 publishPost。スコアとカウンタの初期化はクライアントで改ざんできないよう
  * Cloud Functions側で行う(#47。現状は縮小版で、videos.visibilityの更新は未実装)。
  */
-export async function publishPost(input: PublishPostInput): Promise<void> {
-  const callable = httpsCallable(functions, 'publishPost');
-  await callable(input);
+export async function publishPost(input: PublishPostInput): Promise<{ postId: string }> {
+  const callable = httpsCallable<PublishPostInput, { postId: string }>(functions, 'publishPost');
+  const result = await callable(input);
+  return result.data;
+}
+
+/**
+ * 端末上の動画ファイルをアップロードしてそのまま投稿する(録画直後の投稿フォーム用)。
+ * authorNameはログイン中ユーザーから解決する。
+ */
+export async function uploadVideoAndPublish(params: {
+  uri: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  videoId?: string;
+}): Promise<{ postId: string }> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('ログインが必要です');
+
+  const res = await fetch(params.uri);
+  const blob = await res.blob();
+  const videoUrl = await uploadPostVideo(blob);
+
+  const authorName = await myDisplayName();
+  return publishPost({
+    title: params.title.trim(),
+    description: params.description?.trim() || undefined,
+    tags: params.tags ?? [],
+    videoUrl,
+    authorName,
+    videoId: params.videoId,
+  });
+}
+
+/**
+ * すでにStorageにある動画(自主稽古で撮った動画・練習動画など)を再アップロードせず
+ * そのまま投稿する(解析結果画面の「投稿する」用)。
+ */
+export async function publishExistingVideo(params: {
+  videoUrl: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+  videoId?: string;
+}): Promise<{ postId: string }> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('ログインが必要です');
+
+  const authorName = await myDisplayName();
+  return publishPost({
+    title: params.title.trim(),
+    description: params.description?.trim() || undefined,
+    tags: params.tags ?? [],
+    videoUrl: params.videoUrl,
+    authorName,
+    videoId: params.videoId,
+  });
 }

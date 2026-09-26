@@ -35,6 +35,7 @@ export interface PracticeVideo {
   analysisStatus: AnalysisStatus;
   latestAnalysisId?: string;
   storagePath?: string;
+  downloadUrl?: string;
   poseSeriesPath?: string;
   durationMs?: number;
   danceType?: DanceType;
@@ -62,12 +63,18 @@ export async function createPracticeVideo(input: {
   return refDoc.id;
 }
 
-/** 動画本体を Storage へ上げ、videos.storagePath を更新する。 */
+/**
+ * 動画本体を Storage へ上げ、videos.storagePath を更新する。
+ * 稽古手帳（VideoListScreen）が再アップロードなしでサムネイルを表示できるよう
+ * downloadUrl も合わせて保存する。
+ */
 export async function uploadPracticeVideo(uid: string, videoId: string, blob: Blob, contentType: string): Promise<string> {
   const ext = contentType.includes('mp4') ? 'mp4' : 'webm';
   const path = `users/${uid}/videos/${videoId}.${ext}`;
-  await uploadBytes(ref(storage, path), blob, { contentType });
-  await updateDoc(doc(db, 'videos', videoId), { storagePath: path });
+  const storageRef = ref(storage, path);
+  await uploadBytes(storageRef, blob, { contentType });
+  const downloadUrl = await getDownloadURL(storageRef);
+  await updateDoc(doc(db, 'videos', videoId), { storagePath: path, downloadUrl });
   return path;
 }
 

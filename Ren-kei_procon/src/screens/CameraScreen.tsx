@@ -4,18 +4,23 @@
  * ライブカメラ + 骨格表示、右側に LIVE SCORE・判定ゲージ・GREAT/GOOD/MISS 回数、
  * 映像上に GREAT 等と改善メッセージを重ねる。終了時に FN-01 でスコアを確定し U-03 へ。
  * LIVE SCORE(Game Score)は UX 用の参考値で、履歴に残る Analysis Score とは別物(D-04)。
+ *
+ * 判定ロジックは src/features/pose・src/features/rules・useLiveAnalysis にあり、
+ * この画面はそれを呼び出して表示するだけ（判定ロジックをここに書かない）。
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert } from "../utils/alert";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import PoseCameraView from "../components/PoseCameraView";
+import PoseCameraView, { POSE_CAMERA_SUPPORTED } from "../components/PoseCameraView";
 import { useAuth } from "../hooks/useAuth";
 import { useLiveAnalysis } from "../features/analysis/useLiveAnalysis";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
 import { RuleSnapshot } from "../features/rules/types";
-import { colors } from "../theme/colors";
+import { colors, spacing, radius, typography } from "../theme";
+import { NarutoLoader } from "../components/motifs";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
@@ -32,8 +37,8 @@ const GAUGE_LABELS: Record<string, string> = {
 
 const GRADE_COLORS: Record<string, string> = {
   GREAT: colors.gold,
-  GOOD: "#4ADE80",
-  MISS: colors.vermilion,
+  GOOD: colors.goldBright,
+  MISS: colors.aka,
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -52,7 +57,6 @@ function mergeGauges(gauges: RuleSnapshot[]): { ruleId: string; label: string; v
   for (const g of gauges) {
     const label = GAUGE_LABELS[g.ruleId];
     if (!label) continue;
-    // HOLDING 中は進捗、それ以外は条件への近さを見せる
     const v = g.state === "HOLDING" ? 0.5 + 0.5 * g.progress : g.state === "NOT_READY" ? 0 : 0.5 * g.closeness;
     const cur = map.get(g.ruleId);
     if (!cur || v > cur.value) map.set(g.ruleId, { ruleId: g.ruleId, label, value: v, holding: g.state === "HOLDING" });
@@ -113,6 +117,23 @@ export default function CameraScreen() {
   const analyzing = snapshot.status === "analyzing";
   const elapsedSec = Math.floor(snapshot.elapsedMs / 1000);
 
+  // リアルタイム判定はWeb版のみ対応(TBD-01)。スマホアプリでは判定不能な画面を
+  // 中途半端に出さず、その場でわかる案内に差し替える。
+  if (!POSE_CAMERA_SUPPORTED) {
+    return (
+      <View style={styles.unsupportedContainer}>
+        <Text style={styles.unsupportedTitle}>この端末では未対応です</Text>
+        <Text style={styles.unsupportedText}>
+          自主稽古のAI解析（動きのリアルタイム判定）は、現在パソコンのブラウザ版のみ対応しています。{"\n\n"}
+          お手数ですが、パソコンでこのアプリを開いて自主稽古をお試しください。
+        </Text>
+        <TouchableOpacity style={styles.unsupportedButton} onPress={() => navigation.goBack()} activeOpacity={0.85}>
+          <Text style={styles.unsupportedButtonText}>戻る</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.videoArea}>
@@ -125,7 +146,7 @@ export default function CameraScreen() {
           </View>
           {analyzing && (
             <Text style={styles.metaText}>
-              {String(Math.floor(elapsedSec / 60)).padStart(2, "0")}:{String(elapsedSec % 60).padStart(2, "0")}  {snapshot.fps.toFixed(0)}fps / {snapshot.inferenceMs.toFixed(0)}ms
+              {String(Math.floor(elapsedSec / 60)).padStart(2, "0")}:{String(elapsedSec % 60).padStart(2, "0")}　{snapshot.fps.toFixed(0)}fps
             </Text>
           )}
           {warningMessage && analyzing && (
@@ -181,24 +202,29 @@ export default function CameraScreen() {
       {/* 下: 操作 */}
       <ScrollView style={styles.bottom} contentContainerStyle={styles.bottomContent}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoText}>{danceType === "male" ? "男踊り" : "女踊り"}</Text>
-          <Text style={styles.infoText}>{scorePart === "feet" ? "足だけ" : scorePart === "hands" ? "手だけ" : "全体"}</Text>
-          <Text style={styles.infoText}>基準 {baseBpm ?? 112} BPM</Text>
+          <View style={styles.infoTag}>
+            <Text style={styles.infoText}>{danceType === "male" ? "男踊り" : "女踊り"}</Text>
+          </View>
+          <View style={styles.infoTag}>
+            <Text style={styles.infoText}>{scorePart === "feet" ? "足だけ" : scorePart === "hands" ? "手だけ" : "全体"}</Text>
+          </View>
+          <View style={styles.infoTag}>
+            <Text style={styles.infoText}>基準 {baseBpm ?? 112} BPM</Text>
+          </View>
           {snapshot.ruleSource && (
             <Text style={styles.infoMuted}>
-              ルール {snapshot.analysisVersion}({snapshot.ruleSource === "remote" ? "サーバ設定" : "内蔵の既定値"})
+              ルール {snapshot.analysisVersion}（{snapshot.ruleSource === "remote" ? "サーバ設定" : "内蔵の既定値"}）
             </Text>
           )}
           {__DEV__ && (
             // 採点は Cloud Functions が必要。どちらに繋いでいるかを開発時だけ出す
-            // (本番に未デプロイのまま試すと、採点だけが CORS で失敗して原因が分かりにくい)
             <Text style={styles.infoMuted}>接続先: {USING_FIREBASE_EMULATOR ? "エミュレータ" : "本番"}</Text>
           )}
         </View>
         {snapshot.errorMessage && <Text style={styles.errorText}>{snapshot.errorMessage}</Text>}
         {canRetryFinalize && (
           <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={onRetry}>
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
+            {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
           </TouchableOpacity>
         )}
         <View style={styles.buttons}>
@@ -208,12 +234,16 @@ export default function CameraScreen() {
               disabled={snapshot.status !== "ready" || busy}
               onPress={start}
             >
-              {snapshot.status === "loading" ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>判定を開始</Text>}
+              {snapshot.status === "loading" ? (
+                <NarutoLoader size={20} color={colors.textOnGold} />
+              ) : (
+                <Text style={styles.primaryButtonText}>判定を開始</Text>
+              )}
             </TouchableOpacity>
           ) : (
             <>
               <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={onFinish}>
-                {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>終了して採点</Text>}
+                {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>終了して採点</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
                 <Text style={styles.secondaryButtonText}>中止</Text>
@@ -227,7 +257,7 @@ export default function CameraScreen() {
           )}
         </View>
         <Text style={styles.footnote}>
-          LIVE SCORE は練習中の目安です。履歴に残る 0〜100 点の評価は終了後にサーバで確定します。
+          LIVE SCORE は練習中の目安です。{"\n"}極め度（0〜100点）は終了後にサーバで確定します。
         </Text>
       </ScrollView>
     </View>
@@ -235,41 +265,48 @@ export default function CameraScreen() {
 }
 
 const styles = StyleSheet.create({
+  unsupportedContainer: { flex: 1, backgroundColor: colors.indigoDeep, alignItems: "center", justifyContent: "center", padding: spacing.xl },
+  unsupportedTitle: { ...typography.titleSerif, color: colors.textPrimary, marginBottom: spacing.md },
+  unsupportedText: { ...typography.body, color: colors.textSecondary, textAlign: "center", lineHeight: 20 },
+  unsupportedButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, paddingHorizontal: spacing.xxl, borderRadius: radius.sm, marginTop: spacing.xl },
+  unsupportedButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
+
   container: { flex: 1, backgroundColor: "#000" },
   videoArea: { flex: 1, position: "relative" },
-  topBar: { position: "absolute", left: 12, top: 12, right: 12, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8, pointerEvents: "none" },
-  statusChip: { backgroundColor: "rgba(0,0,0,0.6)", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  statusChipLive: { backgroundColor: colors.vermilion },
-  statusText: { color: "#fff", fontWeight: "bold", fontSize: 13, letterSpacing: 1 },
-  metaText: { color: "#fff", fontSize: 12, backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  warningChip: { backgroundColor: "rgba(230,0,18,0.85)", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 },
-  warningText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  topBar: { position: "absolute", left: spacing.md, top: spacing.md, right: spacing.md, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, pointerEvents: "none" },
+  statusChip: { backgroundColor: "rgba(11,19,43,0.75)", borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: colors.indigoLine },
+  statusChipLive: { backgroundColor: colors.aka, borderColor: colors.aka },
+  statusText: { ...typography.caption, color: colors.textPrimary, fontWeight: "700", letterSpacing: 1 },
+  metaText: { ...typography.caption, color: colors.textPrimary, backgroundColor: "rgba(11,19,43,0.6)", paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
+  warningChip: { backgroundColor: colors.aka, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4 },
+  warningText: { ...typography.caption, color: colors.textOnAka, fontWeight: "700" },
   centerOverlay: { position: "absolute", left: 0, right: 0, top: "30%", alignItems: "center", pointerEvents: "none" },
-  gradeFlash: { fontSize: 56, fontWeight: "900", letterSpacing: 4, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
-  adviceText: { marginTop: 8, color: "#fff", fontSize: 18, fontWeight: "bold", backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8 },
-  sidePanel: { position: "absolute", right: 12, top: 56, width: 190, backgroundColor: "rgba(0,30,67,0.8)", borderRadius: 12, padding: 12, pointerEvents: "none" },
-  liveLabel: { color: colors.gold, fontSize: 11, fontWeight: "bold", letterSpacing: 2 },
-  liveScore: { color: "#fff", fontSize: 40, fontWeight: "900", lineHeight: 44 },
+  gradeFlash: { ...typography.displaySerif, fontSize: 56, letterSpacing: 4, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
+  adviceText: { marginTop: spacing.sm, color: colors.textPrimary, fontSize: 18, fontWeight: "700", backgroundColor: "rgba(11,19,43,0.7)", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.sm },
+  sidePanel: { position: "absolute", right: spacing.md, top: 56, width: 190, backgroundColor: "rgba(11,19,43,0.85)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, pointerEvents: "none" },
+  liveLabel: { ...typography.sectionLabel, color: colors.gold },
+  liveScore: { color: colors.textPrimary, fontSize: 40, fontWeight: "900", lineHeight: 44 },
   combo: { color: colors.gold, fontWeight: "bold", marginBottom: 4 },
-  countsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap" },
-  countText: { fontSize: 11, fontWeight: "bold" },
-  gaugeRow: { marginTop: 6 },
-  gaugeLabel: { color: "#fff", fontSize: 11, marginBottom: 2 },
-  gaugeTrack: { height: 8, backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 4, overflow: "hidden" },
-  gaugeFill: { height: 8, backgroundColor: "#60A5FA", borderRadius: 4 },
+  countsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap" },
+  countText: { ...typography.caption, fontWeight: "700" },
+  gaugeRow: { marginTop: spacing.sm },
+  gaugeLabel: { ...typography.caption, color: colors.textPrimary, marginBottom: 2 },
+  gaugeTrack: { height: 8, backgroundColor: colors.indigoRaised, borderRadius: 4, overflow: "hidden" },
+  gaugeFill: { height: 8, backgroundColor: colors.goldBright, borderRadius: 4 },
   gaugeFillHolding: { backgroundColor: colors.gold },
-  rhythmText: { color: "#fff", fontSize: 12 },
-  bottom: { maxHeight: 190, backgroundColor: colors.indigo },
-  bottomContent: { padding: 14 },
-  infoRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 8 },
-  infoText: { color: "#fff", fontWeight: "bold" },
-  infoMuted: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
-  errorText: { color: "#FCA5A5", marginBottom: 8 },
-  buttons: { flexDirection: "row", gap: 10, alignItems: "center", flexWrap: "wrap" },
-  primaryButton: { backgroundColor: colors.vermilion, paddingVertical: 12, paddingHorizontal: 22, borderRadius: 10, minWidth: 140, alignItems: "center" },
-  primaryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
-  secondaryButton: { borderWidth: 1, borderColor: "rgba(255,255,255,0.5)", paddingVertical: 12, paddingHorizontal: 18, borderRadius: 10 },
-  secondaryButtonText: { color: "#fff", fontWeight: "600" },
+  rhythmText: { ...typography.caption, color: colors.textPrimary },
+  bottom: { maxHeight: 200, backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine },
+  bottomContent: { padding: spacing.md },
+  infoRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, alignItems: "center", marginBottom: spacing.sm },
+  infoTag: { backgroundColor: colors.indigoRaised, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 3 },
+  infoText: { ...typography.caption, color: colors.gold, fontWeight: "700" },
+  infoMuted: { ...typography.caption, color: colors.textMuted },
+  errorText: { color: colors.aka, marginBottom: spacing.sm },
+  buttons: { flexDirection: "row", gap: spacing.sm, alignItems: "center", flexWrap: "wrap" },
+  primaryButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: radius.sm, minWidth: 140, alignItems: "center" },
+  primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
+  secondaryButton: { borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.sm },
+  secondaryButtonText: { ...typography.button, color: colors.textPrimary },
   buttonDisabled: { opacity: 0.5 },
-  footnote: { color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 10 },
+  footnote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md, lineHeight: 16 },
 });

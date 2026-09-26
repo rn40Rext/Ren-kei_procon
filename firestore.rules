@@ -190,6 +190,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // invitations: 連長クラスが未所属の踊り手を見つけて声を掛ける機能(src/data/invitations.ts)。
+    // 連機能がまだ無いプロトタイプ限定の実装のため、ユーザー間の直接のお誘いとして扱う。
+    match /invitations/{invitationId} {
+      // 当事者(送った本人・宛先本人)のみ閲覧できる。
+      allow read: if isSignedIn()
+                  && (resource.data.fromUserId == request.auth.uid
+                      || resource.data.toUserId == request.auth.uid);
+      // 送信者本人が作成し、statusは必ず'pending'で始める。
+      allow create: if isSignedIn()
+                    && request.resource.data.fromUserId == request.auth.uid
+                    && request.resource.data.status == 'pending';
+      // 宛先本人のみ応答(承諾・辞退)できる。statusとupdatedAt以外は変更不可。
+      allow update: if isSignedIn()
+                    && resource.data.toUserId == request.auth.uid
+                    && resource.data.status == 'pending'
+                    && request.resource.data.status in ['accepted', 'declined']
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['fromUserId', 'toUserId', 'fromUserName', 'toUserName', 'message', 'createdAt']);
+      // 送信者本人のみ取り消せる。
+      allow delete: if isSignedIn() && resource.data.fromUserId == request.auth.uid;
+    }
+
     // renStyle*: 連スタイル類似度まわり。参照動画の登録・閲覧は連管理者のみ。
     // renId はドキュメントのフィールドなので、createではresourceが無くresource.data
     // を参照できない。request.resource側で判定する(create/update以降で分ける)。

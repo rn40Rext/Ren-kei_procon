@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Alert } from "../utils/alert";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
@@ -152,7 +152,7 @@ export default function StyleResultScreen() {
 
       {running && (
         <View style={styles.centeredBlock}>
-          <ActivityIndicator size="large" color={colors.indigo} />
+          <ActivityIndicator size="large" color={colors.gold} />
           <Text style={styles.muted}>解析しています…</Text>
         </View>
       )}
@@ -223,11 +223,11 @@ export default function StyleResultScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
   content: { padding: 20, paddingBottom: 48 },
   centered: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.indigoDeep,
     padding: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -236,23 +236,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: colors.indigo,
+    color: colors.textPrimaryOnIndigo,
     marginBottom: 8,
   },
-  lead: { fontSize: 14, color: colors.textSecondary, marginBottom: 20 },
+  lead: { fontSize: 14, color: colors.textSecondaryOnIndigo, marginBottom: 20 },
   headline: {
     fontSize: 20,
     fontWeight: "bold",
-    color: colors.textPrimary,
+    color: colors.textPrimaryOnIndigo,
     marginBottom: 12,
   },
-  muted: { fontSize: 13, color: colors.textSecondary, marginTop: 8 },
+  muted: { fontSize: 13, color: colors.textMuted, marginTop: 8 },
   card: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
     padding: 16,
     marginBottom: 12,
   },
@@ -265,49 +265,53 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 12,
   },
-  rankText: { fontSize: 16, fontWeight: "bold", color: colors.indigo },
+  rankText: { fontSize: 16, fontWeight: "bold", color: colors.textOnGold },
   cardBody: { flex: 1 },
   renName: {
     fontSize: 17,
     fontWeight: "bold",
-    color: colors.textPrimary,
+    color: colors.textPrimaryOnIndigo,
   },
-  score: { fontSize: 15, color: colors.indigoLight, marginTop: 4 },
-  sampleNote: { fontSize: 12, color: colors.noticeText, marginTop: 6 },
+  score: { fontSize: 15, color: colors.goldBright, marginTop: 4 },
+  sampleNote: { fontSize: 12, color: colors.gold, marginTop: 6 },
   linkButton: { marginTop: 10 },
   linkButtonText: {
     fontSize: 14,
-    color: colors.vermilion,
+    color: colors.aka,
     fontWeight: "600",
   },
   notice: {
-    backgroundColor: colors.noticeBackground,
+    backgroundColor: colors.goldSoft,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
     borderRadius: 10,
     padding: 14,
     marginTop: 8,
   },
-  noticeText: { fontSize: 13, color: colors.noticeText, lineHeight: 20 },
+  noticeText: { fontSize: 13, color: colors.gold, lineHeight: 20 },
   errorBox: {
-    backgroundColor: colors.errorBackground,
+    backgroundColor: colors.akaSoft,
+    borderWidth: 1,
+    borderColor: colors.aka,
     borderRadius: 10,
     padding: 16,
   },
-  errorText: { fontSize: 14, color: colors.errorText, marginBottom: 12 },
+  errorText: { fontSize: 14, color: colors.aka, marginBottom: 12 },
   retryButton: {
-    backgroundColor: colors.indigo,
+    backgroundColor: colors.gold,
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
   },
-  retryButtonText: { color: colors.textOnDark, fontWeight: "bold" },
+  retryButtonText: { color: colors.textOnGold, fontWeight: "bold" },
   secondaryButton: {
     marginTop: 24,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
     paddingVertical: 12,
     alignItems: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
   },
-  secondaryButtonText: { color: colors.textPrimary, fontWeight: "600" },
+  secondaryButtonText: { color: colors.textPrimaryOnIndigo, fontWeight: "600" },
 });

@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, 
-  TextInput, Modal, ActivityIndicator, Alert, Dimensions, Platform
+import {
+  View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,
+  TextInput, Modal, ActivityIndicator,
 } from 'react-native';
+import { Alert } from '../utils/alert';
 import { Play, Heart, MessageSquare, Plus, Search, Video as VideoIcon, X, ChevronLeft, Send, Award, User } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av';
+import { colors, spacing, radius, typography } from '../theme';
 
 import { auth } from '../config/firebaseConfig';
 import {
   subscribePosts,
-  subscribePostComments,
-  addPostComment,
+  subscribeComments,
+  addComment,
   fetchPost,
-  likePost,
+  toggleLike,
   uploadPostVideo,
   publishPost,
 } from '../repositories/posts';
 import { Post, PostComment } from '../types/firestore';
 import { useAdminRens } from '../hooks/useAdminRens';
-import BottomNav from '../components/BottomNav';
+import AppMenu from '../components/AppMenu';
 
-const { width } = Dimensions.get('window');
 const TAG_OPTIONS = ['#男踊り', '#女踊り', '#初心者歓迎', '#足の運び', '#鳥追い笠', '#腰落とし', '#2拍子', '#ちびっこ踊り'];
 
 export default function CommunityScreen() {
@@ -154,46 +154,50 @@ export default function CommunityScreen() {
       <View style={styles.topNav}>
         <View style={styles.logoRow}>
           <View style={styles.logoBox}><Text style={styles.logoText}>連</Text></View>
-          <View style={{marginLeft: 8}}>
-            <Text style={styles.brandName}>ren-kei <View style={styles.badgePink}><Text style={styles.badgePinkText}>阿波踊り交流広場</Text></View></Text>
+          <View style={{ marginLeft: spacing.sm, flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.brandName}>ren-kei</Text>
+              <View style={styles.badgeGold}><Text style={styles.badgeGoldText}>阿波踊り交流広場</Text></View>
+            </View>
             <Text style={styles.brandSub}>練習動画のAI採点・連の絆を深める広場</Text>
           </View>
         </View>
+        <AppMenu />
       </View>
 
       <ScrollView stickyHeaderIndices={[2]}>
-        <LinearGradient colors={['#1E3A8A', '#3B82F6']} start={{x:0, y:0}} end={{x:1, y:0}} style={styles.hero}>
-          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>✨ リアルタイム共有</Text></View>
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>リアルタイム共有</Text></View>
           <View style={styles.heroContentRow}>
-            <View style={{flex: 1}}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.heroTitle}>阿波踊り 交流広場</Text>
               <Text style={styles.heroSub}>稽古の成果を全国の連に届けよう</Text>
             </View>
-            <TouchableOpacity style={styles.heroBtn} onPress={() => setIsPostModalOpen(true)}>
-              <Plus color="#2563EB" size={20} />
+            <TouchableOpacity style={styles.heroBtn} onPress={() => setIsPostModalOpen(true)} activeOpacity={0.85}>
+              <Plus color={colors.textOnGold} size={19} />
               <Text style={styles.heroBtnText}>動画を披露</Text>
             </TouchableOpacity>
           </View>
-        </LinearGradient>
-
-        <View style={styles.searchSection}>
-          <View style={styles.searchBar}><Search color="#94A3B8" size={20} /><TextInput placeholder="検索..." style={styles.searchInput} /></View>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagBar} contentContainerStyle={{paddingRight: 40}}>
+        <View style={styles.searchSection}>
+          <View style={styles.searchBar}><Search color={colors.textMuted} size={18} /><TextInput placeholder="検索..." placeholderTextColor={colors.textMuted} style={styles.searchInput} /></View>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagBar} contentContainerStyle={{ paddingRight: 40 }}>
            {['すべて', ...TAG_OPTIONS].map(t => (
-             <TouchableOpacity key={t} onPress={() => setSelectedTagFilter(t)} style={[styles.tag, selectedTagFilter === t && styles.tagActive]}>
+             <TouchableOpacity key={t} onPress={() => setSelectedTagFilter(t)} style={[styles.tag, selectedTagFilter === t && styles.tagActive]} activeOpacity={0.85}>
                <Text style={[styles.tagText, selectedTagFilter === t && styles.tagTextActive]}>{t}</Text>
              </TouchableOpacity>
            ))}
         </ScrollView>
 
         <View style={styles.grid}>
-          {loading ? <ActivityIndicator style={{marginTop: 50}}/> : filteredPosts.map(p => (
-            <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)}>
+          {loading ? <ActivityIndicator color={colors.gold} style={{ marginTop: spacing.xxl }} /> : filteredPosts.map(p => (
+            <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)} activeOpacity={0.85}>
               <View style={styles.cardMain}>
                 <View style={styles.thumbWrapper}>
-                  <Video style={StyleSheet.absoluteFill} source={{uri: p.videoUrl}} resizeMode={ResizeMode.COVER} shouldPlay={false} />
+                  <Video style={StyleSheet.absoluteFill} source={{ uri: p.videoUrl }} resizeMode={ResizeMode.COVER} shouldPlay={false} />
                   <View style={styles.scoreBadgeMini}><Text style={styles.scoreValueMini}>{formatAiScoreShort(p.score)}</Text></View>
                 </View>
                 <View style={styles.cardBody}>
@@ -205,39 +209,51 @@ export default function CommunityScreen() {
                 </View>
               </View>
               <View style={styles.cardFooter}>
-                <View style={styles.statItem}><Heart size={16} color="#F43F5E" /><Text style={styles.statText}>{p.likeCount}</Text></View>
-                <View style={styles.statItem}><MessageSquare size={16} color="#64748B" /><Text style={styles.statText}>{p.commentCount}</Text></View>
+                <View style={styles.statItem}><Heart size={15} color={colors.aka} /><Text style={styles.statText}>{p.likeCount}</Text></View>
+                <View style={styles.statItem}><MessageSquare size={15} color={colors.textMuted} /><Text style={styles.statText}>{p.commentCount}</Text></View>
               </View>
             </TouchableOpacity>
           ))}
         </View>
-        <View style={{height: 100}} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* 投稿モーダル */}
-      <Modal visible={isPostModalOpen} animationType="slide">
-        <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
-          <View style={styles.modalHeader}><Text style={styles.modalTitle}>稽古動画を披露する</Text><TouchableOpacity onPress={()=>setIsPostModalOpen(false)}><X color="#000" /></TouchableOpacity></View>
-          <ScrollView style={{padding: 20}}>
-            <TouchableOpacity style={styles.picker} onPress={pickVideo}>
-              {postVideoUri ? <Video style={StyleSheet.absoluteFill} source={{uri: postVideoUri}} resizeMode={ResizeMode.CONTAIN} isLooping shouldPlay /> : <View style={{alignItems:'center'}}><VideoIcon size={48} color="#2563EB" /><Text style={{marginTop:10, color:'#2563EB', fontWeight:'bold'}}>動画を選択してください</Text></View>}
+      <Modal visible={isPostModalOpen} animationType="slide" onRequestClose={() => setIsPostModalOpen(false)}>
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>稽古動画を披露する</Text>
+            <TouchableOpacity onPress={() => setIsPostModalOpen(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <X color={colors.textMuted} size={20} />
+            </TouchableOpacity>
+          </View>
+          <ScrollView style={{ padding: spacing.xl }}>
+            <TouchableOpacity style={styles.picker} onPress={pickVideo} activeOpacity={0.85}>
+              {postVideoUri ? (
+                <Video style={StyleSheet.absoluteFill} source={{ uri: postVideoUri }} resizeMode={ResizeMode.CONTAIN} isLooping shouldPlay />
+              ) : (
+                <View style={{ alignItems: 'center' }}>
+                  <VideoIcon size={40} color={colors.gold} />
+                  <Text style={{ marginTop: spacing.sm, color: colors.gold, fontWeight: '700' }}>動画を選択してください</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <Text style={styles.label}>タイトル</Text>
-            <TextInput style={styles.input} placeholder="例：男踊り 基本の足運び" value={postTitle} onChangeText={setPostTitle} />
-            <Text style={styles.label}>タグ設定 (#複数選択可)</Text>
-            <View style={{flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20}}>
+            <TextInput style={styles.input} placeholder="例：男踊り 基本の足運び" placeholderTextColor={colors.textMuted} value={postTitle} onChangeText={setPostTitle} />
+            <Text style={styles.label}>タグ設定（#複数選択可）</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.xl }}>
               {TAG_OPTIONS.map(t => (
-                <TouchableOpacity key={t} onPress={() => postTags.includes(t) ? setPostTags(postTags.filter(x=>x!==t)) : setPostTags([...postTags, t])} style={[styles.tag, postTags.includes(t) && styles.tagActive]}>
+                <TouchableOpacity key={t} onPress={() => postTags.includes(t) ? setPostTags(postTags.filter(x => x !== t)) : setPostTags([...postTags, t])} style={[styles.tag, postTags.includes(t) && styles.tagActive]} activeOpacity={0.85}>
                   <Text style={[styles.tagText, postTags.includes(t) && styles.tagTextActive]}>{t}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.submitBtn} onPress={handlePost} disabled={isUploading}>{isUploading ? <ActivityIndicator color="#fff"/> : <Text style={styles.submitBtnText}>広場へ披露する</Text>}</TouchableOpacity>
+            <TouchableOpacity style={[styles.submitBtn, isUploading && styles.submitBtnDisabled]} onPress={handlePost} disabled={isUploading} activeOpacity={0.85}>
+              {isUploading ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.submitBtnText}>広場へ披露する</Text>}
+            </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
@@ -255,7 +271,7 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
   const canPostInstructor = adminRens.length > 0;
 
   useEffect(() => {
-    return subscribePostComments(
+    return subscribeComments(
       post.id,
       setComments,
       (error) => console.error('コメントの取得に失敗しました', error)
@@ -267,15 +283,12 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     const currentUser = auth.currentUser;
     if (!currentUser) return;
     if (tab === 'instructor' && !canPostInstructor) return;
-    const userName = currentUser.email?.split('@')[0] || "匿名";
 
     setSending(true);
     try {
       // commentCountはCloud Functionsトリガ(onCommentWrite)が
       // count()集計で自動更新するため、ここでは触らない
-      await addPostComment(post.id, {
-        userId: currentUser.uid,
-        userName,
+      await addComment(post.id, {
         text: text.trim(),
         type: tab,
         renId: tab === 'instructor' ? adminRens[0].renId : undefined,
@@ -295,24 +308,27 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
     try {
       // likeCountはCloud Functionsトリガ(onLikeWrite)がcount()集計で
       // 自動更新するため、ここではlikesドキュメントの作成のみ行う
-      await likePost(post.id, currentUser.uid);
+      await toggleLike(post.id, false);
     } catch (e) {
       Alert.alert("失敗", "拍手の送信に失敗しました");
     }
   };
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+    <SafeAreaView style={styles.detailContainer}>
       <View style={styles.detailHeader}>
-        <TouchableOpacity onPress={onBack} style={{flexDirection:'row', alignItems:'center'}}><ChevronLeft color="#2563EB" size={30} /><Text style={{color:'#2563EB', fontWeight:'bold'}}>戻る</Text></TouchableOpacity>
+        <TouchableOpacity onPress={onBack} style={{ flexDirection: 'row', alignItems: 'center' }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <ChevronLeft color={colors.gold} size={24} />
+          <Text style={{ color: colors.gold, fontWeight: '700' }}>戻る</Text>
+        </TouchableOpacity>
         <Text style={styles.detailNavTitle} numberOfLines={1}>{post.title}</Text>
       </View>
 
       <ScrollView stickyHeaderIndices={[2]}>
-        <View style={styles.detailVideoBox}><Video style={styles.detailFullVideo} source={{uri: post.videoUrl}} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping /></View>
+        <View style={styles.detailVideoBox}><Video style={styles.detailFullVideo} source={{ uri: post.videoUrl }} useNativeControls resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping /></View>
 
         <View style={styles.metaSection}>
-          <View style={styles.scoreBadgeLarge}><Award size={20} color="#FACC15" /><Text style={styles.scoreTextLarge}>{formatAiScore(post.score)}</Text></View>
+          <View style={styles.scoreBadgeLarge}><Award size={19} color={colors.gold} /><Text style={styles.scoreTextLarge}>{formatAiScore(post.score)}</Text></View>
 
           {/* 踊り子の名前をタップしてプロフィール画面へ遷移する */}
           <TouchableOpacity
@@ -321,14 +337,15 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
                 userName: post.authorName
             })}
             style={styles.authorProfileBtn}
+            activeOpacity={0.85}
           >
-            <User size={18} color="#2563EB" />
+            <User size={17} color={colors.gold} />
             <Text style={styles.detailAuthorTextClick}>踊り子：{post.authorName} のプロフィールを見る ＞</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.clapBtn} onPress={onLike}>
-            <Heart size={20} color="#E11D48" fill="#E11D48" />
-            <Text style={styles.clapBtnText}>拍手を送る ({post.likeCount})</Text>
+          <TouchableOpacity style={styles.clapBtn} onPress={onLike} activeOpacity={0.85}>
+            <Heart size={18} color={colors.aka} fill={colors.aka} />
+            <Text style={styles.clapBtnText}>拍手を送る（{post.likeCount}）</Text>
           </TouchableOpacity>
         </View>
 
@@ -339,7 +356,10 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
 
         <View style={styles.commentContainer}>
           {comments.filter(c => c.type === tab).map(c => (
-            <View key={c.id} style={styles.comBubble}><Text style={styles.comName}>👤 {c.userName}</Text><Text style={styles.comText}>{c.text}</Text></View>
+            <View key={c.id} style={styles.comBubble}>
+              <Text style={styles.comName}>{c.userName}</Text>
+              <Text style={styles.comText}>{c.text}</Text>
+            </View>
           ))}
         </View>
       </ScrollView>
@@ -350,9 +370,9 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
         </View>
       ) : (
         <View style={styles.inputDock}>
-          <TextInput style={styles.textInput} placeholder="感想やアドバイスを入力..." value={text} onChangeText={setText} />
-          <TouchableOpacity style={styles.sendBtn} onPress={onSend} disabled={sending}>
-            {sending ? <ActivityIndicator color="#fff" size="small" /> : <Send color="#fff" size={20} />}
+          <TextInput style={styles.textInput} placeholder="感想やアドバイスを入力..." placeholderTextColor={colors.textMuted} value={text} onChangeText={setText} />
+          <TouchableOpacity style={styles.sendBtn} onPress={onSend} disabled={sending} activeOpacity={0.85}>
+            {sending ? <ActivityIndicator color={colors.textOnGold} size="small" /> : <Send color={colors.textOnGold} size={19} />}
           </TouchableOpacity>
         </View>
       )}
@@ -361,81 +381,84 @@ function PostDetailScreen({ post, onBack }: { post: Post, onBack: () => void }) 
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  topNav: { height: 65, backgroundColor: '#fff', justifyContent: 'center', paddingHorizontal: 20, borderBottomWidth: 1, borderColor: '#E2E8F0' },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  topNav: { height: 65, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigo, paddingHorizontal: spacing.xl, borderBottomWidth: 1, borderColor: colors.indigoLine },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
-  logoBox: { width: 36, height: 36, backgroundColor: '#2563EB', borderRadius: 8, justifyContent:'center', alignItems:'center' },
-  logoText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  brandName: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
-  brandSub: { fontSize: 10, color: '#64748B', marginTop: 2 },
-  badgePink: { backgroundColor: '#FCE7F3', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 6 },
-  badgePinkText: { color: '#DB2777', fontSize: 9, fontWeight: 'bold' },
+  logoBox: { width: 36, height: 36, backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.gold, borderRadius: radius.sm, justifyContent: 'center', alignItems: 'center' },
+  logoText: { color: colors.gold, fontSize: 18, fontWeight: '900' },
+  brandName: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 16 },
+  brandSub: { ...typography.caption, color: colors.textMuted, marginTop: 2, fontSize: 10 },
+  badgeGold: { backgroundColor: colors.goldSoft, borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: spacing.sm },
+  badgeGoldText: { color: colors.gold, fontSize: 9, fontWeight: '700' },
 
-  hero: { padding: 25 },
-  heroBadge: { backgroundColor: 'rgba(255,255,255,0.2)', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 10 },
-  heroBadgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  hero: { padding: spacing.xl, backgroundColor: colors.indigo, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  heroBadge: { backgroundColor: colors.indigoRaised, alignSelf: 'flex-start', paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radius.pill, marginBottom: spacing.sm },
+  heroBadgeText: { color: colors.gold, fontSize: 11, fontWeight: '700' },
   heroContentRow: { flexDirection: 'row', alignItems: 'center' },
-  heroTitle: { fontSize: 28, fontWeight: '900', color: '#fff' },
-  heroSub: { color: 'rgba(255,255,255,0.9)', fontSize: 12, marginTop: 5 },
-  heroBtn: { backgroundColor: '#fff', flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 10, alignItems: 'center', marginLeft: 10 },
-  heroBtnText: { color: '#2563EB', fontWeight: 'bold', marginLeft: 5, fontSize: 13 },
+  heroTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 24 },
+  heroSub: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  heroBtn: { backgroundColor: colors.gold, flexDirection: 'row', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm, alignItems: 'center', marginLeft: spacing.sm },
+  heroBtnText: { color: colors.textOnGold, fontWeight: '700', marginLeft: 5, fontSize: 13 },
 
-  searchSection: { padding: 15, backgroundColor: '#fff' },
-  searchBar: { backgroundColor: '#F1F5F9', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, height: 45, borderRadius: 12 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 15 },
-  tagBar: { paddingLeft: 15, backgroundColor: '#fff', paddingBottom: 15 },
-  tag: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', marginRight: 8, borderWidth: 1, borderColor: '#E2E8F0' },
-  tagActive: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
-  tagText: { fontSize: 13, color: '#1E293B' },
-  tagTextActive: { color: '#fff', fontWeight: 'bold' },
+  searchSection: { padding: spacing.md, backgroundColor: colors.indigo },
+  searchBar: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, height: 42, borderRadius: radius.sm },
+  searchInput: { flex: 1, marginLeft: spacing.sm, color: colors.textPrimary, ...typography.body, fontSize: 14 },
+  tagBar: { paddingLeft: spacing.md, backgroundColor: colors.indigo, paddingBottom: spacing.md },
+  tag: { paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: colors.indigoRaised, marginRight: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
+  tagActive: { backgroundColor: colors.gold, borderColor: colors.gold },
+  tagText: { fontSize: 13, color: colors.textSecondary },
+  tagTextActive: { color: colors.textOnGold, fontWeight: '700' },
 
-  grid: { padding: 15 },
-  card: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden', elevation: 2 },
-  cardMain: { flexDirection: 'row', padding: 12 },
-  thumbWrapper: { width: 110, height: 110, borderRadius: 12, backgroundColor: '#000', overflow: 'hidden' },
-  scoreBadgeMini: { position: 'absolute', bottom: 6, left: 6, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
-  scoreValueMini: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  cardBody: { flex: 1, marginLeft: 15, justifyContent: 'center' },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginBottom: 8 },
+  grid: { padding: spacing.md },
+  card: { backgroundColor: colors.indigo, borderRadius: radius.lg, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.indigoLine, overflow: 'hidden' },
+  cardMain: { flexDirection: 'row', padding: spacing.md },
+  thumbWrapper: { width: 100, height: 100, borderRadius: radius.md, backgroundColor: '#000', overflow: 'hidden' },
+  scoreBadgeMini: { position: 'absolute', bottom: 6, left: 6, backgroundColor: 'rgba(11,19,43,0.8)', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
+  scoreValueMini: { color: colors.gold, fontSize: 10, fontWeight: '700' },
+  cardBody: { flex: 1, marginLeft: spacing.lg, justifyContent: 'center' },
+  cardTitle: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 16, marginBottom: spacing.sm },
   authorRow: { flexDirection: 'row', alignItems: 'center' },
-  avatarMini: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#E2E8F0', justifyContent:'center', alignItems:'center' },
-  avatarTextMini: { fontSize: 10 },
-  authorName: { marginLeft: 8, fontSize: 14, color: '#64748B' },
-  cardFooter: { flexDirection: 'row', paddingHorizontal: 15, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  statItem: { flexDirection: 'row', alignItems: 'center', marginRight: 20 },
-  statText: { fontSize: 13, marginLeft: 6, color: '#64748B' },
+  avatarMini: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.indigoRaised, justifyContent: 'center', alignItems: 'center' },
+  avatarTextMini: { fontSize: 10, color: colors.gold },
+  authorName: { marginLeft: spacing.sm, fontSize: 13, color: colors.textMuted },
+  cardFooter: { flexDirection: 'row', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: colors.indigoLine },
+  statItem: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.xl },
+  statText: { fontSize: 12, marginLeft: spacing.xs, color: colors.textMuted },
 
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderColor: '#eee' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold' },
-  picker: { height: 180, backgroundColor: '#F1F5F9', borderRadius: 15, borderStyle: 'dashed', borderWidth: 2, borderColor: '#2563EB', justifyContent:'center', alignItems:'center', marginBottom: 20, overflow:'hidden' },
-  label: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#1E293B' },
-  input: { backgroundColor: '#F8FAFC', padding: 15, borderRadius: 10, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0' },
-  submitBtn: { backgroundColor: '#2563EB', padding: 18, borderRadius: 12, alignItems: 'center' },
-  submitBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  modalContainer: { flex: 1, backgroundColor: colors.indigoDeep },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.xl, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
+  picker: { height: 180, backgroundColor: colors.indigoRaised, borderRadius: radius.md, borderStyle: 'dashed', borderWidth: 2, borderColor: colors.gold, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.xl, overflow: 'hidden' },
+  label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
+  input: { backgroundColor: colors.indigoRaised, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, borderRadius: radius.sm, marginBottom: spacing.xl, color: colors.textPrimary, ...typography.body },
+  submitBtn: { backgroundColor: colors.gold, padding: spacing.lg, borderRadius: radius.sm, alignItems: 'center' },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { color: colors.textOnGold, fontWeight: '700', fontSize: 16 },
 
-  detailHeader: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  detailNavTitle: { marginLeft: 15, fontSize: 16, fontWeight: 'bold', flex: 1 },
+  detailContainer: { flex: 1, backgroundColor: colors.indigoDeep },
+  detailHeader: { flexDirection: 'row', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderColor: colors.indigoLine, gap: spacing.md },
+  detailNavTitle: { fontSize: 15, fontWeight: '700', flex: 1, color: colors.textPrimary },
   detailVideoBox: { backgroundColor: '#000', height: 280 },
   detailFullVideo: { width: '100%', height: '100%' },
-  metaSection: { padding: 20, borderBottomWidth: 1, borderColor: '#F1F5F9' },
-  scoreBadgeLarge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E3A8A', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8, alignSelf: 'flex-start' },
-  scoreTextLarge: { color: '#FACC15', fontWeight: '900', marginLeft: 8, fontSize: 18 },
-  authorProfileBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 15, paddingVertical: 8 },
-  detailAuthorTextClick: { marginLeft: 8, fontSize: 15, color: '#2563EB', fontWeight: '600' },
-  clapBtn: { flexDirection: 'row', alignItems: 'center', marginTop: 15, paddingVertical: 12, paddingHorizontal: 20, backgroundColor: '#FFF1F2', borderRadius: 30, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#FDA4AF' },
-  clapBtnText: { color: '#E11D48', marginLeft: 10, fontWeight: 'bold' },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#F1F5F9' },
-  tabItem: { flex: 1, paddingVertical: 15, alignItems: 'center' },
-  tabActive: { borderBottomWidth: 3, borderBottomColor: '#2563EB' },
-  tabLabel: { color: '#64748B', fontWeight: 'bold' },
-  tabLabelActive: { color: '#2563EB' },
-  commentContainer: { padding: 20, minHeight: 200 },
-  comBubble: { backgroundColor: '#F8FAFC', padding: 15, borderRadius: 12, marginBottom: 15, borderLeftWidth: 4, borderLeftColor: '#2563EB' },
-  comName: { fontSize: 12, fontWeight: 'bold', color: '#2563EB', marginBottom: 5 },
-  comText: { fontSize: 15, lineHeight: 22 },
-  inputDock: { flexDirection: 'row', padding: 15, borderTopWidth: 1, borderColor: '#eee', backgroundColor: '#fff' },
-  textInput: { flex: 1, backgroundColor: '#F1F5F9', borderRadius: 25, paddingHorizontal: 20, height: 45 },
-  sendBtn: { backgroundColor: '#2563EB', width: 45, height: 45, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginLeft: 10 },
-  inputDockDisabled: { padding: 15, borderTopWidth: 1, borderColor: '#eee', backgroundColor: '#F8FAFC' },
-  inputDockDisabledText: { textAlign: 'center', fontSize: 12, color: '#64748B' },
+  metaSection: { padding: spacing.xl, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  scoreBadgeLarge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.indigo, borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.sm, alignSelf: 'flex-start' },
+  scoreTextLarge: { color: colors.gold, fontWeight: '900', marginLeft: spacing.sm, fontSize: 18 },
+  authorProfileBtn: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
+  detailAuthorTextClick: { marginLeft: spacing.sm, fontSize: 14, color: colors.gold, fontWeight: '600' },
+  clapBtn: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, backgroundColor: colors.akaSoft, borderRadius: radius.pill, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.aka },
+  clapBtnText: { color: colors.aka, marginLeft: spacing.sm, fontWeight: '700' },
+  tabBar: { flexDirection: 'row', backgroundColor: colors.indigoDeep, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  tabItem: { flex: 1, paddingVertical: spacing.lg, alignItems: 'center' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.gold },
+  tabLabel: { color: colors.textMuted, fontWeight: '700' },
+  tabLabelActive: { color: colors.gold },
+  commentContainer: { padding: spacing.xl, minHeight: 200 },
+  comBubble: { backgroundColor: colors.indigo, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.md, borderLeftWidth: 3, borderLeftColor: colors.gold },
+  comName: { fontSize: 12, fontWeight: '700', color: colors.gold, marginBottom: spacing.xs },
+  comText: { fontSize: 14, lineHeight: 21, color: colors.textSecondary },
+  inputDock: { flexDirection: 'row', padding: spacing.md, borderTopWidth: 1, borderColor: colors.indigoLine, backgroundColor: colors.indigo },
+  textInput: { flex: 1, backgroundColor: colors.indigoRaised, borderRadius: radius.pill, paddingHorizontal: spacing.lg, height: 44, color: colors.textPrimary },
+  sendBtn: { backgroundColor: colors.gold, width: 44, height: 44, borderRadius: radius.pill, justifyContent: 'center', alignItems: 'center', marginLeft: spacing.sm },
+  inputDockDisabled: { padding: spacing.md, borderTopWidth: 1, borderColor: colors.indigoLine, backgroundColor: colors.indigo },
+  inputDockDisabledText: { textAlign: 'center', fontSize: 12, color: colors.textMuted },
 });

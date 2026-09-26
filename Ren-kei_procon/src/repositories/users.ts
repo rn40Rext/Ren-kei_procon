@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../config/firebaseConfig';
+import { auth, db, storage } from '../config/firebaseConfig';
 import { DanceStyle, UserProfile } from '../types/firestore';
 
 /** users/{uid} とプロフィールアイコンへのアクセスを集約する(docs/design/data-model.md 3.1章)。 */
@@ -29,6 +29,26 @@ export async function createUserDocument(uid: string, email: string | null): Pro
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
+}
+
+/** ログイン中ユーザーの表示名(users/{uid}のnicknameを優先、無ければメール先頭)。投稿・コメントの記名に使う。 */
+export async function myDisplayName(): Promise<string> {
+  const user = auth.currentUser;
+  if (!user) return '踊り子';
+  try {
+    const profile = await fetchUserProfile(user.uid);
+    if (profile) {
+      return (
+        (profile.nickname && String(profile.nickname).trim()) ||
+        (profile.name && String(profile.name).trim()) ||
+        user.email?.split('@')[0] ||
+        '踊り子'
+      );
+    }
+  } catch {
+    /* ignore */
+  }
+  return user.email?.split('@')[0] || '踊り子';
 }
 
 export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {

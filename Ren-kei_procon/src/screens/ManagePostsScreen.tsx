@@ -1,48 +1,51 @@
+/**
+ * 連管理者向けの投稿一覧（検索・並び替え・詳細からアドバイス送信へ）。
+ */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { formatAiScore } from '../features/analysis/format';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
-import { ChevronLeft, X, Search, Heart, MessageSquare, Award, Shield, User as UserIcon, Send } from 'lucide-react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal } from 'react-native';
+import { Alert } from '../utils/alert';
+import { ChevronLeft, Search, Heart, MessageSquare, Award, Shield, User as UserIcon, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { colors, spacing, radius, typography } from '../theme';
+import { NarutoLoader } from '../components/motifs';
+import AppMenu from '../components/AppMenu';
+import RenkeiVideo from '../components/RenkeiVideo';
+import { formatAiScore } from '../features/analysis/format';
 import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
+import type { Post as PostDoc } from '../types/firestore';
 import { subscribeActiveMembers } from '../repositories/renMembership';
-import { Post } from '../types/firestore';
-import BottomNav from '../components/BottomNav';
-
-const COLORS = {
-  primary: '#2563EB',
-  textMain: '#1E293B',
-  textMuted: '#64748B',
-  border: '#E2E8F0',
-};
 
 type SortMode = 'newest' | 'score' | 'noAdvice';
+
+const SORT_OPTIONS: { key: SortMode; label: string }[] = [
+  { key: 'newest', label: '新着順' },
+  { key: 'score', label: 'スコア順' },
+  { key: 'noAdvice', label: '未アドバイス優先' },
+];
 
 export default function ManagePostsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { renId } = route.params;
 
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [memberUids, setMemberUids] = useState<Set<string>>(new Set());
   const [hasAdviceMap, setHasAdviceMap] = useState<Record<string, boolean>>({});
   const [keyword, setKeyword] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedPost, setSelectedPost] = useState<PostDoc | null>(null);
 
   useEffect(() => {
     return subscribeActiveMembers(
       renId,
       (members) => setMemberUids(new Set(members.map((m) => m.uid))),
-      (error) => console.error('自連メンバーの取得に失敗しました', error)
+      (error) => console.error('自連メンバーの取得に失敗しました', error),
     );
   }, [renId]);
 
-  // 「未アドバイス優先」判定のクエリを投稿ごとに一度だけ発行するための
-  // 既読集合。state(hasAdviceMap)をuseEffect内のクロージャで直接見ると
-  // 古い値のままになり判定が効かなくなるため、refで管理する(#92レビュー
-  // で見つかった同種の不具合を避ける)。
+  // 「未アドバイス優先」判定のクエリを投稿ごとに一度だけ発行するための既読集合。
+  // stateをuseEffect内のクロージャで直接見ると古い値のままになるため、refで管理する。
   const requestedAdviceIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -54,9 +57,7 @@ export default function ManagePostsScreen() {
           if (requestedAdviceIdsRef.current.has(p.id)) return;
           requestedAdviceIdsRef.current.add(p.id);
           hasInstructorAdvice(p.id)
-            .then((hasAdvice) => {
-              setHasAdviceMap((prev) => ({ ...prev, [p.id]: hasAdvice }));
-            })
+            .then((hasAdvice) => setHasAdviceMap((prev) => ({ ...prev, [p.id]: hasAdvice })))
             .catch(() => undefined);
         });
       },
@@ -64,7 +65,7 @@ export default function ManagePostsScreen() {
         console.error('投稿一覧の取得に失敗しました', error);
         setLoading(false);
         Alert.alert('エラー', '投稿一覧の取得に失敗しました。時間をおいて再度お試しください');
-      }
+      },
     );
   }, []);
 
@@ -98,61 +99,70 @@ export default function ManagePostsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={COLORS.primary} size={24} />
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft color={colors.gold} size={22} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>投稿一覧</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ flex: 1 }} />
+        <AppMenu />
       </View>
 
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
-          <Search size={18} color="#94A3B8" />
-          <TextInput style={styles.searchInput} placeholder="タイトル・投稿者・タグで検索" value={keyword} onChangeText={setKeyword} />
+          <Search size={17} color={colors.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="タイトル・投稿者・タグで検索"
+            placeholderTextColor={colors.textMuted}
+            value={keyword}
+            onChangeText={setKeyword}
+          />
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sortRow}>
-          {([
-            { key: 'newest', label: '新着順' },
-            { key: 'score', label: 'スコア順' },
-            { key: 'noAdvice', label: '未アドバイス優先' },
-          ] as { key: SortMode; label: string }[]).map((s) => (
-            <TouchableOpacity key={s.key} style={[styles.sortPill, sortMode === s.key && styles.sortPillActive]} onPress={() => setSortMode(s.key)}>
+          {SORT_OPTIONS.map((s) => (
+            <TouchableOpacity key={s.key} style={[styles.sortPill, sortMode === s.key && styles.sortPillActive]} onPress={() => setSortMode(s.key)} activeOpacity={0.85}>
               <Text style={[styles.sortPillText, sortMode === s.key && styles.sortPillTextActive]}>{s.label}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      <ScrollView style={styles.list}>
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
         {loading ? (
-          <ActivityIndicator style={{ marginTop: 40 }} />
+          <NarutoLoader size={22} color={colors.gold} style={{ marginTop: spacing.xl, alignSelf: 'center' }} />
         ) : filteredSortedPosts.length === 0 ? (
           <Text style={styles.emptyText}>該当する投稿はありません</Text>
         ) : (
           filteredSortedPosts.map((p) => {
             const isOwnRenMember = memberUids.has(p.userId);
             return (
-              <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)}>
+              <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)} activeOpacity={0.85}>
                 <View style={styles.thumbWrapper}>
-                  <Video style={StyleSheet.absoluteFill} source={{ uri: p.videoUrl }} resizeMode={ResizeMode.COVER} shouldPlay={false} />
+                  <RenkeiVideo uri={p.videoUrl} style={StyleSheet.absoluteFill} contentFit="cover" muted />
                 </View>
                 <View style={styles.cardBody}>
-                  <Text style={styles.cardTitle} numberOfLines={1}>{p.title}</Text>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {p.title}
+                  </Text>
                   <View style={styles.authorRow}>
                     <Text style={styles.authorName}>{p.authorName}</Text>
                     {isOwnRenMember && (
                       <View style={styles.memberBadge}>
-                        <Shield size={10} color="#fff" />
+                        <Shield size={10} color={colors.textOnGold} />
                         <Text style={styles.memberBadgeText}>自連</Text>
                       </View>
                     )}
                   </View>
                   <View style={styles.metaRow}>
-                    <Award size={13} color={COLORS.textMuted} />
+                    <Award size={13} color={colors.textMuted} />
                     <Text style={styles.metaText}>{formatAiScore(p.score)}</Text>
-                    <Heart size={13} color={COLORS.textMuted} style={{ marginLeft: 10 }} />
+                    <Heart size={13} color={colors.textMuted} style={{ marginLeft: spacing.sm }} />
                     <Text style={styles.metaText}>{p.likeCount}</Text>
-                    <MessageSquare size={13} color={COLORS.textMuted} style={{ marginLeft: 10 }} />
+                    <MessageSquare size={13} color={colors.textMuted} style={{ marginLeft: spacing.sm }} />
                     <Text style={styles.metaText}>{p.commentCount}</Text>
                     {!hasAdviceMap[p.id] && (
                       <View style={styles.noAdviceBadge}>
@@ -169,28 +179,25 @@ export default function ManagePostsScreen() {
       </ScrollView>
 
       <Modal visible={!!selectedPost} animationType="slide" onRequestClose={() => setSelectedPost(null)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView style={styles.detailContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setSelectedPost(null)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ChevronLeft size={24} color={COLORS.primary} />
+            <TouchableOpacity onPress={() => setSelectedPost(null)} style={{ flexDirection: 'row', alignItems: 'center' }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <ChevronLeft size={22} color={colors.gold} />
               <Text style={styles.modalBackText}>戻る</Text>
             </TouchableOpacity>
           </View>
           {selectedPost && (
             <ScrollView>
               <View style={styles.detailVideoBox}>
-                <Video style={{ width: '100%', height: '100%' }} source={{ uri: selectedPost.videoUrl }} useNativeControls resizeMode={ResizeMode.CONTAIN} />
+                <RenkeiVideo uri={selectedPost.videoUrl} style={{ width: '100%', height: '100%' }} contentFit="contain" muted={false} nativeControls />
               </View>
               <View style={styles.detailBody}>
                 <Text style={styles.detailTitle}>{selectedPost.title}</Text>
 
                 <View style={styles.scoreCard}>
-                  <Award size={20} color="#FACC15" />
+                  <Award size={20} color={colors.gold} />
                   <Text style={styles.scoreCardText}>{formatAiScore(selectedPost.score)}</Text>
                 </View>
-                <Text style={styles.scoreNote}>
-                  ※ 項目別スコアはAI採点(FN-01)が未実装のため表示できません。総合スコアのみ暫定値です
-                </Text>
 
                 <TouchableOpacity
                   style={styles.profileBtn}
@@ -198,13 +205,14 @@ export default function ManagePostsScreen() {
                     setSelectedPost(null);
                     navigation.navigate('UserProfile', { userId: selectedPost.userId, userName: selectedPost.authorName });
                   }}
+                  activeOpacity={0.85}
                 >
-                  <UserIcon size={16} color={COLORS.primary} />
+                  <UserIcon size={16} color={colors.gold} />
                   <Text style={styles.profileBtnText}>{selectedPost.authorName} のプロフィールを見る</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.adviceBtn} onPress={handleSendAdvice}>
-                  <Send size={16} color="#fff" />
+                <TouchableOpacity style={styles.adviceBtn} onPress={handleSendAdvice} activeOpacity={0.85}>
+                  <Send size={16} color={colors.textOnGold} />
                   <Text style={styles.adviceBtnText}>アドバイスを送る</Text>
                 </TouchableOpacity>
               </View>
@@ -212,50 +220,78 @@ export default function ManagePostsScreen() {
           )}
         </SafeAreaView>
       </Modal>
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { height: 60, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, borderBottomWidth: 1, borderColor: COLORS.border },
-  backBtn: { padding: 5 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain },
-  searchSection: { backgroundColor: '#fff', paddingTop: 12, paddingBottom: 4, borderBottomWidth: 1, borderColor: COLORS.border },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 15, height: 42, marginHorizontal: 15 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 14 },
-  sortRow: { paddingHorizontal: 15, paddingVertical: 10 },
-  sortPill: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#F1F5F9', marginRight: 8 },
-  sortPillActive: { backgroundColor: COLORS.primary },
-  sortPillText: { fontSize: 12, color: COLORS.textMain },
-  sortPillTextActive: { color: '#fff', fontWeight: 'bold' },
-  list: { flex: 1, padding: 15 },
-  emptyText: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40 },
-  card: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 14, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
-  thumbWrapper: { width: 90, height: 90, borderRadius: 10, backgroundColor: '#000', overflow: 'hidden' },
-  cardBody: { flex: 1, marginLeft: 12, justifyContent: 'center' },
-  cardTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.textMain },
-  authorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  authorName: { fontSize: 12, color: COLORS.textMuted },
-  memberBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 },
-  memberBadgeText: { color: '#fff', fontSize: 9, fontWeight: 'bold', marginLeft: 2 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, flexWrap: 'wrap' },
-  metaText: { fontSize: 11, color: COLORS.textMuted, marginLeft: 4 },
-  noAdviceBadge: { backgroundColor: '#FEF3C7', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 10 },
-  noAdviceBadgeText: { color: '#92400E', fontSize: 10, fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderColor: colors.indigoLine,
+  },
+  backBtn: { marginRight: spacing.sm },
+  headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
-  modalHeader: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderColor: '#eee' },
-  modalBackText: { color: COLORS.primary, fontWeight: 'bold', marginLeft: 4 },
+  searchSection: { paddingTop: spacing.md, paddingBottom: 4, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.indigoRaised,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    height: 40,
+    marginHorizontal: spacing.lg,
+  },
+  searchInput: { flex: 1, marginLeft: spacing.sm, color: colors.textPrimary, ...typography.body, fontSize: 13 },
+  sortRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  sortPill: { paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.pill, backgroundColor: colors.indigoRaised, marginRight: spacing.sm },
+  sortPillActive: { backgroundColor: colors.gold },
+  sortPillText: { fontSize: 12, color: colors.textSecondary },
+  sortPillTextActive: { color: colors.textOnGold, fontWeight: '700' },
+
+  list: { flex: 1, padding: spacing.lg },
+  emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
+  card: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
+  thumbWrapper: { width: 90, height: 90, borderRadius: radius.sm, backgroundColor: '#000', overflow: 'hidden' },
+  cardBody: { flex: 1, marginLeft: spacing.md, justifyContent: 'center' },
+  cardTitle: { ...typography.bodyStrong, color: colors.textPrimary },
+  authorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  authorName: { fontSize: 12, color: colors.textMuted },
+  memberBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.gold, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 },
+  memberBadgeText: { color: colors.textOnGold, fontSize: 9, fontWeight: '700', marginLeft: 2 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, flexWrap: 'wrap' },
+  metaText: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
+  noAdviceBadge: { backgroundColor: colors.goldSoft, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: spacing.sm },
+  noAdviceBadgeText: { color: colors.gold, fontSize: 10, fontWeight: '700' },
+
+  detailContainer: { flex: 1, backgroundColor: colors.indigoDeep },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderColor: colors.indigoLine },
+  modalBackText: { color: colors.gold, fontWeight: '700', marginLeft: 4 },
   detailVideoBox: { backgroundColor: '#000', height: 260 },
-  detailBody: { padding: 20 },
-  detailTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textMain, marginBottom: 16 },
-  scoreCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E3A8A', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, alignSelf: 'flex-start' },
-  scoreCardText: { color: '#FACC15', fontWeight: '900', marginLeft: 8, fontSize: 16 },
-  scoreNote: { fontSize: 11, color: COLORS.textMuted, marginTop: 8, marginBottom: 20 },
-  profileBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  profileBtnText: { marginLeft: 8, color: COLORS.primary, fontWeight: 'bold', fontSize: 14 },
-  adviceBtn: { flexDirection: 'row', backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  adviceBtnText: { color: '#fff', fontWeight: 'bold', marginLeft: 8 },
+  detailBody: { padding: spacing.xl },
+  detailTitle: { ...typography.titleSerif, color: colors.textPrimary, marginBottom: spacing.lg, fontSize: 18 },
+  scoreCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.indigo,
+    borderWidth: 1,
+    borderColor: colors.indigoLine,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.xl,
+  },
+  scoreCardText: { color: colors.gold, fontWeight: '900', marginLeft: spacing.sm, fontSize: 16 },
+  profileBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md },
+  profileBtnText: { marginLeft: spacing.sm, color: colors.gold, fontWeight: '700', fontSize: 14 },
+  adviceBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', marginTop: spacing.lg },
+  adviceBtnText: { color: colors.textOnGold, fontWeight: '700', marginLeft: spacing.sm },
 });

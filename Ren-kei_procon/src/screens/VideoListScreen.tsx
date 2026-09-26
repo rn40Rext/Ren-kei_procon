@@ -3,19 +3,21 @@
  * docs/design/data-model.md 3.2/5章、docs/design/screens.md。
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View, SafeAreaView } from 'react-native';
+import { Alert } from '../utils/alert';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { Award, Film, Lock, Send, Trash2, Unlock } from 'lucide-react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { Award, ChevronLeft, Film, Lock, Send, Trash2, Unlock } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, fetchAnalysisResult } from '../repositories/analysis';
 import { fetchPostsByUser } from '../repositories/posts';
 import { AnalysisStatus, PracticeVideo, deleteVideoRecord, subscribeMyVideos, videoDownloadUrl } from '../repositories/videos';
 import { formatAiScore } from '../features/analysis/format';
-import { colors } from '../theme/colors';
-import BottomNav from '../components/BottomNav';
+import { colors, spacing, radius, typography } from '../theme';
+import { HeaderSeam } from '../components/motifs';
+import AppMenu from '../components/AppMenu';
+import RenkeiVideo from '../components/RenkeiVideo';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'VideoList'>;
 
@@ -29,10 +31,10 @@ const STATUS_LABEL: Record<AnalysisStatus, string> = {
 };
 
 const STATUS_COLOR: Record<AnalysisStatus, string> = {
-  uploaded: colors.textSecondary,
+  uploaded: colors.textMuted,
   analyzing: colors.gold,
-  completed: colors.indigo,
-  failed: colors.vermilion,
+  completed: colors.goldBright,
+  failed: colors.aka,
 };
 
 function formatDate(value: PracticeVideo['createdAt']): string {
@@ -163,7 +165,7 @@ export default function VideoListScreen() {
   const onDelete = useCallback(
     (v: PracticeVideo) => {
       if (postedVideoIds.has(v.id)) {
-        Alert.alert('削除できません', 'この動画はすでにコミュニティへ投稿されています。投稿済みの動画は削除できません。');
+        Alert.alert('削除できません', 'この動画はすでに交流広場へ投稿されています。投稿済みの動画は削除できません。');
         return;
       }
       Alert.alert('動画を削除しますか？', 'この操作は取り消せません', [
@@ -193,18 +195,28 @@ export default function VideoListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft size={22} color={colors.gold} />
+          <Text style={styles.backText}>稽古手帳</Text>
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>自分の練習動画一覧</Text>
+        <AppMenu />
       </View>
+      <HeaderSeam />
 
       {videos === null && !error ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={colors.indigo} />
+        <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
       ) : error ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>{error}</Text>
         </View>
       ) : sortedVideos.length === 0 ? (
         <View style={styles.emptyState}>
-          <Film size={40} color={colors.textSecondary} />
+          <Film size={40} color={colors.textMuted} />
           <Text style={styles.emptyText}>まだ練習動画がありません</Text>
         </View>
       ) : (
@@ -215,17 +227,12 @@ export default function VideoListScreen() {
             const posted = postedVideoIds.has(v.id);
             return (
               <View key={v.id} style={styles.card}>
-                <TouchableOpacity style={styles.cardMain} onPress={() => onPressVideo(v)}>
+                <TouchableOpacity style={styles.cardMain} onPress={() => onPressVideo(v)} activeOpacity={0.85}>
                   <View style={styles.thumbWrapper}>
                     {thumbUrls[v.id] ? (
-                      <Video
-                        style={StyleSheet.absoluteFill}
-                        source={{ uri: thumbUrls[v.id] }}
-                        resizeMode={ResizeMode.COVER}
-                        shouldPlay={false}
-                      />
+                      <RenkeiVideo uri={thumbUrls[v.id]} style={StyleSheet.absoluteFill} contentFit="cover" muted />
                     ) : (
-                      <Film size={24} color={colors.textOnDark} />
+                      <Film size={24} color={colors.textMuted} />
                     )}
                   </View>
                   <View style={styles.cardBody}>
@@ -241,9 +248,9 @@ export default function VideoListScreen() {
                       </View>
                       <View style={styles.visibilityBadge}>
                         {v.visibility === 'public' ? (
-                          <Unlock size={12} color={colors.textSecondary} />
+                          <Unlock size={12} color={colors.textMuted} />
                         ) : (
-                          <Lock size={12} color={colors.textSecondary} />
+                          <Lock size={12} color={colors.textMuted} />
                         )}
                         <Text style={styles.visibilityText}>{v.visibility === 'public' ? '公開中' : '非公開'}</Text>
                       </View>
@@ -259,17 +266,17 @@ export default function VideoListScreen() {
 
                 <View style={styles.actionRow}>
                   {v.analysisStatus === 'completed' && !posted && (
-                    <TouchableOpacity style={styles.postBtn} onPress={() => onPostToCommunity(v)}>
-                      <Send size={14} color={colors.textOnDark} />
-                      <Text style={styles.postBtnText}>コミュニティへ投稿</Text>
+                    <TouchableOpacity style={styles.postBtn} onPress={() => onPostToCommunity(v)} activeOpacity={0.85}>
+                      <Send size={14} color={colors.textOnGold} />
+                      <Text style={styles.postBtnText}>交流広場へ投稿</Text>
                     </TouchableOpacity>
                   )}
                   {posted && <Text style={styles.postedText}>投稿済み</Text>}
                   <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(v)} disabled={busyId === v.id}>
                     {busyId === v.id ? (
-                      <ActivityIndicator size="small" color={colors.vermilion} />
+                      <ActivityIndicator size="small" color={colors.aka} />
                     ) : (
-                      <Trash2 size={16} color={colors.vermilion} />
+                      <Trash2 size={16} color={colors.aka} />
                     )}
                   </TouchableOpacity>
                 </View>
@@ -279,55 +286,56 @@ export default function VideoListScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
-
-      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
-    height: 60,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.textPrimary },
+  backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
+  backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
+  headerTitle: { ...typography.headingSerif, color: colors.textPrimary, fontSize: 15 },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
-  emptyText: { marginTop: 12, color: colors.textSecondary, fontSize: 14, textAlign: 'center' },
+  emptyText: { marginTop: 12, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
 
-  list: { padding: 12 },
+  list: { padding: spacing.md },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: colors.indigo,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
     overflow: 'hidden',
   },
-  cardMain: { flexDirection: 'row', padding: 12 },
+  cardMain: { flexDirection: 'row', padding: spacing.md },
   thumbWrapper: {
     width: 84,
     height: 84,
-    borderRadius: 10,
-    backgroundColor: colors.indigo,
+    borderRadius: radius.sm,
+    backgroundColor: colors.indigoRaised,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardBody: { flex: 1, marginLeft: 12, justifyContent: 'center' },
+  cardBody: { flex: 1, marginLeft: spacing.md, justifyContent: 'center' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  dateText: { fontSize: 12, color: colors.textSecondary },
+  dateText: { fontSize: 12, color: colors.textMuted },
   danceTypeText: { fontSize: 12, color: colors.textPrimary, fontWeight: '600' },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   statusBadge: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
   statusBadgeText: { fontSize: 11, fontWeight: '600' },
   visibilityBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  visibilityText: { fontSize: 11, color: colors.textSecondary },
+  visibilityText: { fontSize: 11, color: colors.textMuted },
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   scoreText: { fontSize: 13, fontWeight: 'bold', color: colors.textPrimary },
 
@@ -335,20 +343,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
     gap: 10,
   },
   postBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.indigo,
+    backgroundColor: colors.gold,
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 6,
   },
-  postBtnText: { color: colors.textOnDark, fontSize: 12, fontWeight: '600' },
-  postedText: { fontSize: 12, color: colors.textSecondary },
+  postBtnText: { color: colors.textOnGold, fontSize: 12, fontWeight: '600' },
+  postedText: { fontSize: 12, color: colors.textMuted },
   deleteBtn: { padding: 6 },
 });

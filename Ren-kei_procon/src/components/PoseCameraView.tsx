@@ -9,7 +9,7 @@ import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { CameraView } from "expo-camera";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
-import { colors } from "../theme/colors";
+import { colors } from "../theme";
 
 export type PoseCameraViewProps = {
   /** 映像ソースが使えるようになったら呼ぶ。未対応なら null */
@@ -50,9 +50,11 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 12,
-    backgroundColor: colors.noticeBackground,
+    backgroundColor: colors.goldSoft,
+    borderWidth: 1,
+    borderColor: colors.gold,
     borderRadius: 10,
     padding: 12,
   },
-  noticeText: { color: colors.noticeText, fontSize: 13, lineHeight: 19 },
+  noticeText: { color: colors.goldBright, fontSize: 13, lineHeight: 19 },
 });

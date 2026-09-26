@@ -62,7 +62,7 @@ Firestore Rules Unit Test（`@firebase/rules-unit-testing`、要Java）でスコ
 | `analysisResults/{id}` | self | ✗（system のみ） | ✗ | ✗ |
 | `users/{uid}/growthRecords/{id}` | self | ✗ | ✗ | ✗ |
 | `ren/{renId}` | 認証済み | 認証済み（作成者が自動で admin になる） | renAdmin | renAdmin |
-| `ren/{renId}/members/{uid}` | 認証済み | ✗（system / renAdmin） | renAdmin | renAdmin または self（脱退） |
+| `ren/{renId}/members/{uid}` | 認証済み | ✗（system / renAdmin） | ✗（updateMemberRole経由） | ✗（renAdminによる除名はremoveMember、本人の脱退はleaveRen経由。[#118](../../issues/118)） |
 | `ren/{renId}/announcements/{id}` | 認証済み | renAdmin | renAdmin | renAdmin |
 | `ren/{renId}/activities/{id}` | 認証済み | renAdmin | renAdmin | renAdmin |
 | `joinRequests/{id}` | 申請者 self または renAdmin | self（`status == 'pending'` 固定） | self は `pending→cancelled` のみ / renAdmin は `pending→approved\|rejected` のみ | ✗ |
@@ -447,6 +447,16 @@ firebase emulators:exec --only firestore,storage "npm run test:rules"
 - クライアント側（`CommunityScreen.tsx`）は、`useAdminRens()`でユーザーが管理者である連の一覧を取得し、1件以上あれば「師匠の教え」タブへの投稿を許可する。複数の連を管理している場合は暫定的に最初の連の管理者として投稿する（issueに明示的な言及が無いため、シンプルな実装を優先した）。管理者でないユーザーが「師匠の教え」タブを開いた場合、投稿欄自体を「指導者コメントは連の管理者のみ投稿できます」という案内に置き換える（タブ自体は誰でも閲覧できるままにする。閲覧はRules上も制限していないため）。
 
 エミュレータ（Firestore + Functions + Auth）で以下を確認済み: 連管理者が自分の連のrenIdで指導者コメントを送信できること、投稿者への通知（`type: 'comment'`、`referenceId`が投稿ID、本文がコメント本文と一致）が作成されること、`commentCount`が引き続き正しく再集計されること、`type:'normal'`のコメントでは通知が作成されないこと。
+
+### #118 実装時の差分（2026-09-26時点）
+
+- 実際にアプリを使ってみたところ、自分の意思で連から脱退する手段（UI・repositoryとも）が存在しないことが分かった。`ren/{renId}/members/{uid}`のRules自体は`delete: if isRenAdmin(renId) || isSelf(uid);`で本人の直接deleteを既に許可していたが、脱退時に「最後の管理者かどうか」を全くチェックしておらず、連唯一の管理者が脱退すると管理者不在の連ができてしまう問題があった（#33実装時の差分に記載していた既知の制約）。
+- `updateMemberRole`/`removeMember`と全く同じロジック（トランザクション内で`role=='admin' && status=='active'`を対象者を除いて集計し、0件なら拒否）を持つ新規Cloud Function `leaveRen`（`functions/src/ren/leaveRen.ts`）を新設し、本人の脱退もここに一本化した。
+- これに伴い`ren/{renId}/members/{uid}`のRulesを変更した。`delete: if isRenAdmin(renId) || isSelf(uid);` → `delete: if false;`。除名（`removeMember`）・脱退（`leaveRen`）のどちらも直接deleteは一切許可しない。
+- `GroupScreen.tsx`（マイ連画面）に「この連から脱退する」ボタンを追加した。`error.code === 'functions/failed-precondition'`を`MemberManagementScreen.tsx`と同じパターンで捕捉し、「最後の管理者は脱退できません」という案内を表示する。
+- `tests/rules/ren.rules.test.mjs`の「本人は自分のmembersドキュメントを削除できる(脱退)」テストを、新しい挙動（直接deleteは拒否）に合わせて更新した。
+
+エミュレータ（Firestore + Functions + Auth）で、一般メンバーの脱退成功、連唯一の管理者の脱退拒否（`INVALID_STATUS_TRANSITION`、ドキュメントが削除されないことも確認）、他に管理者がいる場合の管理者本人の脱退成功を確認済み。詳細は[api-functions.md FN-05.6](api-functions.md)を参照。
 
 ## 7. 適用手順
 

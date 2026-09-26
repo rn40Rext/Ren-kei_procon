@@ -57,9 +57,9 @@ test("membersはクライアントから直接createできない(FN-05/system経
   );
 });
 
-test("本人は自分のmembersドキュメントを削除できる(脱退)", async () => {
+test("本人でもmembersドキュメントをクライアントから直接deleteできない(leaveRen経由のみ)", async () => {
   const alice = testEnv.authenticatedContext("alice").firestore();
-  await assertSucceeds(alice.doc("ren/r1/members/alice").delete());
+  await assertFails(alice.doc("ren/r1/members/alice").delete());
 });
 
 test("[#33] 連管理者でもmembers.roleをクライアントから直接updateできない(updateMemberRole経由のみ)", async () => {

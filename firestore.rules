@@ -140,16 +140,17 @@ service cloud.firestore {
                           .hasAny(['createdBy', 'memberCount', 'createdAt']);
       allow delete: if isRenAdmin(renId);
 
-      // 役割変更(update)・管理者による除名(delete)は、「最後の管理者を
+      // 役割変更(update)・除名/脱退(delete)は、「最後の管理者を
       // 降格・削除できない」という不変条件がRules単体(get()のみ、
       // 集計クエリ不可)では検証できないため、updateMemberRole・
-      // removeMember(Cloud Functions、#33)に一本化する。本人の脱退は
-      // その制約と無関係のため直接deleteを許可したまま(仕様書どおり)。
+      // removeMember・leaveRen(Cloud Functions、#33・本人脱退はleaveRen)
+      // に一本化する。本人の脱退も、脱退者が連唯一の管理者だった場合に
+      // 管理者不在の連ができてしまうため、直接deleteは許可しない。
       match /members/{uid} {
         allow read: if isSignedIn();
         allow create: if false; // createRen(作成者登録)・FN-05(参加承認)経由。Admin SDKはRulesを通らない
         allow update: if false; // updateMemberRole経由のみ(#33)
-        allow delete: if isSignedIn() && request.auth.uid == uid; // 本人の脱退のみ直接許可。管理者による除名はremoveMember経由(#33)
+        allow delete: if false; // 管理者による除名はremoveMember、本人の脱退はleaveRen経由のみ
       }
       match /announcements/{announcementId} {
         allow read: if isSignedIn();

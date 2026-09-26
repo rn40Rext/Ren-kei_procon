@@ -19,6 +19,7 @@ export {submitJoinRequest} from "./ren/submitJoinRequest";
 export {updateJoinRequestStatus} from "./ren/updateJoinRequestStatus";
 export {updateMemberRole} from "./ren/updateMemberRole";
 export {removeMember} from "./ren/removeMember";
+export {leaveRen} from "./ren/leaveRen";
 export {createAnnouncement} from "./ren/createAnnouncement";
 export {updateRenIcon} from "./ren/updateRenIcon";
 export {onLikeWrite} from "./triggers/onLikeWrite";

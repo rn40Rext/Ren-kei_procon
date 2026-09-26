@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
-import { colors } from '../theme/colors';
+import { colors } from '../theme';
 
 export interface ChartPoint {
   value: number;
@@ -29,7 +29,7 @@ export default function GrowthLineChart({
   points,
   width,
   height = 120,
-  color = colors.indigo,
+  color = colors.gold,
   showDots = true,
   minValue = 0,
   maxValue = 100,
@@ -50,7 +50,7 @@ export default function GrowthLineChart({
   return (
     <Svg width={width} height={height}>
       {[minValue, (minValue + maxValue) / 2, maxValue].map((v) => (
-        <Line key={v} x1={PADDING} y1={yFor(v)} x2={width - PADDING} y2={yFor(v)} stroke={colors.border} strokeWidth={1} />
+        <Line key={v} x1={PADDING} y1={yFor(v)} x2={width - PADDING} y2={yFor(v)} stroke={colors.indigoLine} strokeWidth={1} />
       ))}
 
       {coords.map((c, i) =>
@@ -61,7 +61,7 @@ export default function GrowthLineChart({
             y1={PADDING}
             x2={c.x}
             y2={height - PADDING}
-            stroke={colors.textSecondary}
+            stroke={colors.textMuted}
             strokeWidth={1}
             strokeDasharray="3,3"
           />

@@ -12,16 +12,17 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, subscribeAnalysisResultsByUser } from '../repositories/analysis';
 import GrowthLineChart, { ChartPoint } from '../components/GrowthLineChart';
-import { colors } from '../theme/colors';
+import { colors } from '../theme';
+import AppMenu from '../components/AppMenu';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GrowthChart'>;
 
 // ResultScreen.tsx の ITEMS と表示名を揃える。総合に含まれる4項目のみ(TBD-05)。
 const ITEM_DEFS: { key: 'handHeightScore' | 'hipHeightScore' | 'stopScore' | 'rhythmScore'; label: string; color: string }[] = [
-  { key: 'handHeightScore', label: '手の高さ', color: colors.indigo },
-  { key: 'hipHeightScore', label: '腰の低さ', color: colors.indigoLight },
-  { key: 'stopScore', label: '手を止める', color: colors.vermilion },
-  { key: 'rhythmScore', label: 'リズム', color: colors.gold },
+  { key: 'handHeightScore', label: '手の高さ', color: colors.gold },
+  { key: 'hipHeightScore', label: '腰の低さ', color: colors.goldBright },
+  { key: 'stopScore', label: '手を止める', color: colors.aka },
+  { key: 'rhythmScore', label: 'リズム', color: colors.success },
 ];
 
 function toChartPoints(results: AnalysisResult[]): ChartPoint[] {
@@ -60,15 +61,19 @@ export default function GrowthChartScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft size={26} color={colors.indigo} />
+        <TouchableOpacity
+          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ChevronLeft size={22} color={colors.gold} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>成長曲線</Text>
-        <View style={styles.backBtn} />
+        <AppMenu />
       </View>
 
       {results === null && !error ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={colors.indigo} />
+        <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
       ) : error ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>{error}</Text>
@@ -91,14 +96,14 @@ export default function GrowthChartScreen() {
                   {diff > 0 ? (
                     <TrendingUp size={14} color={colors.gold} />
                   ) : diff < 0 ? (
-                    <TrendingDown size={14} color={colors.vermilion} />
+                    <TrendingDown size={14} color={colors.aka} />
                   ) : (
                     <Minus size={14} color={colors.textSecondary} />
                   )}
                   <Text
                     style={[
                       styles.diffText,
-                      diff > 0 ? { color: colors.gold } : diff < 0 ? { color: colors.vermilion } : undefined,
+                      diff > 0 ? { color: colors.gold } : diff < 0 ? { color: colors.aka } : undefined,
                     ]}
                   >
                     {diff > 0 ? `+${diff}` : diff} (前回比)
@@ -146,33 +151,33 @@ export default function GrowthChartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
   },
   backBtn: { padding: 4, width: 34 },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'center' },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   emptyText: { color: colors.textSecondary, fontSize: 14, marginBottom: 20, textAlign: 'center' },
-  ctaBtn: { backgroundColor: colors.indigo, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
-  ctaBtnText: { color: colors.textOnDark, fontWeight: 'bold' },
+  ctaBtn: { backgroundColor: colors.gold, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
+  ctaBtnText: { color: colors.textOnGold, fontWeight: 'bold' },
 
   content: { padding: 16, alignItems: 'center' },
   summaryRow: { flexDirection: 'row', gap: 12, width: '100%', maxWidth: 600 - 32 },
   summaryCard: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
   },
   summaryLabel: { fontSize: 12, color: colors.textSecondary },
   summaryValue: { fontSize: 28, fontWeight: 'bold', color: colors.textPrimary, marginTop: 4 },
@@ -182,11 +187,11 @@ const styles = StyleSheet.create({
   chartCard: {
     width: '100%',
     maxWidth: 600 - 32,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
     marginTop: 16,
   },
   chartTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 8 },
@@ -195,11 +200,11 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginTop: 24, marginBottom: 10, width: '100%', maxWidth: 600 - 32 },
   itemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%', maxWidth: 600 - 32 },
   itemCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.indigo,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.indigoLine,
   },
   itemLabel: { fontSize: 12, color: colors.textSecondary },
   itemValue: { fontSize: 18, fontWeight: 'bold', marginTop: 2, marginBottom: 4 },

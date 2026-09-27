@@ -29,11 +29,13 @@ export function Noren({
 }) {
   const gap = 5; // 切れ目の幅
   const panels = slits + 1;
-  const panelW = (width - gap * slits) / panels;
+  // 初回レンダー直後などwidthが未確定/極小の間はpanelWが負になり、
+  // SVGのRectにwidth<0を渡してしまうため下限0でクランプする。
+  const panelW = Math.max(0, (width - gap * slits) / panels);
   const cut = height * 0.55; // 切れ目の深さ
   return (
     <View style={style} pointerEvents="none">
-      <Svg width={width} height={height}>
+      <Svg width={Math.max(0, width)} height={height}>
         {/* 布本体（下端に切れ目） */}
         {Array.from({ length: panels }).map((_, i) => {
           const x = i * (panelW + gap);

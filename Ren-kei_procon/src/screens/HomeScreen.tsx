@@ -18,6 +18,8 @@ import {
 import { Alert } from '../utils/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Bell } from 'lucide-react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, radius, typography } from '../theme';
 import { SectionHeader, Badge, Chip, MetricRow } from '../components/ui';
 import { ChochinGarland, Noren, SeigaihaBand, RenMon, KumihimoRule, AwaDivider } from '../components/motifs';
@@ -40,10 +42,12 @@ import {
   subscribePosts,
   loadCachedPosts,
   uploadVideoAndPublish,
+  publishExistingVideo,
   isLiked,
   toggleLike,
   POST_TAG_OPTIONS,
 } from '../repositories/posts';
+import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
 import {
   filterChips,
@@ -125,7 +129,9 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
   );
 }
 
-export default function HomeScreen({ navigation }: any) {
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+export default function HomeScreen({ navigation, route }: Props) {
   const { width: SCREEN_W } = useWindowDimensions();
   const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
   const [activeChip, setActiveChip] = useState(filterChips[0]);
@@ -142,7 +148,41 @@ export default function HomeScreen({ navigation }: any) {
   const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  // 稽古手帳(VideoList)の「交流広場へ投稿」から来た、既にStorageにある練習動画のID。
+  // 設定されている間はsubmitPostが再アップロードせずpublishExistingVideoを使う
+  const [existingVideoId, setExistingVideoId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // 稽古手帳から shareVideoId 付きで来たとき、その練習動画を投稿フォームに
+  // 入れてモーダルを開く(交流広場はこのHomeに統合されているため)
+  useEffect(() => {
+    const shareVideoId = route.params?.shareVideoId;
+    if (!shareVideoId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const video = await fetchVideo(shareVideoId);
+        if (cancelled) return;
+        if (!video?.storagePath && !video?.downloadUrl) {
+          Alert.alert('動画がありません', 'この練習は動画を保存していないため投稿できません');
+          return;
+        }
+        const url = video.downloadUrl ?? (await videoDownloadUrl(video.storagePath!));
+        if (cancelled) return;
+        setVideoUri(url);
+        setExistingVideoId(shareVideoId);
+        setPosting(true);
+      } catch (e) {
+        console.error('練習動画の取得に失敗しました', e);
+        Alert.alert('エラー', '練習動画の取得に失敗しました');
+      } finally {
+        navigation.setParams({ shareVideoId: undefined });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [route.params?.shareVideoId, navigation]);
 
   // 実データ：交流広場の投稿（posts）を購読
   const [realPosts, setRealPosts] = useState<PostDoc[]>([]);
@@ -293,6 +333,7 @@ export default function HomeScreen({ navigation }: any) {
     setDraftDesc('');
     setDraftTags([]);
     setVideoUri(null);
+    setExistingVideoId(null);
   };
 
   const pickVideo = async () => {
@@ -306,7 +347,10 @@ export default function HomeScreen({ navigation }: any) {
       quality: 1,
       videoMaxDuration: 120,
     });
-    if (!res.canceled && res.assets?.[0]?.uri) setVideoUri(res.assets[0].uri);
+    if (!res.canceled && res.assets?.[0]?.uri) {
+      setVideoUri(res.assets[0].uri);
+      setExistingVideoId(null);
+    }
   };
 
   // 初心者サポート：見てほしい演舞をその場で撮って、そのまま解析・投稿に回せるように
@@ -321,13 +365,16 @@ export default function HomeScreen({ navigation }: any) {
       quality: 1,
       videoMaxDuration: 120,
     });
-    if (!res.canceled && res.assets?.[0]?.uri) setVideoUri(res.assets[0].uri);
+    if (!res.canceled && res.assets?.[0]?.uri) {
+      setVideoUri(res.assets[0].uri);
+      setExistingVideoId(null);
+    }
   };
 
   const submitPost = async () => {
     if (!draftTitle.trim() || submitting) return;
 
-    // 動画が選ばれていれば実データとして投稿（GitHub バックエンド）
+    // 動画が選ばれていれば実データとして投稿（Firestore/Storage バックエンド）
     if (videoUri) {
       if (!auth.currentUser) {
         Alert.alert('ログインが必要です', '投稿するにはログインしてください。');
@@ -335,12 +382,23 @@ export default function HomeScreen({ navigation }: any) {
       }
       setSubmitting(true);
       try {
-        await uploadVideoAndPublish({
-          uri: videoUri,
-          title: draftTitle,
-          description: draftDesc,
-          tags: draftTags,
-        });
+        // 稽古手帳から来た練習動画は既にStorageにあるため再アップロードしない
+        if (existingVideoId) {
+          await publishExistingVideo({
+            videoUrl: videoUri,
+            title: draftTitle,
+            description: draftDesc,
+            tags: draftTags,
+            videoId: existingVideoId,
+          });
+        } else {
+          await uploadVideoAndPublish({
+            uri: videoUri,
+            title: draftTitle,
+            description: draftDesc,
+            tags: draftTags,
+          });
+        }
         setPosting(false);
         resetDraft();
         setFeedTag(feedTags[0]);

@@ -156,6 +156,8 @@
 
 これで本番環境への反映(Rules・Indexes・Storage・Functions・analysisRules)はすべて完了しました。
 
+**2026-09-28、`leaveRen`（本人の連脱退、[#118](../../../issues/118)）を含む差分を`firebase deploy --only functions,firestore:rules`で本番反映しました**（`leaveRen`はSuccessful create operation。`members.delete`をfalseへ変更したRulesも同時に反映）。[#118](../../../issues/118)はクローズ済み。
+
 ### 解消済み（着手前の障害だった項目）
 
 | 項目 | 状態 |

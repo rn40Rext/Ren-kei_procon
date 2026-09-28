@@ -390,7 +390,7 @@ PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を�
 **副作用**（トランザクション）
 
 - `updateMemberRole`: `ren/{renId}/members/{uid}.role` を更新。役職が実際に変わった場合、対象本人へ通知（`type: 'role_changed'`。[#114](../../issues/114)）
-- `removeMember`: `ren/{renId}/members/{uid}` を削除（本人による脱退は Rules で直接許可済みのため対象外。管理者が他メンバーを除名する場合のみ使う）。対象本人へ通知（`type: 'member_removed'`。[#114](../../issues/114)）
+- `removeMember`: `ren/{renId}/members/{uid}` を削除（管理者が他メンバーを除名する場合に使う。本人による脱退はFN-05.6 `leaveRen`を使う）。対象本人へ通知（`type: 'member_removed'`。[#114](../../issues/114)）
 - どちらも `ren.memberCount` の再集計は既存の `onMemberWrite` トリガ（#48）に任せる（本関数側では触らない）
 
 **検証**
@@ -399,6 +399,31 @@ PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を�
 - 対象メンバーが現在 `role: 'admin'` かつ、対象を除く `role=='admin' && status=='active'` が 0 件になる変更（降格・除名）は `failed-precondition` / `INVALID_STATUS_TRANSITION`（仕様書13章に専用のエラーコードが無いため流用。詳細は `docs/design/security-rules.md` #33 差分参照）
 
 エミュレータ（Firestore + Functions + Auth）で実際に呼び出し、昇格・降格・除名の成功、最後の管理者の降格・除名の拒否、`memberCount` の再集計、他連の管理者による操作拒否を確認済み。
+
+---
+
+### FN-05.6 `leaveRen`（本設計での追加・[#118](../../issues/118)）
+
+本人が連から脱退する機能が無かった（`ren/{renId}/members/{uid}`は当初、本人自身によるdeleteをFirestore Rulesで直接許可していたが、UI・repositoryとも未実装だった）ため新設した。脱退者が連唯一の管理者だった場合に連が管理者不在になってしまう問題は、`updateMemberRole`/`removeMember`と全く同じ「最後の管理者」不変条件であり、Rules単体では検証できないため、本人の脱退も含めてCloud Functionsに一本化した（`ren/{renId}/members/{uid}`のRules上のdeleteは現在すべて`false`）。
+
+**Request**
+
+```ts
+{ renId: string; }
+```
+
+**Response**: `{ left: true; }`
+
+**副作用**（トランザクション）
+
+- `ren/{renId}/members/{uid}`（呼び出し本人）を削除
+- `ren.memberCount` の再集計は既存の `onMemberWrite` トリガ（#48）に任せる
+
+**検証**
+
+- 対象メンバーが現在 `role: 'admin'` かつ、自分を除く `role=='admin' && status=='active'` が 0 件なら `failed-precondition` / `INVALID_STATUS_TRANSITION`（updateMemberRole/removeMemberと同じ判定ロジック）
+
+エミュレータで、一般メンバーの脱退成功、連唯一の管理者の脱退拒否（ドキュメントが削除されないことも確認）、他に管理者がいる場合の管理者本人の脱退成功を確認済み。
 
 ---
 

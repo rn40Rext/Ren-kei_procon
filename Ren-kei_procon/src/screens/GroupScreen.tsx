@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Alert } from '../utils/alert';
-import { Users, MapPin, Plus, X, Megaphone, CalendarDays, Search, ChevronLeft, ChevronRight, Shield } from 'lucide-react-native';
+import { Users, MapPin, Plus, X, Megaphone, CalendarDays, Search, ChevronLeft, ChevronRight, Shield, LogOut } from 'lucide-react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge } from '../components/ui';
@@ -25,6 +25,7 @@ import { IconWagasa } from '../components/awaIcons';
 import { createRen } from '../repositories/renProfile';
 import { subscribeRenActivities } from '../repositories/renActivities';
 import { subscribeAnnouncements } from '../repositories/renAnnouncements';
+import { leaveRen } from '../repositories/renMembership';
 import { useMyRens } from '../hooks/useMyRens';
 import type { Announcement, RenActivity } from '../types/firestore';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -58,6 +59,7 @@ export default function GroupScreen() {
   const [location, setLocation] = useState('');
   const [beginnerFriendly, setBeginnerFriendly] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (myRens.length === 0) return;
@@ -116,6 +118,36 @@ export default function GroupScreen() {
   };
 
   const selectedRen = myRens.find((r) => r.renId === selectedRenId) ?? null;
+
+  const handleLeave = () => {
+    if (!selectedRen) return;
+    Alert.alert(
+      '連から脱退しますか？',
+      `「${selectedRen.name}」から脱退します。この操作は取り消せません。`,
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '脱退する',
+          style: 'destructive',
+          onPress: async () => {
+            setLeaving(true);
+            try {
+              await leaveRen(selectedRen.renId);
+            } catch (e: any) {
+              if (e?.code === 'functions/failed-precondition') {
+                Alert.alert('お知らせ', '最後の管理者は脱退できません。先に他のメンバーを管理者にしてください。');
+              } else {
+                console.error('連からの脱退に失敗しました', e);
+                Alert.alert('エラー', '脱退に失敗しました');
+              }
+            } finally {
+              setLeaving(false);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -200,6 +232,19 @@ export default function GroupScreen() {
                     <ChevronRight size={16} color={colors.gold} />
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity
+                  style={styles.leaveLink}
+                  onPress={handleLeave}
+                  disabled={leaving}
+                  activeOpacity={0.85}
+                >
+                  {leaving ? (
+                    <ActivityIndicator size="small" color={colors.textMuted} />
+                  ) : (
+                    <LogOut size={15} color={colors.textMuted} />
+                  )}
+                  <Text style={styles.leaveLinkText}>この連から脱退する</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.sectionHead}>
@@ -359,6 +404,8 @@ const styles = StyleSheet.create({
   renRowText: { ...typography.caption, color: colors.textSecondary, marginLeft: spacing.sm },
   adminLink: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, paddingTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.indigoLine },
   adminLinkText: { flex: 1, marginLeft: spacing.sm, ...typography.bodyStrong, color: colors.gold, fontSize: 13 },
+  leaveLink: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.indigoLine },
+  leaveLinkText: { marginLeft: spacing.sm, ...typography.caption, color: colors.textMuted },
 
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, marginTop: spacing.sm },
   sectionTitle: { ...typography.sectionLabel, color: colors.textPrimary, marginLeft: spacing.sm },

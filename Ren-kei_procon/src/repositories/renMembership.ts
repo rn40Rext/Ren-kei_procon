@@ -45,6 +45,12 @@ export async function removeMember(renId: string, uid: string): Promise<void> {
   await callable({ renId, uid });
 }
 
+/** FN(leaveRen)。本人が連から脱退する。唯一の管理者の場合はfailed-preconditionで拒否される。 */
+export async function leaveRen(renId: string): Promise<void> {
+  const callable = httpsCallable(functions, 'leaveRen');
+  await callable({ renId });
+}
+
 /**
  * 自分が所属する連(status:'active')を購読する。
  * membersはcollectionGroupクエリのため複合インデックスが必要。

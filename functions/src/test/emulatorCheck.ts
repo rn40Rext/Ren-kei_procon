@@ -86,6 +86,7 @@ async function main(): Promise<void> {
   } = require("../ren/updateJoinRequestStatus");
   const {removeMember} = require("../ren/removeMember");
   const {updateMemberRole} = require("../ren/updateMemberRole");
+  const {leaveRen} = require("../ren/leaveRen");
   /* eslint-enable @typescript-eslint/no-var-requires */
 
   const wrap = (fn: any) => functionsTest.wrap(fn);
@@ -575,6 +576,37 @@ async function main(): Promise<void> {
   check(
     (await waitForNotification("memberD", "chat_message")) !== null,
     "DM送信で相手に通知される(トリガ)",
+  );
+
+  console.log("--- leaveRen(本人の脱退) ---");
+  await db.doc("ren/renE").set({name: "脱退検証連"});
+  await db
+    .doc("ren/renE/members/adminE")
+    .set({userId: "adminE", role: "admin", status: "active"});
+  await db
+    .doc("ren/renE/members/memberE")
+    .set({userId: "memberE", role: "member", status: "active"});
+
+  await callAs(leaveRen, "memberE", {renId: "renE"});
+  const memberEAfter = await db.doc("ren/renE/members/memberE").get();
+  check(!memberEAfter.exists, "一般メンバーは自分の意思で連から脱退できる");
+
+  check(
+    (await errorCodeOf(callAs(leaveRen, "adminE", {renId: "renE"}))) ===
+      "INVALID_STATUS_TRANSITION",
+    "連唯一の管理者は脱退できない(最後の管理者不在を防ぐ)",
+  );
+  const adminEAfter = await db.doc("ren/renE/members/adminE").get();
+  check(adminEAfter.exists, "拒否された脱退はドキュメントを削除しない");
+
+  await db
+    .doc("ren/renE/members/memberF")
+    .set({userId: "memberF", role: "admin", status: "active"});
+  await callAs(leaveRen, "adminE", {renId: "renE"});
+  const adminEAfter2 = await db.doc("ren/renE/members/adminE").get();
+  check(
+    !adminEAfter2.exists,
+    "他に管理者がいれば管理者本人も脱退できる",
   );
 
   functionsTest.cleanup();

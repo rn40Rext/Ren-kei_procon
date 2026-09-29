@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   searchBtnText: { ...typography.button, color: colors.textOnGold, marginLeft: spacing.sm },
 
   switcher: { borderBottomWidth: 1, borderColor: colors.indigoLine },
-  switcherContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  switcherContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   switcherPill: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.indigoRaised, marginRight: spacing.sm },
   switcherPillActive: { backgroundColor: colors.gold },
   switcherText: { ...typography.caption, color: colors.textSecondary },

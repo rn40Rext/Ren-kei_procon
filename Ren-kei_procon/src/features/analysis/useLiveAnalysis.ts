@@ -28,6 +28,7 @@ import { finalizeBasicAnalysis, FinalizeResponse } from "../../repositories/anal
 import { createPracticeVideo, uploadPoseSeries, uploadPracticeVideo } from "../../repositories/videos";
 import { LIVE_WARNING_MESSAGES, LiveSnapshot, LiveStatus, LiveVideoSource, LiveWarning, framingMessage } from "./liveTypes";
 import { finalizeErrorMessage } from "./errorMessages";
+import { ScoringDurationSec, StanceGate, isStance } from "./stance";
 
 /** 検出信頼度を見る landmark。脚のルールを評価しないときは脚を数えない */
 const UPPER_LANDMARKS = [LM.NOSE, LM.L_SHOULDER, LM.R_SHOULDER, LM.L_WRIST, LM.R_WRIST, LM.L_HIP, LM.R_HIP];
@@ -62,6 +63,8 @@ function initialSnapshot(): LiveSnapshot {
     fps: 0,
     inferenceMs: 0,
     elapsedMs: 0,
+    durationMs: 0,
+    stanceProgress: 0,
     game: initialGameScore(),
     lastEvent: null,
     message: null,
@@ -122,6 +125,11 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   const rhythmActiveRef = useRef(true);
   /** FN-01 だけ失敗したときの再試行用。動画と姿勢系列は保存済み */
   const pendingRef = useRef<{ videoId: string; payload: FinalizeRequest } | null>(null);
+  /** 構えの継続を数える。構えが STANCE_HOLD_MS 続いたら採点を始める */
+  const stanceGateRef = useRef(new StanceGate());
+  const stanceProgressRef = useRef(0);
+  /** 採点時間。経過したら自動で止まる */
+  const durationMsRef = useRef(0);
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -147,6 +155,8 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       fps: fpsRef.current.fps,
       inferenceMs: fpsRef.current.frames ? fpsRef.current.inferSum / fpsRef.current.frames : prev.inferenceMs,
       elapsedMs: sessionRef.current?.durationMs ?? 0,
+      durationMs: durationMsRef.current,
+      stanceProgress: stanceProgressRef.current,
       game: gameRef.current,
       lastEvent: lastEventRef.current,
       message: messageRef.current,
@@ -172,7 +182,13 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       sourceRef.current = source;
       // ソースが変わると時刻の基準も変わる(カメラ: performance.now / 動画: currentTime)
       lastTsRef.current = -1;
-      if (statusRef.current === "loading" || statusRef.current === "ready" || statusRef.current === "analyzing") return;
+      if (
+        statusRef.current === "loading" ||
+        statusRef.current === "ready" ||
+        statusRef.current === "waitingStance" ||
+        statusRef.current === "analyzing"
+      )
+        return;
       setStatus("loading");
       try {
         const [ruleSet] = await Promise.all([
@@ -205,6 +221,30 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     if (e.grade !== "MISS" && e.message) messageRef.current = e.message;
   }, []);
 
+  /** 構えが決まったら呼ぶ。ここから採点・録画を始め、経過時間も 0 から数える。 */
+  const beginScoring = useCallback(() => {
+    const ruleSet = ruleSetRef.current;
+    const source = sourceRef.current;
+    if (!ruleSet || !source) return;
+    const { danceType, scorePart } = optionsRef.current;
+    evaluatorsRef.current = createEvaluators(frameRules(ruleSet), danceType, scorePart);
+    activeRuleIdsRef.current = new Set(evaluatorsRef.current.map((e) => e.ruleId));
+    smootherRef.current.reset();
+    trackerRef.current.reset();
+    recorderRef.current.reset();
+    rhythmRef.current?.reset();
+    sessionRef.current = new SessionAggregator(ruleSet.version);
+    gameRef.current = initialGameScore();
+    gaugesRef.current = [];
+    lastEventRef.current = null;
+    messageRef.current = null;
+    rhythmEstRef.current = null;
+    startMsRef.current = null;
+    source.startRecording?.();
+    statusRef.current = "analyzing";
+    publish();
+  }, [publish]);
+
   const processFrame = useCallback(() => {
     const source = sourceRef.current;
     const detector = detectorRef.current;
@@ -217,6 +257,14 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     lastTsRef.current = nowMs;
     if (startMsRef.current === null) startMsRef.current = nowMs;
     const t = nowMs - startMsRef.current;
+
+    // 採点時間が来たら自動で止める。保存・採点は画面側が timeUp を見て行う
+    if (statusRef.current === "analyzing" && durationMsRef.current > 0 && t >= durationMsRef.current) {
+      runningRef.current = false;
+      statusRef.current = "timeUp";
+      publish();
+      return;
+    }
 
     const detection = detector.detect(source.frame, nowMs);
 
@@ -260,6 +308,22 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       }
     }
     warningRef.current = warning;
+
+    // 構え待ち: 採点はせず、構えが続いた時間だけ数える。
+    // 複数人が映っていても手前の人で判定できるので、それ以外の警告があるときだけ構えとみなさない
+    if (statusRef.current === "waitingStance") {
+      const framed = primary !== null && (warning === null || warning === "MULTIPLE_PERSONS_DETECTED");
+      const ok = framed && isStance(values, optionsRef.current.scorePart);
+      stanceProgressRef.current = stanceGateRef.current.update(ok, t);
+      if (stanceProgressRef.current >= 1) {
+        beginScoring();
+      } else if (nowMs - lastUiMsRef.current >= UI_UPDATE_INTERVAL_MS) {
+        lastUiMsRef.current = nowMs;
+        publish();
+      }
+      return;
+    }
+
     const gauges: RuleSnapshot[] = [];
     for (const ev of evaluatorsRef.current) {
       const e = ev.evaluate(values, t);
@@ -315,7 +379,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       }
       publish();
     }
-  }, [handleEvent, publish]);
+  }, [beginScoring, handleEvent, publish]);
 
   const loop = useCallback(() => {
     if (!runningRef.current) return;
@@ -329,38 +393,45 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     rafRef.current = globalThis.requestAnimationFrame(loop);
   }, [processFrame, setStatus]);
 
-  /** 判定を開始する。 */
-  const start = useCallback(() => {
-    const ruleSet = ruleSetRef.current;
-    const source = sourceRef.current;
-    if (!ruleSet || !source || statusRef.current !== "ready") return;
-    const defs = frameRules(ruleSet);
-    const { danceType, scorePart } = optionsRef.current;
-    evaluatorsRef.current = createEvaluators(defs, danceType, scorePart);
-    activeRuleIdsRef.current = new Set(evaluatorsRef.current.map((e) => e.ruleId));
-    // RHYTHM は状態機械を持たないので評価器に現れない。別途 rhythm 側で扱う
-    needsLowerBodyRef.current = requiresLowerBody(defs, scorePart);
-    const rhythmDef = ruleSet.rules.find((r) => r.ruleId === RHYTHM_RULE_ID);
-    rhythmActiveRef.current =
-      !!rhythmDef?.enabled && !(rhythmDef.scoreParts && !rhythmDef.scoreParts.includes(scorePart));
-    pendingRef.current = null;
-    smootherRef.current.reset();
-    trackerRef.current.reset();
-    recorderRef.current.reset();
-    rhythmRef.current?.reset();
-    sessionRef.current = new SessionAggregator(ruleSet.version);
-    gameRef.current = initialGameScore();
-    lastEventRef.current = null;
-    messageRef.current = null;
-    rhythmEstRef.current = null;
-    startMsRef.current = null;
-    lastTsRef.current = -1;
-    fpsRef.current = { frames: 0, windowStart: source.nowMs(), fps: 0, inferSum: 0 };
-    source.startRecording?.();
-    runningRef.current = true;
-    setStatus("analyzing");
-    rafRef.current = globalThis.requestAnimationFrame(loop);
-  }, [loop, setStatus]);
+  /**
+   * 判定を開始する。まず構え待ちになり、構えが続いたら採点が始まる(beginScoring)。
+   * 採点は durationSec 秒で自動的に止まる(status が timeUp になる)。
+   */
+  const start = useCallback(
+    (durationSec: ScoringDurationSec) => {
+      const ruleSet = ruleSetRef.current;
+      const source = sourceRef.current;
+      if (!ruleSet || !source || statusRef.current !== "ready") return;
+      const defs = frameRules(ruleSet);
+      const { scorePart } = optionsRef.current;
+      // 構図の警告は構え待ちの間から出すので、脚が要るかはここで決める
+      needsLowerBodyRef.current = requiresLowerBody(defs, scorePart);
+      // RHYTHM は状態機械を持たないので評価器に現れない。別途 rhythm 側で扱う
+      const rhythmDef = ruleSet.rules.find((r) => r.ruleId === RHYTHM_RULE_ID);
+      rhythmActiveRef.current =
+        !!rhythmDef?.enabled && !(rhythmDef.scoreParts && !rhythmDef.scoreParts.includes(scorePart));
+      durationMsRef.current = durationSec * 1000;
+      pendingRef.current = null;
+      sessionRef.current = null;
+      evaluatorsRef.current = [];
+      gaugesRef.current = [];
+      gameRef.current = initialGameScore();
+      lastEventRef.current = null;
+      messageRef.current = null;
+      rhythmEstRef.current = null;
+      stanceGateRef.current.reset();
+      stanceProgressRef.current = 0;
+      smootherRef.current.reset();
+      trackerRef.current.reset();
+      startMsRef.current = null;
+      lastTsRef.current = -1;
+      fpsRef.current = { frames: 0, windowStart: source.nowMs(), fps: 0, inferSum: 0 };
+      runningRef.current = true;
+      setStatus("waitingStance");
+      rafRef.current = globalThis.requestAnimationFrame(loop);
+    },
+    [loop, setStatus]
+  );
 
   const stopLoop = useCallback(() => {
     runningRef.current = false;

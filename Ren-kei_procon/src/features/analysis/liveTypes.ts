@@ -17,6 +17,8 @@ export interface LiveVideoSource {
   /** 映像の現在時刻[ms](単調増加) */
   nowMs(): number;
   isPlaying(): boolean;
+  /** 保存済み動画ファイル(カメラではない)か。trueなら構え待ちをせず即座に採点を始める */
+  isFile: boolean;
   /** 骨格オーバーレイの描画 */
   draw?(primary: Landmark[] | null, allPoses: Landmark[][]): void;
   /** 録画(カメラのとき) */

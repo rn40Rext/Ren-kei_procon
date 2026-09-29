@@ -427,10 +427,16 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       lastTsRef.current = -1;
       fpsRef.current = { frames: 0, windowStart: source.nowMs(), fps: 0, inferSum: 0 };
       runningRef.current = true;
-      setStatus("waitingStance");
+      if (source.isFile) {
+        // 保存済み動画は「構え」を待つ意味がないため、押した瞬間に採点を始める
+        // (video の再生自体も processFrame → isPlaying() が同じフレームで始める)
+        beginScoring();
+      } else {
+        setStatus("waitingStance");
+      }
       rafRef.current = globalThis.requestAnimationFrame(loop);
     },
-    [loop, setStatus]
+    [loop, setStatus, beginScoring]
   );
 
   const stopLoop = useCallback(() => {

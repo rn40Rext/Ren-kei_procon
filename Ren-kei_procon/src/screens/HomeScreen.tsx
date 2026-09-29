@@ -104,7 +104,7 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
         <View style={styles.heroTopEyebrowRow}>
           <KumihimoRule width={18} />
           <Text style={styles.heroEyebrowText}>
-            　{hero.kind === 'dummy' ? '見本(サンプル)' : 'あなたの直近の投稿'}
+            {hero.kind === 'dummy' ? '見本(サンプル)' : 'あなたの直近の投稿'}
           </Text>
         </View>
         <View style={styles.countdownChip}>

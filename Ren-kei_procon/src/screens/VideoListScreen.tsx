@@ -157,7 +157,7 @@ export default function VideoListScreen() {
 
   const onPostToCommunity = useCallback(
     (v: PracticeVideo) => {
-      navigation.navigate('Community', { shareVideoId: v.id });
+      navigation.navigate('Home', { shareVideoId: v.id });
     },
     [navigation]
   );

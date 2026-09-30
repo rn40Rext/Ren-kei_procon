@@ -238,7 +238,12 @@ export interface PublishPostInput {
  */
 export async function publishPost(input: PublishPostInput): Promise<{ postId: string }> {
   const callable = httpsCallable<PublishPostInput, { postId: string }>(functions, 'publishPost');
-  const result = await callable(input);
+  // httpsCallableはundefinedをnullにして送る。サーバはnullを不正値として400を返すため、
+  // 値の無い任意項目(description / videoId)はキーごと送らない
+  const payload = Object.fromEntries(
+    Object.entries(input).filter(([, v]) => v !== undefined)
+  ) as PublishPostInput;
+  const result = await callable(payload);
   return result.data;
 }
 

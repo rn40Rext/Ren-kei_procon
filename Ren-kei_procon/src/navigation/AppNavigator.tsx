@@ -12,7 +12,6 @@ import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import VideoDetailScreen from "../screens/VideoDetailScreen";
 import ChallengeDetailScreen from "../screens/ChallengeDetailScreen";
-import CommunityScreen from "../screens/CommunityScreen";
 import MypageScreen from "../screens/MypageScreen";
 import ScoringScreen from "../screens/ScoringScreen";
 import GroupScreen from "../screens/GroupScreen";
@@ -38,14 +37,13 @@ import GrowthChartScreen from "../screens/GrowthChartScreen";
 
 export type RootStackParamList = {
   Login: undefined;
-  Home: undefined;
+  // shareVideoId: 稽古手帳(VideoList)の「交流広場へ投稿」から来たとき、
+  // その練習動画を投稿フォームに入れて開く。Homeが交流広場を兼ねる
+  Home: { shareVideoId?: string } | undefined;
   // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。id: サンプル演舞 / postId: 実データ投稿
   VideoDetail: { id?: string; postId?: string };
   // 先輩からのチャレンジの詳細
   Challenge: { id?: string };
-  // shareVideoId: U-03 から「コミュニティへ投稿」で来たとき、その練習動画を投稿フォームに入れる
-  // openPostId: 通知(type:'comment')タップ時、該当投稿の詳細を直接開く(#44)
-  Community: { shareVideoId?: string; openPostId?: string } | undefined;
   Mypage: undefined;
   Scoring: undefined;
   VideoList: undefined;
@@ -113,7 +111,6 @@ export default function AppNavigator() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="VideoDetail" component={VideoDetailScreen} />
           <Stack.Screen name="Challenge" component={ChallengeDetailScreen} />
-          <Stack.Screen name="Community" component={CommunityScreen} />
           <Stack.Screen name="Scoring" component={ScoringScreen} />
           <Stack.Screen name="Mypage" component={MypageScreen} />
 

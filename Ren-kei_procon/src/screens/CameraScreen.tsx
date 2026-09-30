@@ -8,8 +8,8 @@
  * 判定ロジックは src/features/pose・src/features/rules・useLiveAnalysis にあり、
  * この画面はそれを呼び出して表示するだけ（判定ロジックをここに書かない）。
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Alert } from "../utils/alert";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -18,6 +18,7 @@ import PoseCameraView, { POSE_CAMERA_SUPPORTED } from "../components/PoseCameraV
 import { useAuth } from "../hooks/useAuth";
 import { useLiveAnalysis } from "../features/analysis/useLiveAnalysis";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
+import { SCORING_DURATIONS_SEC, STANCE_HOLD_MS, ScoringDurationSec, stanceGuide } from "../features/analysis/stance";
 import { RuleSnapshot } from "../features/rules/types";
 import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
@@ -25,6 +26,13 @@ import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
 type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
+
+// 採点中(analyzing)の雰囲気づくり用BGM。自前で撮影した動画から抽出した音源。
+// リアルタイム判定はWeb版のみ対応(TBD-01)なので、ネイティブのAudio実装
+// (expo-av等)には依存せず、Web標準のAudio要素だけで再生する。
+// (expo-avは静的importするだけでネイティブモジュール'ExponentAV'が
+// 見つからずクラッシュするため、ここでは使わない)
+const BGM_URL: string = require("../../assets/audio/bgm-awaodori.mp3");
 
 const GAUGE_LABELS: Record<string, string> = {
   HAND_ABOVE_HEAD: "手の高さ",
@@ -45,7 +53,9 @@ const STATUS_LABEL: Record<string, string> = {
   idle: "カメラ待ち",
   loading: "モデル読み込み中…",
   ready: "READY",
+  waitingStance: "構え待ち",
   analyzing: "ANALYZING",
+  timeUp: "時間終了",
   finalizing: "保存・採点中…",
   done: "完了",
   error: "エラー",
@@ -64,6 +74,10 @@ function mergeGauges(gauges: RuleSnapshot[]): { ruleId: string; label: string; v
   return [...map.values()];
 }
 
+function formatSec(sec: number): string {
+  return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+}
+
 export default function CameraScreen() {
   const route = useRoute<CameraRoute>();
   const navigation = useNavigation<CameraNav>();
@@ -71,6 +85,7 @@ export default function CameraScreen() {
   const { uid } = useAuth();
   const [source, setSource] = useState<LiveVideoSource | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [durationSec, setDurationSec] = useState<ScoringDurationSec>(SCORING_DURATIONS_SEC[0]);
 
   const live = useLiveAnalysis({ uid, danceType, scorePart, baseBpm });
   const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize } = live;
@@ -113,9 +128,37 @@ export default function CameraScreen() {
     }
   }, [busy, retryFinalize, navigation]);
 
+  // 採点時間が来たら自動で保存・採点へ進む
+  useEffect(() => {
+    if (snapshot.status === "timeUp") void onFinish();
+  }, [snapshot.status, onFinish]);
+
   const gauges = useMemo(() => mergeGauges(snapshot.gauges), [snapshot.gauges]);
   const analyzing = snapshot.status === "analyzing";
-  const elapsedSec = Math.floor(snapshot.elapsedMs / 1000);
+  const waitingStance = snapshot.status === "waitingStance";
+
+  // 採点中(analyzing)だけBGMをループ再生する。判定ロジックとは無関係なので
+  // useLiveAnalysisではなくこの画面側で扱う(docs/rules/coding.md: 画面は判定ロジックを持たない)。
+  // リアルタイム判定はWeb版のみなのでWeb標準のAudio要素で十分(ネイティブでは何もしない)
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (!analyzing || Platform.OS !== "web") return;
+    const AudioCtor = (globalThis as { Audio?: typeof window.Audio }).Audio;
+    if (!AudioCtor) return;
+    const audio = new AudioCtor(BGM_URL);
+    audio.loop = true;
+    audio.volume = 0.5;
+    bgmRef.current = audio;
+    audio.play().catch((e) => console.warn("BGMの再生に失敗しました", e));
+    return () => {
+      audio.pause();
+      bgmRef.current = null;
+    };
+  }, [analyzing]);
+  /** 判定を始めてから保存に入るまで(構え待ち + 採点中) */
+  const active = waitingStance || analyzing;
+  const remainingSec = Math.max(0, Math.ceil((snapshot.durationMs - snapshot.elapsedMs) / 1000));
+  const stanceCountdown = Math.max(1, Math.ceil(((1 - snapshot.stanceProgress) * STANCE_HOLD_MS) / 1000));
 
   // リアルタイム判定はWeb版のみ対応(TBD-01)。スマホアプリでは判定不能な画面を
   // 中途半端に出さず、その場でわかる案内に差し替える。
@@ -137,7 +180,7 @@ export default function CameraScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.videoArea}>
-        <PoseCameraView onSource={onSource} onEnded={analyzing ? onFinish : undefined} allowFile={!analyzing && !busy} />
+        <PoseCameraView onSource={onSource} onEnded={analyzing ? onFinish : undefined} allowFile={!active && !busy} />
 
         {/* 上: 状態・警告 */}
         <View style={styles.topBar}>
@@ -146,10 +189,10 @@ export default function CameraScreen() {
           </View>
           {analyzing && (
             <Text style={styles.metaText}>
-              {String(Math.floor(elapsedSec / 60)).padStart(2, "0")}:{String(elapsedSec % 60).padStart(2, "0")}　{snapshot.fps.toFixed(0)}fps
+              残り {formatSec(remainingSec)}　{snapshot.fps.toFixed(0)}fps
             </Text>
           )}
-          {warningMessage && analyzing && (
+          {warningMessage && active && (
             <View style={styles.warningChip}>
               <Text style={styles.warningText}>{warningMessage}</Text>
             </View>
@@ -163,6 +206,19 @@ export default function CameraScreen() {
 
         {/* 中央: 判定フラッシュと改善メッセージ */}
         <View style={styles.centerOverlay}>
+          {waitingStance && (
+            <View style={styles.stancePanel}>
+              <Text style={styles.stanceTitle}>{stanceGuide(scorePart)}</Text>
+              {snapshot.stanceProgress > 0 ? (
+                <Text style={styles.stanceCount}>{stanceCountdown}</Text>
+              ) : (
+                <Text style={styles.stanceHint}>構えを {STANCE_HOLD_MS / 1000} 秒続けると採点が始まります</Text>
+              )}
+              <View style={styles.stanceTrack}>
+                <View style={[styles.stanceFill, { width: `${Math.round(snapshot.stanceProgress * 100)}%` }]} />
+              </View>
+            </View>
+          )}
           {snapshot.lastEvent && (
             <Text style={[styles.gradeFlash, { color: GRADE_COLORS[snapshot.lastEvent.grade] }]}>{snapshot.lastEvent.grade}</Text>
           )}
@@ -170,7 +226,7 @@ export default function CameraScreen() {
         </View>
 
         {/* 右: LIVE SCORE と項目ゲージ */}
-        {(analyzing || snapshot.status === "finalizing") && (
+        {(analyzing || snapshot.status === "timeUp" || snapshot.status === "finalizing") && (
           <View style={styles.sidePanel}>
             <Text style={styles.liveLabel}>LIVE SCORE</Text>
             <Text style={styles.liveScore}>{snapshot.game.score}</Text>
@@ -227,12 +283,31 @@ export default function CameraScreen() {
             {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
           </TouchableOpacity>
         )}
+        {!active && (
+          <View style={styles.durationRow}>
+            <Text style={styles.durationLabel}>採点時間</Text>
+            {SCORING_DURATIONS_SEC.map((sec) => (
+              <TouchableOpacity
+                key={sec}
+                style={[styles.durationChip, durationSec === sec && styles.durationChipSelected]}
+                disabled={busy}
+                onPress={() => setDurationSec(sec)}
+              >
+                <Text style={[styles.durationChipText, durationSec === sec && styles.durationChipTextSelected]}>{sec}秒</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <View style={styles.buttons}>
-          {!analyzing ? (
+          {waitingStance ? (
+            <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
+              <Text style={styles.secondaryButtonText}>中止</Text>
+            </TouchableOpacity>
+          ) : !analyzing ? (
             <TouchableOpacity
               style={[styles.primaryButton, (snapshot.status !== "ready" || busy) && styles.buttonDisabled]}
               disabled={snapshot.status !== "ready" || busy}
-              onPress={start}
+              onPress={() => start(durationSec)}
             >
               {snapshot.status === "loading" ? (
                 <NarutoLoader size={20} color={colors.textOnGold} />
@@ -250,7 +325,7 @@ export default function CameraScreen() {
               </TouchableOpacity>
             </>
           )}
-          {!analyzing && (
+          {!active && (
             <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={() => navigation.goBack()}>
               <Text style={styles.secondaryButtonText}>戻る</Text>
             </TouchableOpacity>
@@ -295,6 +370,18 @@ const styles = StyleSheet.create({
   gaugeFill: { height: 8, backgroundColor: colors.goldBright, borderRadius: 4 },
   gaugeFillHolding: { backgroundColor: colors.gold },
   rhythmText: { ...typography.caption, color: colors.textPrimary },
+  stancePanel: { alignItems: "center", backgroundColor: "rgba(11,19,43,0.8)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, marginHorizontal: spacing.lg },
+  stanceTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: "700", textAlign: "center" },
+  stanceHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
+  stanceCount: { ...typography.displaySerif, color: colors.gold, fontSize: 56, lineHeight: 64, marginTop: spacing.xs },
+  stanceTrack: { alignSelf: "stretch", height: 8, backgroundColor: colors.indigoRaised, borderRadius: 4, overflow: "hidden", marginTop: spacing.md },
+  stanceFill: { height: 8, backgroundColor: colors.gold, borderRadius: 4 },
+  durationRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
+  durationLabel: { ...typography.caption, color: colors.textSecondary },
+  durationChip: { borderWidth: 1, borderColor: colors.indigoLine, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  durationChipSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
+  durationChipText: { ...typography.caption, color: colors.textPrimary, fontWeight: "700" },
+  durationChipTextSelected: { color: colors.textOnGold },
   bottom: { maxHeight: 200, backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine },
   bottomContent: { padding: spacing.md },
   infoRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, alignItems: "center", marginBottom: spacing.sm },

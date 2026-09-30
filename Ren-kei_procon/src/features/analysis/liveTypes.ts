@@ -17,6 +17,8 @@ export interface LiveVideoSource {
   /** 映像の現在時刻[ms](単調増加) */
   nowMs(): number;
   isPlaying(): boolean;
+  /** 保存済み動画ファイル(カメラではない)か。trueなら構え待ちをせず即座に採点を始める */
+  isFile: boolean;
   /** 骨格オーバーレイの描画 */
   draw?(primary: Landmark[] | null, allPoses: Landmark[][]): void;
   /** 録画(カメラのとき) */
@@ -30,7 +32,9 @@ export type LiveStatus =
   | "idle" // 未開始
   | "loading" // モデル読み込み中
   | "ready" // 開始できる
+  | "waitingStance" // 構えを待っている(まだ採点しない)
   | "analyzing" // 判定中
+  | "timeUp" // 採点時間が終わった(保存・採点の直前)
   | "finalizing" // 保存・スコア確定中
   | "done"
   | "error";
@@ -67,6 +71,10 @@ export type LiveSnapshot = {
   fps: number;
   inferenceMs: number;
   elapsedMs: number;
+  /** 採点時間[ms]。この時間で自動的に止まる */
+  durationMs: number;
+  /** 構えの進み具合(0〜1)。1 になると採点が始まる */
+  stanceProgress: number;
   game: GameScoreState;
   /** 直近の判定イベント(表示は数百 ms で消す) */
   lastEvent: (RuleEvent & { shownAtMs: number }) | null;

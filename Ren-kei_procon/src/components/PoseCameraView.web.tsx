@@ -79,6 +79,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
     return {
       frame: video,
       nowMs: () => (isFile ? video.currentTime * 1000 : performance.now()),
+      isFile,
       isPlaying: () => {
         if (video.readyState < 2 || video.ended) return false;
         if (video.paused) {
@@ -149,9 +150,10 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
         video.src = URL.createObjectURL(blob);
         video.loop = false;
         video.muted = true;
-        // タブが背面だと Chrome が play() を中断する(AbortError)。その場合も
-        // ソースは渡し、isPlaying() 側で再生を再試行する
-        await playQuietly(video);
+        // 「判定を開始」を押した瞬間に再生が始まるよう、ここでは再生しない
+        // (ファイルモードではautoPlayを付けていない。念のため明示的にpauseもする)。
+        // 実際の再生開始はisPlaying()が判定ループの最初のフレームで担う
+        video.pause();
         onSource(buildSourceFor("file"));
       } catch (e) {
         setPermissionError(`デモ動画を読み込めませんでした(${String(e)})`);
@@ -217,7 +219,10 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
       video.src = URL.createObjectURL(file);
       video.loop = false;
       video.muted = true;
-      await playQuietly(video);
+      // 「判定を開始」を押した瞬間に再生が始まるよう、選択直後は再生しない
+      // (ファイルモードではautoPlayを付けていない。念のため明示的にpauseもする)。
+      // 実際の再生開始はisPlaying()が判定ループの最初のフレームで担う
+      video.pause();
       onSource(buildSourceFor("file"));
       e.target.value = "";
     },
@@ -236,6 +241,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
       return {
         ...base,
         nowMs: () => (isFile ? video.currentTime * 1000 : performance.now()),
+        isFile,
         startRecording: isFile ? undefined : base.startRecording,
         stopRecording: isFile ? undefined : base.stopRecording,
         fileMedia: isFile ? fileMediaRef.current : null,
@@ -260,7 +266,9 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
     <View style={[styles.container, style]}>
       <video
         ref={videoRef}
-        autoPlay
+        // autoPlay属性は付けない(setMode→再レンダーの反映が非同期なため、
+        // src設定と属性の反映タイミングが競合して、ファイル選択直後に
+        // 自動再生されてしまうことがあった)。再生はすべて明示的にplay()/pause()で制御する
         muted
         playsInline
         onEnded={onEnded}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -61,6 +61,9 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  // stateのbusyは非同期更新のため同一イベントループ内の連打(react-native-web
+  // でonPressが二重発火することがある)を防げない。refで即座にガードする
+  const busyRef = useRef(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const { adminRens } = useAdminRens();
@@ -112,20 +115,22 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   }, [postId]);
 
   const onClap = async () => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
-    // 楽観更新
+    // 楽観更新（マイナスにはならないようクランプする）
     const next = !liked;
     setLiked(next);
-    setLikeCount((n) => n + (next ? 1 : -1));
+    setLikeCount((n) => Math.max(0, n + (next ? 1 : -1)));
     try {
       await toggleLike(postId, liked);
     } catch (e) {
       setLiked(!next);
-      setLikeCount((n) => n + (next ? -1 : 1));
+      setLikeCount((n) => Math.max(0, n + (next ? -1 : 1)));
       Alert.alert('エラー', '拍手の送信に失敗しました');
     } finally {
       setBusy(false);
+      busyRef.current = false;
     }
   };
 
@@ -349,10 +354,17 @@ function SampleDetail({ navigation, route }: any) {
   const [claps, setClaps] = useState(enbu.cheers);
   const [clapped, setClapped] = useState(false);
   const [draft, setDraft] = useState('');
+  // 連打でonPressが同一イベントループ内で二重発火しても二重に増減しないようにする
+  const clapBusyRef = useRef(false);
 
   const sendClap = () => {
-    setClaps((c) => (clapped ? c - 1 : c + 1));
+    if (clapBusyRef.current) return;
+    clapBusyRef.current = true;
+    setClaps((c) => Math.max(0, clapped ? c - 1 : c + 1));
     setClapped((v) => !v);
+    setTimeout(() => {
+      clapBusyRef.current = false;
+    }, 0);
   };
 
   return (

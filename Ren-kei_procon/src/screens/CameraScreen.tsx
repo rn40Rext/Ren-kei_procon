@@ -139,22 +139,48 @@ export default function CameraScreen() {
 
   // 採点中(analyzing)だけBGMをループ再生する。判定ロジックとは無関係なので
   // useLiveAnalysisではなくこの画面側で扱う(docs/rules/coding.md: 画面は判定ロジックを持たない)。
-  // リアルタイム判定はWeb版のみなのでWeb標準のAudio要素で十分(ネイティブでは何もしない)
+  // リアルタイム判定はWeb版のみなのでWeb標準のAudio要素で十分(ネイティブでは何もしない)。
+  // モバイルブラウザは「ユーザー操作と同期していない再生」をブロックするため
+  // (構えを待ってから始まるカメラのanalyzingはボタン押下から時間差があり、
+  // そのままだと再生がブロックされる)、「判定を開始」ボタン押下の中で
+  // 同期的に一度play()しておき(unlockBgm)、以降はそのAudioを使い回す。
   const bgmRef = useRef<HTMLAudioElement | null>(null);
-  useEffect(() => {
-    if (!analyzing || Platform.OS !== "web") return;
+  const getBgmAudio = useCallback((): HTMLAudioElement | null => {
+    if (Platform.OS !== "web") return null;
     const AudioCtor = (globalThis as { Audio?: typeof window.Audio }).Audio;
-    if (!AudioCtor) return;
-    const audio = new AudioCtor(BGM_URL);
-    audio.loop = true;
-    audio.volume = 0.5;
-    bgmRef.current = audio;
-    audio.play().catch((e) => console.warn("BGMの再生に失敗しました", e));
-    return () => {
+    if (!AudioCtor) return null;
+    if (!bgmRef.current) {
+      const audio = new AudioCtor(BGM_URL);
+      audio.loop = true;
+      audio.volume = 0.5;
+      bgmRef.current = audio;
+    }
+    return bgmRef.current;
+  }, []);
+  const unlockBgm = useCallback(() => {
+    const audio = getBgmAudio();
+    if (!audio) return;
+    audio.play().then(() => audio.pause()).catch(() => undefined);
+  }, [getBgmAudio]);
+
+  useEffect(() => {
+    const audio = getBgmAudio();
+    if (!audio) return;
+    if (analyzing) {
+      audio.currentTime = 0;
+      audio.play().catch((e) => console.warn("BGMの再生に失敗しました", e));
+    } else {
       audio.pause();
+    }
+  }, [analyzing, getBgmAudio]);
+
+  // 画面を離れるときは確実に止める
+  useEffect(() => {
+    return () => {
+      bgmRef.current?.pause();
       bgmRef.current = null;
     };
-  }, [analyzing]);
+  }, []);
   /** 判定を始めてから保存に入るまで(構え待ち + 採点中) */
   const active = waitingStance || analyzing;
   const remainingSec = Math.max(0, Math.ceil((snapshot.durationMs - snapshot.elapsedMs) / 1000));
@@ -307,7 +333,12 @@ export default function CameraScreen() {
             <TouchableOpacity
               style={[styles.primaryButton, (snapshot.status !== "ready" || busy) && styles.buttonDisabled]}
               disabled={snapshot.status !== "ready" || busy}
-              onPress={() => start(durationSec)}
+              onPress={() => {
+                // モバイルブラウザの自動再生制限を回避するため、ボタン押下(ユーザー操作)の
+                // 中で同期的にBGMを一度再生しておく。実際の採点開始とBGM再生はこの後始まる
+                unlockBgm();
+                start(durationSec);
+              }}
             >
               {snapshot.status === "loading" ? (
                 <NarutoLoader size={20} color={colors.textOnGold} />
@@ -355,8 +386,10 @@ const styles = StyleSheet.create({
   metaText: { ...typography.caption, color: colors.textPrimary, backgroundColor: "rgba(11,19,43,0.6)", paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
   warningChip: { backgroundColor: colors.aka, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4 },
   warningText: { ...typography.caption, color: colors.textOnAka, fontWeight: "700" },
-  centerOverlay: { position: "absolute", left: 0, right: 0, top: "30%", alignItems: "center", pointerEvents: "none" },
-  gradeFlash: { ...typography.displaySerif, fontSize: 56, letterSpacing: 4, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
+  // 右側のsidePanel(LIVE SCORE・ゲージ)と重ならないよう、右側の余白を
+  // sidePanelの幅ぶん確保する(#後日issue化: 細い画面での確認が必要)
+  centerOverlay: { position: "absolute", left: 0, right: 190 + spacing.xl, top: "30%", alignItems: "center", pointerEvents: "none" },
+  gradeFlash: { ...typography.displaySerif, fontSize: 44, letterSpacing: 3, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
   adviceText: { marginTop: spacing.sm, color: colors.textPrimary, fontSize: 18, fontWeight: "700", backgroundColor: "rgba(11,19,43,0.7)", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.sm },
   sidePanel: { position: "absolute", right: spacing.md, top: 56, width: 190, backgroundColor: "rgba(11,19,43,0.85)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, pointerEvents: "none" },
   liveLabel: { ...typography.sectionLabel, color: colors.gold },

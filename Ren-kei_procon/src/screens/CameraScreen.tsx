@@ -9,8 +9,7 @@
  * この画面はそれを呼び出して表示するだけ（判定ロジックをここに書かない）。
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Audio, AVPlaybackSource } from "expo-av";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Alert } from "../utils/alert";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -28,8 +27,12 @@ import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
 type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
 
-// 採点中(analyzing)の雰囲気づくり用BGM。自前で撮影した動画から抽出した音源(#後日issue化)
-const BGM_SOURCE: AVPlaybackSource = require("../../assets/audio/bgm-awaodori.mp3");
+// 採点中(analyzing)の雰囲気づくり用BGM。自前で撮影した動画から抽出した音源。
+// リアルタイム判定はWeb版のみ対応(TBD-01)なので、ネイティブのAudio実装
+// (expo-av等)には依存せず、Web標準のAudio要素だけで再生する。
+// (expo-avは静的importするだけでネイティブモジュール'ExponentAV'が
+// 見つからずクラッシュするため、ここでは使わない)
+const BGM_URL: string = require("../../assets/audio/bgm-awaodori.mp3");
 
 const GAUGE_LABELS: Record<string, string> = {
   HAND_ABOVE_HEAD: "手の高さ",
@@ -135,29 +138,21 @@ export default function CameraScreen() {
   const waitingStance = snapshot.status === "waitingStance";
 
   // 採点中(analyzing)だけBGMをループ再生する。判定ロジックとは無関係なので
-  // useLiveAnalysisではなくこの画面側で扱う(docs/rules/coding.md: 画面は判定ロジックを持たない)
-  const bgmRef = useRef<Audio.Sound | null>(null);
+  // useLiveAnalysisではなくこの画面側で扱う(docs/rules/coding.md: 画面は判定ロジックを持たない)。
+  // リアルタイム判定はWeb版のみなのでWeb標準のAudio要素で十分(ネイティブでは何もしない)
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
-    if (!analyzing) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { sound } = await Audio.Sound.createAsync(BGM_SOURCE, { isLooping: true, volume: 0.5 });
-        if (cancelled) {
-          await sound.unloadAsync();
-          return;
-        }
-        bgmRef.current = sound;
-        await sound.playAsync();
-      } catch (e) {
-        console.warn("BGMの再生に失敗しました", e);
-      }
-    })();
+    if (!analyzing || Platform.OS !== "web") return;
+    const AudioCtor = (globalThis as { Audio?: typeof window.Audio }).Audio;
+    if (!AudioCtor) return;
+    const audio = new AudioCtor(BGM_URL);
+    audio.loop = true;
+    audio.volume = 0.5;
+    bgmRef.current = audio;
+    audio.play().catch((e) => console.warn("BGMの再生に失敗しました", e));
     return () => {
-      cancelled = true;
-      const sound = bgmRef.current;
+      audio.pause();
       bgmRef.current = null;
-      sound?.unloadAsync().catch(() => undefined);
     };
   }, [analyzing]);
   /** 判定を始めてから保存に入るまで(構え待ち + 採点中) */

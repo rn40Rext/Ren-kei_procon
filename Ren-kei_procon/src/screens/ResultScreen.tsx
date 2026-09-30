@@ -38,8 +38,8 @@ const ITEMS: { key: keyof AnalysisResult; label: string; note?: string }[] = [
   { key: 'hipHeightScore', label: '腰の低さ' },
   { key: 'stopScore', label: '手を止める' },
   { key: 'rhythmScore', label: 'リズム' },
-  { key: 'handPositionScore', label: '手の位置', note: '参考（総合に含まず）' },
-  { key: 'basePostureScore', label: '基本姿勢', note: '参考（総合に含まず）' },
+  { key: 'handPositionScore', label: '手の位置', note: '参考（極め度に含まず）' },
+  { key: 'basePostureScore', label: '基本姿勢', note: '参考（極め度に含まず）' },
 ];
 
 function scoreColor(v: number): string {
@@ -131,7 +131,17 @@ export default function ResultScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <KumihimoRule width={30} />
         <Text style={styles.title}>解析結果</Text>
-        <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した項目別の評価です。</Text>
+        <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した評価です。</Text>
+
+        {/* 極め度 = 手の高さ・腰の低さ・手を止める・リズムのうち評価できた項目の平均(サーバで確定。functions/src/analysis/score.ts) */}
+        <View style={styles.totalCard}>
+          <Text style={styles.totalLabel}>{lexicon.aiScore}</Text>
+          <Text style={[styles.totalValue, { color: scoreColor(r.totalScore) }]}>
+            {Math.round(r.totalScore)}
+            <Text style={styles.totalUnit}> 点</Text>
+          </Text>
+          <Text style={styles.totalNote}>手の高さ・腰の低さ・手を止める・リズムのうち、評価できた項目の平均です（100点満点）。</Text>
+        </View>
 
         <View style={styles.sectionHead}>
           <KumihimoRule width={18} />
@@ -182,7 +192,7 @@ export default function ResultScreen() {
             GREAT {r.greatCount} / GOOD {r.goodCount} / MISS {r.missCount}
             {typeof r.maxCombo === 'number' ? ` / 最大 ${r.maxCombo} COMBO` : ''}
           </Text>
-          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、項目別評価とは別物です。</Text>
+          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、極め度とは別物です。</Text>
         </View>
 
         {posted ? (
@@ -296,6 +306,19 @@ const styles = StyleSheet.create({
   feedbackGood: { backgroundColor: colors.goldSoft, borderColor: colors.gold },
   feedbackTag: { ...typography.sectionLabel, marginBottom: 4 },
   feedbackText: { ...typography.body, color: colors.textPrimary },
+
+  totalCard: {
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.indigo,
+  },
+  totalLabel: { ...typography.sectionLabel, color: colors.gold },
+  totalValue: { fontSize: 40, fontWeight: '900', marginTop: 2 },
+  totalUnit: { fontSize: 16, fontWeight: '700', color: colors.textSecondary },
+  totalNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
 
   gameCard: {
     borderWidth: 1,

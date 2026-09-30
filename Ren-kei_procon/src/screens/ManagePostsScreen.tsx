@@ -19,7 +19,7 @@ type SortMode = 'newest' | 'score' | 'noAdvice';
 
 const SORT_OPTIONS: { key: SortMode; label: string }[] = [
   { key: 'newest', label: '新着順' },
-  { key: 'score', label: 'スコア順' },
+  { key: 'score', label: '極め度順' },
   { key: 'noAdvice', label: '未アドバイス優先' },
 ];
 

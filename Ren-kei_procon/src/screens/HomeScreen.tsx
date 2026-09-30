@@ -28,7 +28,6 @@ import {
   IconUchiwa,
   IconNaruko,
   IconMakimono,
-  IconTenugui,
   IconGeta,
   IconWagasa,
   categoryIcon,
@@ -50,7 +49,6 @@ import {
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
 import {
-  filterChips,
   feedTags,
   feedPosts as seedFeed,
   myPosts as seedMine,
@@ -116,7 +114,7 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
         <View style={styles.heroTopRow}>
           <Badge label={hero.category} tone="aka" />
           <Badge
-            label={typeof hero.kimeRate === 'number' ? `極め度 ${hero.kimeRate}%` : '未採点'}
+            label={typeof hero.kimeRate === 'number' ? `極め度 ${hero.kimeRate}点` : '未採点'}
             tone="dark"
             style={styles.badgeGap}
           />
@@ -134,7 +132,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export default function HomeScreen({ navigation, route }: Props) {
   const { width: SCREEN_W } = useWindowDimensions();
   const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
-  const [activeChip, setActiveChip] = useState(filterChips[0]);
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
 
@@ -221,7 +218,8 @@ export default function HomeScreen({ navigation, route }: Props) {
   );
   const realHero = myRealPosts[0] ?? null;
   const dummyHero = mine[0] ?? null;
-  const otherMine = realHero ? mine : mine.slice(1);
+  // 実データの投稿があるときは見本(サンプル)を混ぜない(本人の投稿と見分けがつかないため)
+  const otherMine = realHero ? [] : mine.slice(1);
   // フィード一覧・「ほかのあなたの投稿」はヒーローに出している最新投稿を除いて表示
   const feedRealPosts = useMemo(
     () => realPosts.filter((p) => p.id !== realHero?.id),
@@ -327,6 +325,16 @@ export default function HomeScreen({ navigation, route }: Props) {
       return tagOk && searchOk;
     });
   }, [feed, feedTag, search]);
+
+  // 検索欄・タグは実データの投稿にも効かせる(以前は見本にしか効いていなかった)
+  const visibleRealPosts = useMemo(() => {
+    const q = search.trim();
+    return feedRealPosts.filter((p) => {
+      const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
+      const searchOk = !q || p.title.includes(q) || p.authorName.includes(q);
+      return tagOk && searchOk;
+    });
+  }, [feedRealPosts, feedTag, search]);
 
   const resetDraft = () => {
     setDraftTitle('');
@@ -461,23 +469,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           <RenKeiWordmark size={21} />
           <Text style={styles.logoSub}>稽古と交流の広場</Text>
         </View>
-        <AppMenu>
-          <View style={styles.menuFilterHead}>
-            <IconTenugui size={14} color={colors.gold} />
-            <Text style={styles.menuPanelLabel}>　連・流派・調子で絞り込む</Text>
-          </View>
-          <View style={styles.menuChipWrap}>
-            {filterChips.map((c) => (
-              <Chip
-                key={c}
-                label={c}
-                active={activeChip === c}
-                onPress={() => setActiveChip(c)}
-                style={styles.menuChip}
-              />
-            ))}
-          </View>
-        </AppMenu>
+        <AppMenu />
       </View>
       <Noren width={SCREEN_W} height={24} style={styles.noren} />
 
@@ -490,16 +482,6 @@ export default function HomeScreen({ navigation, route }: Props) {
         <IconUchiwa size={16} color={colors.textOnGold} />
         <Text style={styles.postBarText}>　演舞を投稿する</Text>
       </TouchableOpacity>
-
-      {activeChip !== filterChips[0] ? (
-        <View style={styles.activeFilterBar}>
-          <IconTenugui size={13} color={colors.gold} />
-          <Text style={styles.activeFilterText}>　絞り込み：{activeChip}</Text>
-          <Text style={styles.activeFilterClear} onPress={() => setActiveChip(filterChips[0])}>
-            解除
-          </Text>
-        </View>
-      ) : null}
 
       <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -548,7 +530,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 activeOpacity={0.85}
               >
                 <IconGeta size={15} color={colors.textPrimary} />
-                <Text style={styles.syncBtnText}>　手本と並べて撮り直す</Text>
+                <Text style={styles.syncBtnText}>　自主稽古で撮り直す</Text>
               </TouchableOpacity>
 
               {otherMineItems.length > 0 ? (
@@ -694,9 +676,9 @@ export default function HomeScreen({ navigation, route }: Props) {
 
         <View style={styles.feedList}>
           {/* 実データ：交流広場に投稿された演舞（新着順。ヒーローに出している自分の最新分は除く） */}
-          {feedRealPosts.length > 0 ? (
+          {visibleRealPosts.length > 0 ? (
             <>
-              {feedRealPosts.map((p) => (
+              {visibleRealPosts.map((p) => (
                 <TouchableOpacity
                   key={p.id}
                   style={styles.feedCard}
@@ -712,7 +694,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                     </View>
                     <View style={styles.feedKime}>
                       <Text style={styles.feedKimeText}>
-                        {typeof p.score === 'number' ? `極め ${p.score}` : '未採点'}
+                        {typeof p.score === 'number' ? `極め度 ${p.score}点` : '未採点'}
                       </Text>
                     </View>
                   </View>
@@ -776,7 +758,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                     <CatIcon size={12} color={colors.goldBright} />
                   </View>
                   <View style={styles.feedKime}>
-                    <Text style={styles.feedKimeText}>極め {p.kimeRate}</Text>
+                    <Text style={styles.feedKimeText}>極め度 {p.kimeRate}点</Text>
                   </View>
                 </ImageBackground>
                 <View style={styles.feedBody}>
@@ -809,7 +791,7 @@ export default function HomeScreen({ navigation, route }: Props) {
         <View style={{ height: 32 }} />
       </Animated.ScrollView>
 
-      {/* 演舞を披露する（ダミー投稿） */}
+      {/* 演舞を投稿する（動画なしはダミー投稿） */}
       <Modal visible={posting} transparent animationType="slide" onRequestClose={() => setPosting(false)}>
         <KeyboardAvoidingView
           style={styles.modalWrap}
@@ -817,7 +799,7 @@ export default function HomeScreen({ navigation, route }: Props) {
         >
           <View style={styles.modalCard}>
             <View style={styles.modalHead}>
-              <Text style={styles.modalTitle}>演舞を披露する</Text>
+              <Text style={styles.modalTitle}>演舞を投稿する</Text>
               <TouchableOpacity onPress={() => setPosting(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <X size={20} color={colors.gold} />
               </TouchableOpacity>
@@ -903,7 +885,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <ActivityIndicator color={colors.textOnGold} />
               ) : (
                 <Text style={styles.modalSubmitText}>
-                  {videoUri ? '広場へ披露する' : '見本として保存する'}
+                  {videoUri ? '交流広場へ投稿する' : '見本として保存する'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -958,22 +940,7 @@ const styles = StyleSheet.create({
   },
   countdownText: { ...typography.metric, color: colors.kinari, fontSize: 10 },
   feedWave: { marginTop: spacing.xs },
-  menuPanelLabel: { ...typography.sectionLabel, color: colors.gold },
-  menuFilterHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  menuChipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  menuChip: { marginBottom: spacing.sm },
 
-  activeFilterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.indigo,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.indigoLine,
-  },
-  activeFilterText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
-  activeFilterClear: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
   topGarland: { backgroundColor: colors.indigoDeep },
 

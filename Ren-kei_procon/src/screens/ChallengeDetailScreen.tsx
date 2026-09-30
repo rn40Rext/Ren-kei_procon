@@ -141,7 +141,7 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
             >
               <ImageBackground source={{ uri: m.image }} style={styles.tryThumb} imageStyle={{ borderRadius: radius.sm }} />
               <Text style={styles.tryName}>{m.performer}</Text>
-              <Text style={styles.tryMeta}>極め度 {m.kimeRate}%</Text>
+              <Text style={styles.tryMeta}>極め度 {m.kimeRate}点</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

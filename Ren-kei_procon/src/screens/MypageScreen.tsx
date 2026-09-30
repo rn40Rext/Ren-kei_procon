@@ -19,6 +19,8 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import AppMenu from '../components/AppMenu';
+import { useAuth } from '../hooks/useAuth';
+import { AnalysisResult, subscribeAnalysisResultsByUser } from '../repositories/analysis';
 import { RenMon, HeaderSeam } from '../components/motifs';
 import { colors, spacing, radius, typography } from '../theme';
 
@@ -31,14 +33,23 @@ const ROLE_LABEL: Record<Role, string> = {
   service_admin: '運営',
 };
 
-const KEIKO_STATS = [
-  { label: '連続稽古', value: '18', unit: '日' },
-  { label: '総演舞', value: '42', unit: '本' },
-  { label: '獲得段位', value: '三段', unit: '' },
-];
-
 export default function MypageScreen() {
   const navigation = useNavigation<any>();
+  const { uid } = useAuth();
+
+  // 稽古の記録(analysisResults)から実データで集計する。以前は固定の見本値だった
+  const [results, setResults] = useState<AnalysisResult[]>([]);
+  useEffect(() => {
+    if (!uid) return;
+    return subscribeAnalysisResultsByUser(uid, setResults, (e) => console.warn('subscribeAnalysisResultsByUser', e));
+  }, [uid]);
+  const latest = results.length ? results[results.length - 1].totalScore : null;
+  const best = results.length ? Math.max(...results.map((r) => r.totalScore)) : null;
+  const keikoStats = [
+    { label: '稽古の回数', value: `${results.length}`, unit: '回' },
+    { label: '直近の極め度', value: latest === null ? '―' : `${Math.round(latest)}`, unit: latest === null ? '' : '点' },
+    { label: '自己ベスト', value: best === null ? '―' : `${Math.round(best)}`, unit: best === null ? '' : '点' },
+  ];
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -245,7 +256,7 @@ export default function MypageScreen() {
 
           {!editing ? (
             <View style={styles.statRow}>
-              {KEIKO_STATS.map((s, i) => (
+              {keikoStats.map((s, i) => (
                 <View key={s.label} style={[styles.statItem, i > 0 && styles.statDivider]}>
                   <Text style={styles.statValue}>
                     {s.value}
@@ -270,14 +281,14 @@ export default function MypageScreen() {
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('VideoList')}>
             <View style={styles.menuLeft}>
               <IconEnbuPlay size={19} color={colors.gold} />
-              <Text style={styles.menuText}>自分の演舞・稽古録</Text>
+              <Text style={styles.menuText}>練習動画一覧</Text>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Group')}>
             <View style={styles.menuLeft}>
               <IconWagasa size={19} color={colors.gold} />
-              <Text style={styles.menuText}>所属連・役職の設定</Text>
+              <Text style={styles.menuText}>マイ連（所属している連）</Text>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>

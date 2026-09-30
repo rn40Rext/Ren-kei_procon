@@ -246,7 +246,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
               onPress={() => navigation.navigate('Scoring')}
               activeOpacity={0.85}
             >
-              <Text style={styles.toKeikoText}>この演舞を手本に稽古する</Text>
+              <Text style={styles.toKeikoText}>自主稽古・演舞解析へ</Text>
               <ChevronRight size={15} color={colors.gold} />
             </TouchableOpacity>
           </View>
@@ -418,7 +418,7 @@ function SampleDetail({ navigation, route }: any) {
             <Panel style={styles.metricsPanel}>
               <MetricRow
                 items={[
-                  { label: lexicon.aiScore, value: `${enbu.kimeRate}%` },
+                  { label: lexicon.aiScore, value: `${enbu.kimeRate}` },
                   { label: '演舞尺', value: enbu.duration },
                   { label: '調子', value: `${enbu.bpm} BPM ${enbu.cho}` },
                 ]}
@@ -446,7 +446,7 @@ function SampleDetail({ navigation, route }: any) {
               onPress={() => navigation.navigate('Scoring')}
               activeOpacity={0.85}
             >
-              <Text style={styles.toKeikoText}>この演舞を手本に稽古する</Text>
+              <Text style={styles.toKeikoText}>自主稽古・演舞解析へ</Text>
               <ChevronRight size={15} color={colors.gold} />
             </TouchableOpacity>
           </View>
@@ -524,7 +524,7 @@ function SampleDetail({ navigation, route }: any) {
                   imageStyle={{ borderRadius: radius.sm }}
                 />
                 <Text style={styles.relatedTitle} numberOfLines={2}>{m.title}</Text>
-                <Text style={styles.relatedMeta}>{m.performer}／極め度 {m.kimeRate}%</Text>
+                <Text style={styles.relatedMeta}>{m.performer}／極め度 {m.kimeRate}点</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>

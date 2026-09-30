@@ -251,32 +251,13 @@ export default function CameraScreen() {
           {snapshot.message && analyzing && <Text style={styles.adviceText}>{snapshot.message}</Text>}
         </View>
 
-        {/* 右: LIVE SCORE と項目ゲージ */}
+        {/* 右上: LIVE SCOREのみの小さなバッジ(細い画面でも他要素と重ならないよう最小限にする)。
+            ゲージ・回数・リズムなど詳細は下の操作エリア(scoreDetail)に出す */}
         {(analyzing || snapshot.status === "timeUp" || snapshot.status === "finalizing") && (
-          <View style={styles.sidePanel}>
+          <View style={styles.scoreBadge}>
             <Text style={styles.liveLabel}>LIVE SCORE</Text>
             <Text style={styles.liveScore}>{snapshot.game.score}</Text>
             {snapshot.game.combo >= 2 && <Text style={styles.combo}>{snapshot.game.combo} COMBO</Text>}
-            <View style={styles.countsRow}>
-              <Text style={[styles.countText, { color: GRADE_COLORS.GREAT }]}>GREAT {snapshot.game.counts.GREAT}</Text>
-              <Text style={[styles.countText, { color: GRADE_COLORS.GOOD }]}>GOOD {snapshot.game.counts.GOOD}</Text>
-              <Text style={[styles.countText, { color: GRADE_COLORS.MISS }]}>MISS {snapshot.game.counts.MISS}</Text>
-            </View>
-            {gauges.map((g) => (
-              <View key={g.ruleId} style={styles.gaugeRow}>
-                <Text style={styles.gaugeLabel}>{g.label}</Text>
-                <View style={styles.gaugeTrack}>
-                  <View style={[styles.gaugeFill, { width: `${Math.round(g.value * 100)}%` }, g.holding && styles.gaugeFillHolding]} />
-                </View>
-              </View>
-            ))}
-            <View style={styles.gaugeRow}>
-              <Text style={styles.gaugeLabel}>リズム</Text>
-              <Text style={styles.rhythmText}>
-                {snapshot.rhythm?.userBpm ? `${snapshot.rhythm.userBpm.toFixed(0)} BPM` : "計測中…"}
-                {snapshot.rhythm ? ` / 基準 ${snapshot.rhythm.baseBpm}` : ""}
-              </Text>
-            </View>
           </View>
         )}
       </View>
@@ -304,6 +285,31 @@ export default function CameraScreen() {
           )}
         </View>
         {snapshot.errorMessage && <Text style={styles.errorText}>{snapshot.errorMessage}</Text>}
+        {/* 判定ゲージ・回数・リズム。映像に重ねず、ここにまとめて表示する */}
+        {(analyzing || snapshot.status === "timeUp" || snapshot.status === "finalizing") && (
+          <View style={styles.scoreDetail}>
+            <View style={styles.countsRow}>
+              <Text style={[styles.countText, { color: GRADE_COLORS.GREAT }]}>GREAT {snapshot.game.counts.GREAT}</Text>
+              <Text style={[styles.countText, { color: GRADE_COLORS.GOOD }]}>GOOD {snapshot.game.counts.GOOD}</Text>
+              <Text style={[styles.countText, { color: GRADE_COLORS.MISS }]}>MISS {snapshot.game.counts.MISS}</Text>
+            </View>
+            {gauges.map((g) => (
+              <View key={g.ruleId} style={styles.gaugeRow}>
+                <Text style={styles.gaugeLabel}>{g.label}</Text>
+                <View style={styles.gaugeTrack}>
+                  <View style={[styles.gaugeFill, { width: `${Math.round(g.value * 100)}%` }, g.holding && styles.gaugeFillHolding]} />
+                </View>
+              </View>
+            ))}
+            <View style={styles.gaugeRow}>
+              <Text style={styles.gaugeLabel}>リズム</Text>
+              <Text style={styles.rhythmText}>
+                {snapshot.rhythm?.userBpm ? `${snapshot.rhythm.userBpm.toFixed(0)} BPM` : "計測中…"}
+                {snapshot.rhythm ? ` / 基準 ${snapshot.rhythm.baseBpm}` : ""}
+              </Text>
+            </View>
+          </View>
+        )}
         {canRetryFinalize && (
           <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={onRetry}>
             {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
@@ -386,20 +392,21 @@ const styles = StyleSheet.create({
   metaText: { ...typography.caption, color: colors.textPrimary, backgroundColor: "rgba(11,19,43,0.6)", paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
   warningChip: { backgroundColor: colors.aka, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4 },
   warningText: { ...typography.caption, color: colors.textOnAka, fontWeight: "700" },
-  // 右側のsidePanel(LIVE SCORE・ゲージ)と重ならないよう、右側の余白を
-  // sidePanelの幅ぶん確保する(#後日issue化: 細い画面での確認が必要)
-  centerOverlay: { position: "absolute", left: 0, right: 190 + spacing.xl, top: "30%", alignItems: "center", pointerEvents: "none" },
+  // 右上のscoreBadge(LIVE SCOREのみ)と重ならないよう右側の余白を確保する
+  centerOverlay: { position: "absolute", left: 0, right: 110 + spacing.xl, top: "30%", alignItems: "center", pointerEvents: "none" },
   gradeFlash: { ...typography.displaySerif, fontSize: 44, letterSpacing: 3, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
   adviceText: { marginTop: spacing.sm, color: colors.textPrimary, fontSize: 18, fontWeight: "700", backgroundColor: "rgba(11,19,43,0.7)", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.sm },
-  sidePanel: { position: "absolute", right: spacing.md, top: 56, width: 190, backgroundColor: "rgba(11,19,43,0.85)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, pointerEvents: "none" },
-  liveLabel: { ...typography.sectionLabel, color: colors.gold },
-  liveScore: { color: colors.textPrimary, fontSize: 40, fontWeight: "900", lineHeight: 44 },
-  combo: { color: colors.gold, fontWeight: "bold", marginBottom: 4 },
+  // LIVE SCOREだけの小さなバッジ。ゲージ等の詳細はscoreDetail(下の操作エリア)へ
+  scoreBadge: { position: "absolute", right: spacing.md, top: 56, minWidth: 100, backgroundColor: "rgba(11,19,43,0.85)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, pointerEvents: "none" },
+  liveLabel: { ...typography.sectionLabel, color: colors.gold, fontSize: 10 },
+  liveScore: { color: colors.textPrimary, fontSize: 28, fontWeight: "900", lineHeight: 32 },
+  combo: { color: colors.gold, fontWeight: "bold", marginTop: 2 },
+  scoreDetail: { backgroundColor: colors.indigoRaised, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, marginBottom: spacing.sm },
   countsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap" },
   countText: { ...typography.caption, fontWeight: "700" },
   gaugeRow: { marginTop: spacing.sm },
   gaugeLabel: { ...typography.caption, color: colors.textPrimary, marginBottom: 2 },
-  gaugeTrack: { height: 8, backgroundColor: colors.indigoRaised, borderRadius: 4, overflow: "hidden" },
+  gaugeTrack: { height: 8, backgroundColor: colors.indigo, borderRadius: 4, overflow: "hidden" },
   gaugeFill: { height: 8, backgroundColor: colors.goldBright, borderRadius: 4 },
   gaugeFillHolding: { backgroundColor: colors.gold },
   rhythmText: { ...typography.caption, color: colors.textPrimary },
@@ -415,7 +422,7 @@ const styles = StyleSheet.create({
   durationChipSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
   durationChipText: { ...typography.caption, color: colors.textPrimary, fontWeight: "700" },
   durationChipTextSelected: { color: colors.textOnGold },
-  bottom: { maxHeight: 200, backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine },
+  bottom: { maxHeight: 280, backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine },
   bottomContent: { padding: spacing.md },
   infoRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, alignItems: "center", marginBottom: spacing.sm },
   infoTag: { backgroundColor: colors.indigoRaised, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 3 },

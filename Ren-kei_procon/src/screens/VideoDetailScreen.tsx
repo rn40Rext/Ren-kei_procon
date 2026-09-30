@@ -21,6 +21,7 @@ import { Badge, Chip, WashiCard, MetricRow, SectionHeader, Panel } from '../comp
 import { RenMon, NarutoLoader, SeigaihaBand, AsanohaBackground } from '../components/motifs';
 import RenkeiVideo from '../components/RenkeiVideo';
 import AppMenu from '../components/AppMenu';
+import { useAdminRens } from '../hooks/useAdminRens';
 import {
   todaysEnbu,
   masterEnbu,
@@ -62,6 +63,10 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const { adminRens } = useAdminRens();
+  // 指導者コメント(師匠の教え)は連管理者のみ投稿できる(#31と同じ制約。
+  // 複数連の管理者を兼任している場合は、暫定的に最初の連の管理者として投稿する)
+  const canPostInstructor = adminRens.length > 0;
 
   useEffect(() => {
     let alive = true;
@@ -126,9 +131,14 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
 
   const onSend = async () => {
     if (!draft.trim() || sending) return;
+    if (tab === 'teaching' && !canPostInstructor) return;
     setSending(true);
     try {
-      await addComment(postId, { text: draft, type: 'normal' });
+      await addComment(postId, {
+        text: draft,
+        type: tab === 'teaching' ? 'instructor' : 'normal',
+        renId: tab === 'teaching' ? adminRens[0].renId : undefined,
+      });
       setDraft('');
     } catch (e) {
       Alert.alert('エラー', '声の送信に失敗しました');
@@ -293,29 +303,35 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
           <View style={{ height: 120 }} />
         </ScrollView>
 
-        <View style={styles.inputDock}>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder={`${lexicon.commentInput}…`}
-              placeholderTextColor={colors.textMuted}
-              value={draft}
-              onChangeText={setDraft}
-              multiline
-            />
-            <TouchableOpacity
-              style={[styles.sendBtn, (!draft.trim() || sending) && styles.sendBtnDisabled]}
-              disabled={!draft.trim() || sending}
-              onPress={onSend}
-            >
-              {sending ? (
-                <ActivityIndicator color={colors.textOnGold} size="small" />
-              ) : (
-                <Send size={18} color={colors.textOnGold} />
-              )}
-            </TouchableOpacity>
+        {tab === 'teaching' && !canPostInstructor ? (
+          <View style={styles.inputDockDisabled}>
+            <Text style={styles.inputDockDisabledText}>指導者コメントは連の管理者のみ投稿できます</Text>
           </View>
-        </View>
+        ) : (
+          <View style={styles.inputDock}>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder={`${lexicon.commentInput}…`}
+                placeholderTextColor={colors.textMuted}
+                value={draft}
+                onChangeText={setDraft}
+                multiline
+              />
+              <TouchableOpacity
+                style={[styles.sendBtn, (!draft.trim() || sending) && styles.sendBtnDisabled]}
+                disabled={!draft.trim() || sending}
+                onPress={onSend}
+              >
+                {sending ? (
+                  <ActivityIndicator color={colors.textOnGold} size="small" />
+                ) : (
+                  <Send size={18} color={colors.textOnGold} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -698,6 +714,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
+  inputDockDisabled: {
+    padding: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.indigoLine,
+    backgroundColor: colors.indigo,
+  },
+  inputDockDisabledText: { textAlign: 'center', fontSize: 12, color: colors.textMuted },
   inputChips: { flexDirection: 'row', marginBottom: spacing.sm },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end' },
   input: {

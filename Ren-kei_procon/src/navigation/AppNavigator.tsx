@@ -41,6 +41,7 @@ import StyleResultScreen from "../screens/StyleResultScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import GrowthChartScreen from "../screens/GrowthChartScreen";
 
+/** 画面の名前と、その画面に移動するときに渡す値の一覧。navigate() の書き間違いを型チェックで見つけるために使う */
 export type RootStackParamList = {
   Login: undefined;
   // shareVideoId: 稽古手帳(VideoList)の「交流広場へ投稿」から来たとき、
@@ -81,6 +82,7 @@ export type RootStackParamList = {
   AdviceCompose: { postId: string; renId: string; postTitle: string; authorName: string; videoUrl: string };
 };
 
+/** 画面を重ねて表示する(戻るで前の画面に戻れる)ナビゲーター */
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 /** ルートナビゲータ本体。ログイン状態の確定を待つ間はローディング画面を出す */
@@ -150,6 +152,7 @@ export default function AppNavigator() {
 }
 
 const bootStyles = StyleSheet.create({
+  // 起動中の画面: 背景・上部の提灯の飾り・中央のロゴと副題・くるくる
   wrap: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { position: "absolute", top: 0, left: 0, right: 0 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

@@ -196,6 +196,7 @@ export function IconWagasa(p: IconProps) {
   );
 }
 
+/** アイコンを選ぶときの踊りの種類 */
 export type AwaCategory = '男踊り' | '女踊り' | '鳴り物';
 
 /** 踊りの型からアイコンを返す */

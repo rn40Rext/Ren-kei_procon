@@ -1,3 +1,9 @@
+/**
+ * アプリ全体のナビゲーション定義。ログイン状態(Firebase Auth)を監視し、
+ * 未ログインならLoginScreenのみ、ログイン済みなら全画面のStack.Screenを登録する。
+ * 画面を追加するときは、RootStackParamListへの型追加・ここでのStack.Screen登録・
+ * navigate()呼び出し側の型チェックの3箇所を必ず揃える(docs/rules/coding.md)。
+ */
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -77,6 +83,7 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/** ルートナビゲータ本体。ログイン状態の確定を待つ間はローディング画面を出す */
 export default function AppNavigator() {
   const { width: screenW } = useWindowDimensions();
   const [user, setUser] = useState<User | null>(null);

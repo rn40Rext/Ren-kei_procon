@@ -1,3 +1,7 @@
+/**
+ * Firebase初期化。アプリ全体で使う auth/db/storage/functions インスタンスをここで作り、
+ * 他のファイルは必ずこのモジュールからimportする(直接 initializeApp 等をしない)。
+ */
 import { Platform } from "react-native";
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { initializeAuth, getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
@@ -49,7 +53,9 @@ if (Platform.OS === "web") {
 }
 
 export { auth };
+/** Firestoreインスタンス。screenから直接使わず repositories/ 経由で読み書きする */
 export const db = getFirestore(app);
+/** Storageインスタンス(動画・姿勢系列などのバイナリ保存先) */
 export const storage = getStorage(app);
 // Cloud Functions側(functions/src/index.ts)のリージョン設定と合わせる
 export const functions = getFunctions(app, "asia-northeast1");

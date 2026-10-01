@@ -16,8 +16,8 @@ const SOURCES: Record<ScorePart, number> = {
   whole: require('../../assets/images/stance-guide/whole.png'),
 };
 
-/** 元写真に近い濃さ(画像自体はほぼ不透明なシルエット)。右へ少し傾けて静止感を抑える */
-const DEFAULT_OPACITY = 0.9;
+/** 元写真に近い濃さを基準に、見やすさ優先で少し薄める。右へ少し傾けて静止感を抑える */
+const DEFAULT_OPACITY = 0.75;
 const ROTATE = '10deg';
 // カメラ画面に収まるよう少し小さくし、左寄りに置く(等身大だと画面からはみ出すため)
 const IMAGE_WIDTH = '78%';

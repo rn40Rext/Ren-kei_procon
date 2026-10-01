@@ -14,7 +14,9 @@ import {
   useWindowDimensions,
   Animated,
   ActivityIndicator,
+  Easing,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Alert } from '../utils/alert';
 import * as ImagePicker from 'expo-image-picker';
 import { X, Bell } from 'lucide-react-native';
@@ -28,6 +30,7 @@ import {
   IconUchiwa,
   IconNaruko,
   IconMakimono,
+  IconTenugui,
   IconGeta,
   IconWagasa,
   categoryIcon,
@@ -49,6 +52,7 @@ import {
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
 import {
+  filterChips,
   feedTags,
   feedPosts as seedFeed,
   myPosts as seedMine,
@@ -59,6 +63,188 @@ import { challenges } from '../data/mockChallenges';
 import { awaImage } from '../data/awaImages';
 import { formatAiScore } from '../features/analysis/format';
 
+
+
+
+/* ------------------------------------------------------------------ */
+/* 華やか演出：再生ボタンの波紋 / 動く火の粉 / ヒーローの光 / 押下演出 */
+/* ------------------------------------------------------------------ */
+const ANIM_NATIVE = Platform.OS !== 'web';
+
+function PulsePlay({ children }: { children: React.ReactNode }) {
+  const p = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(p, {
+        toValue: 1,
+        duration: 1600,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: ANIM_NATIVE,
+      }),
+    );
+    loop.start();
+    // ============================================================
+    // Home画面のUI
+    // 上から「ヘッダー → 投稿 → カウントダウン → フィード → モーダル」
+    // の順に構成している。
+    // ============================================================
+    return () => loop.stop();
+  }, [p]);
+
+  const scale = p.interpolate({ inputRange: [0, 1], outputRange: [1, 1.9] });
+  const opacity = p.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0] });
+
+  return (
+    <View style={styles.playWrap} pointerEvents="none">
+      <Animated.View
+        style={[styles.playCircle, styles.playRing, { opacity, transform: [{ scale }] }]}
+      />
+      <View style={styles.playCircle}>{children}</View>
+    </View>
+  );
+}
+
+type SparkProps = {
+  x: number;
+  size: number;
+  dur: number;
+  delay: number;
+  drift: number;
+  height: number;
+  color: string;
+};
+
+function Spark({ x, size, dur, delay, drift, height, color }: SparkProps) {
+  const v = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let alive = true;
+
+    const run = (d: number) => {
+      v.setValue(0);
+      Animated.sequence([
+        Animated.delay(d),
+        Animated.timing(v, {
+          toValue: 1,
+          duration: dur,
+          easing: Easing.linear,
+          useNativeDriver: ANIM_NATIVE,
+        }),
+      ]).start(({ finished }) => {
+        if (alive && finished) run(0);
+      });
+    };
+
+    run(delay);
+
+    return () => {
+      alive = false;
+      v.stopAnimation();
+    };
+  }, [v, dur, delay]);
+
+  const translateY = v.interpolate({ inputRange: [0, 1], outputRange: [-10, height] });
+  const translateX = v.interpolate({ inputRange: [0, 1], outputRange: [0, drift] });
+  const opacity = v.interpolate({
+    inputRange: [0, 0.12, 0.85, 1],
+    outputRange: [0, 0.9, 0.9, 0],
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: x,
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: color,
+        opacity,
+        transform: [{ translateY }, { translateX }],
+      }}
+    />
+  );
+}
+
+function SparkLayer({ count = 10 }: { count?: number }) {
+  const { width, height } = useWindowDimensions();
+
+  const sparks = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        key: i,
+        x: Math.round(Math.random() * Math.max(0, width - 8)),
+        size: 3 + Math.round(Math.random() * 2),
+        dur: 6500 + Math.round(Math.random() * 4000),
+        delay: Math.round(Math.random() * 6000),
+        drift: Math.round((Math.random() - 0.5) * 50),
+        color: i % 3 === 0 ? colors.goldBright : colors.gold,
+      })),
+    [count, width],
+  );
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {sparks.map(({ key, ...spark }) => (
+        <Spark key={key} height={height} {...spark} />
+      ))}
+    </View>
+  );
+}
+
+function HeroFade({ height = 84 }: { height?: number }) {
+  return (
+    <LinearGradient
+      pointerEvents="none"
+      colors={['rgba(11,19,43,0)', colors.indigoDeep]}
+      style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height }}
+    />
+  );
+}
+
+function ShineSweep() {
+  const x = useRef(new Animated.Value(-1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1800),
+        Animated.timing(x, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: ANIM_NATIVE,
+        }),
+        Animated.delay(2600),
+        Animated.timing(x, {
+          toValue: -1,
+          duration: 0,
+          useNativeDriver: ANIM_NATIVE,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [x]);
+
+  const translateX = x.interpolate({
+    inputRange: [-1, 1],
+    outputRange: [-260, 260],
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.shine,
+        { transform: [{ translateX }, { rotate: '18deg' }] },
+      ]}
+    />
+  );
+}
 
 /** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
 function daysToFestival(): number {
@@ -71,6 +257,11 @@ function daysToFestival(): number {
   return Math.max(0, Math.ceil((start.getTime() - now.getTime()) / 86400000));
 }
 
+// ============================================================
+// ヒーロー表示用のデータ型
+// 画面上部に表示する「あなたの最新投稿」または「見本投稿」を
+// 共通の形式で扱うための型。
+// ============================================================
 type HeroLike = {
   kind: 'real' | 'dummy';
   category: string;
@@ -88,11 +279,9 @@ type HeroLike = {
  */
 function renderHeroVideoOverlay() {
   return (
-    <View style={styles.heroPlayWrap} pointerEvents="none">
-      <View style={styles.heroPlayCircle}>
-        <IconEnbuPlay size={24} color={colors.textOnGold} />
-      </View>
-    </View>
+    <PulsePlay>
+      <IconEnbuPlay size={24} color={colors.textOnGold} />
+    </PulsePlay>
   );
 }
 
@@ -128,15 +317,24 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
   );
 }
 
+// ============================================================
+// Home画面
+// ============================================================
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation, route }: Props) {
+  // 画面幅に合わせてヒーロー画像の高さを調整。
+  // スマホの縦横比が変わってもレイアウトが崩れにくいようにする。
   const { width: SCREEN_W } = useWindowDimensions();
   const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
+  // 上部の絞り込みチップ／フィードタグ／検索欄の状態
+  const [activeChip, setActiveChip] = useState(filterChips[0]);
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
 
+  // スクロール量を使って、ヘッダーなどの演出を制御するための値
   const scrollY = useRef(new Animated.Value(0)).current;
+  // 阿波おどり本番までの日数。初回表示時に一度だけ計算する。
   const festivalDays = useMemo(() => daysToFestival(), []);
 
   // ダミー：投稿はローカル state で保持（自分の投稿 + 交流フィード）
@@ -219,8 +417,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   );
   const realHero = myRealPosts[0] ?? null;
   const dummyHero = mine[0] ?? null;
-  // 実データの投稿があるときは見本(サンプル)を混ぜない(本人の投稿と見分けがつかないため)
-  const otherMine = realHero ? [] : mine.slice(1);
+  const otherMine = realHero ? mine : mine.slice(1);
   // フィード一覧・「ほかのあなたの投稿」はヒーローに出している最新投稿を除いて表示
   const feedRealPosts = useMemo(
     () => realPosts.filter((p) => p.id !== realHero?.id),
@@ -231,6 +428,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   // （数そのものはsubscribePostsのライブ購読が反映するので、ここではliked表示だけ管理する）。
   const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
   const [clapBusyId, setClapBusyId] = useState<string | null>(null);
+  const [clapBurstId, setClapBurstId] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     feedRealPosts.forEach((p) => {
@@ -250,6 +448,10 @@ export default function HomeScreen({ navigation, route }: Props) {
     const currentlyLiked = !!likedMap[postId];
     setClapBusyId(postId);
     setLikedMap((m) => ({ ...m, [postId]: !currentlyLiked }));
+    if (!currentlyLiked) {
+      setClapBurstId(postId);
+      setTimeout(() => setClapBurstId((current) => current === postId ? null : current), 650);
+    }
     try {
       await toggleLike(postId, currentlyLiked);
     } catch {
@@ -287,34 +489,34 @@ export default function HomeScreen({ navigation, route }: Props) {
 
   const hero = realHero
     ? {
-        kind: 'real' as const,
-        title: realHero.title,
-        authorRen: '交流広場に投稿',
-        category: realHero.tags[0] ?? '演舞',
-        kimeRate: realHero.score,
-        timeAgo: 'あなたの投稿',
-        description: realHero.description,
-        videoUrl: realHero.videoUrl,
-        claps: realHero.likeCount,
-        comments: realHero.commentCount,
-        duration: undefined as string | undefined,
-        onPress: () => openPost(realHero.id),
-      }
+      kind: 'real' as const,
+      title: realHero.title,
+      authorRen: '交流広場に投稿',
+      category: realHero.tags[0] ?? '演舞',
+      kimeRate: realHero.score,
+      timeAgo: 'あなたの投稿',
+      description: realHero.description,
+      videoUrl: realHero.videoUrl,
+      claps: realHero.likeCount,
+      comments: realHero.commentCount,
+      duration: undefined as string | undefined,
+      onPress: () => openPost(realHero.id),
+    }
     : dummyHero
       ? {
-          kind: 'dummy' as const,
-          title: dummyHero.title,
-          authorRen: dummyHero.authorRen,
-          category: dummyHero.category,
-          kimeRate: dummyHero.kimeRate,
-          timeAgo: dummyHero.timeAgo,
-          description: dummyHero.description,
-          image: dummyHero.image,
-          claps: dummyHero.claps,
-          comments: dummyHero.comments,
-          duration: dummyHero.duration,
-          onPress: () => openEnbu(dummyHero.id),
-        }
+        kind: 'dummy' as const,
+        title: dummyHero.title,
+        authorRen: dummyHero.authorRen,
+        category: dummyHero.category,
+        kimeRate: dummyHero.kimeRate,
+        timeAgo: dummyHero.timeAgo,
+        description: dummyHero.description,
+        image: dummyHero.image,
+        claps: dummyHero.claps,
+        comments: dummyHero.comments,
+        duration: dummyHero.duration,
+        onPress: () => openEnbu(dummyHero.id),
+      }
       : null;
 
   const visibleFeed = useMemo(() => {
@@ -326,16 +528,6 @@ export default function HomeScreen({ navigation, route }: Props) {
       return tagOk && searchOk;
     });
   }, [feed, feedTag, search]);
-
-  // 検索欄・タグは実データの投稿にも効かせる(以前は見本にしか効いていなかった)
-  const visibleRealPosts = useMemo(() => {
-    const q = search.trim();
-    return feedRealPosts.filter((p) => {
-      const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
-      const searchOk = !q || p.title.includes(q) || p.authorName.includes(q);
-      return tagOk && searchOk;
-    });
-  }, [feedRealPosts, feedTag, search]);
 
   const resetDraft = () => {
     setDraftTitle('');
@@ -449,7 +641,12 @@ export default function HomeScreen({ navigation, route }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ChochinGarland width={SCREEN_W} count={7} height={44} style={styles.topGarland} />
+      <View style={styles.globalAtmosphere} pointerEvents="none">
+        <SparkLayer count={14} />
+      </View>
+      <Animated.View style={styles.garlandMotion}>
+        <ChochinGarland width={SCREEN_W} count={7} height={44} style={styles.topGarland} />
+      </Animated.View>
 
       {/* ヘッダー：藍染めの暖簾風。アプリ銘を中央に */}
       <View style={styles.header}>
@@ -470,7 +667,23 @@ export default function HomeScreen({ navigation, route }: Props) {
           <RenKeiWordmark size={21} />
           <Text style={styles.logoSub}>稽古と交流の広場</Text>
         </View>
-        <AppMenu />
+        <AppMenu>
+          <View style={styles.menuFilterHead}>
+            <IconTenugui size={14} color={colors.gold} />
+            <Text style={styles.menuPanelLabel}>　連・流派・調子で絞り込む</Text>
+          </View>
+          <View style={styles.menuChipWrap}>
+            {filterChips.map((c) => (
+              <Chip
+                key={c}
+                label={c}
+                active={activeChip === c}
+                onPress={() => setActiveChip(c)}
+                style={styles.menuChip}
+              />
+            ))}
+          </View>
+        </AppMenu>
       </View>
       <Noren width={SCREEN_W} height={24} style={styles.noren} />
 
@@ -483,6 +696,16 @@ export default function HomeScreen({ navigation, route }: Props) {
         <IconUchiwa size={16} color={colors.textOnGold} />
         <Text style={styles.postBarText}>　演舞を投稿する</Text>
       </TouchableOpacity>
+
+      {activeChip !== filterChips[0] ? (
+        <View style={styles.activeFilterBar}>
+          <IconTenugui size={13} color={colors.gold} />
+          <Text style={styles.activeFilterText}>　絞り込み：{activeChip}</Text>
+          <Text style={styles.activeFilterClear} onPress={() => setActiveChip(filterChips[0])}>
+            解除
+          </Text>
+        </View>
+      ) : null}
 
       <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -502,11 +725,21 @@ export default function HomeScreen({ navigation, route }: Props) {
             >
               {hero.kind === 'real' ? (
                 <View style={styles.heroImage}>
-                  <RenkeiVideo uri={hero.videoUrl} style={styles.heroVideo} contentFit="cover" muted />
+                  <RenkeiVideo uri={hero.videoUrl} style={styles.heroVideo} contentFit="cover" muted autoPlay loop />
+                  <View style={styles.heroLightLayer} pointerEvents="none">
+                    <SparkLayer count={6} />
+                    <ShineSweep />
+                  </View>
+                  <HeroFade height={88} />
                   <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
                 </View>
               ) : (
                 <ImageBackground source={{ uri: hero.image }} style={styles.heroImage}>
+                  <View style={styles.heroLightLayer} pointerEvents="none">
+                    <SparkLayer count={6} />
+                    <ShineSweep />
+                  </View>
+                  <HeroFade height={88} />
                   <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
                 </ImageBackground>
               )}
@@ -531,7 +764,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 activeOpacity={0.85}
               >
                 <IconGeta size={15} color={colors.textPrimary} />
-                <Text style={styles.syncBtnText}>　自主稽古で撮り直す</Text>
+                <Text style={styles.syncBtnText}>　手本と並べて撮り直す</Text>
               </TouchableOpacity>
 
               {otherMineItems.length > 0 ? (
@@ -619,6 +852,10 @@ export default function HomeScreen({ navigation, route }: Props) {
                     </View>
                   </View>
                 </ImageBackground>
+                <View style={styles.masterAccent} pointerEvents="none">
+                  <View style={styles.masterAccentDot} />
+                  <View style={styles.masterAccentLine} />
+                </View>
                 <View style={styles.masterBody}>
                   <Text style={styles.masterName} numberOfLines={2}>{c.title}</Text>
                   <View style={styles.chPoster}>
@@ -644,6 +881,11 @@ export default function HomeScreen({ navigation, route }: Props) {
 
         {/* 交流フィード（旧コミュニティを統合）— 青海波を敷く */}
         <SeigaihaBand width={SCREEN_W} height={16} color={colors.gold} opacity={0.28} style={styles.feedWave} />
+        <View style={styles.feedStageTop} pointerEvents="none">
+          <Text style={styles.stageSparkLeft}>✦</Text>
+          <View style={styles.stageRule} />
+          <Text style={styles.stageSparkRight}>✦</Text>
+        </View>
         <View style={styles.feedHead}>
           <View style={styles.feedCategoryRow}>
             <IconWagasa size={13} color={colors.gold} />
@@ -677,9 +919,9 @@ export default function HomeScreen({ navigation, route }: Props) {
 
         <View style={styles.feedList}>
           {/* 実データ：交流広場に投稿された演舞（新着順。ヒーローに出している自分の最新分は除く） */}
-          {visibleRealPosts.length > 0 ? (
+          {feedRealPosts.length > 0 ? (
             <>
-              {visibleRealPosts.map((p) => (
+              {feedRealPosts.map((p) => (
                 <TouchableOpacity
                   key={p.id}
                   style={styles.feedCard}
@@ -697,8 +939,8 @@ export default function HomeScreen({ navigation, route }: Props) {
                       <Text style={styles.feedKimeText}>
                         {formatAiScore(p.score)}
                       </Text>
-                    </View>
-                  </View>
+                    </View >
+                  </View >
                   <View style={styles.feedBody}>
                     <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
                     <View style={styles.feedAuthorRow}>
@@ -706,7 +948,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                         <Text style={styles.feedAvatarChar}>{p.authorName.slice(0, 1)}</Text>
                       </RenMon>
                       <Text style={styles.feedMeta} numberOfLines={1}>
-                        　{p.authorName}{p.userId && p.userId === uid ? '（あなた）' : ''}
+                        {p.authorName}{p.userId && p.userId === uid ? '（あなた）' : ''}
                       </Text>
                     </View>
                     {p.tags.length > 0 ? (
@@ -721,6 +963,13 @@ export default function HomeScreen({ navigation, route }: Props) {
                       >
                         <IconNaruko size={13} color={likedMap[p.id] ? colors.aka : colors.gold} />
                         <Text style={[styles.feedStatText, likedMap[p.id] && styles.feedStatTextActive]}>{p.likeCount}</Text>
+                        {clapBurstId === p.id ? (
+                          <View style={styles.clapBurst} pointerEvents="none">
+                            <Text style={styles.clapBurstText}>✦</Text>
+                            <Text style={[styles.clapBurstText, styles.clapBurstText2]}>✦</Text>
+                            <Text style={[styles.clapBurstText, styles.clapBurstText3]}>✦</Text>
+                          </View>
+                        ) : null}
                       </TouchableOpacity>
                       <View style={{ marginLeft: spacing.md, flexDirection: 'row', alignItems: 'center' }}>
                         <IconMakimono size={13} color={colors.textMuted} />
@@ -728,8 +977,9 @@ export default function HomeScreen({ navigation, route }: Props) {
                       </View>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
+                </TouchableOpacity >
+              ))
+              }
             </>
           ) : null}
 
@@ -738,69 +988,72 @@ export default function HomeScreen({ navigation, route }: Props) {
             <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
           </View>
 
-          {visibleFeed.length === 0 ? (
-            <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>
-          ) : (
-            visibleFeed.map((p) => {
-              const CatIcon = categoryIcon(p.category);
-              return (
-              <TouchableOpacity
-                key={p.id}
-                style={styles.feedCard}
-                activeOpacity={0.85}
-                onPress={() => openEnbu(p.id)}
-              >
-                <ImageBackground
-                  source={{ uri: p.image }}
-                  style={styles.feedThumb}
-                  imageStyle={{ borderRadius: radius.sm }}
-                >
-                  <View style={styles.feedCatMark}>
-                    <CatIcon size={12} color={colors.goldBright} />
-                  </View>
-                  <View style={styles.feedKime}>
-                    <Text style={styles.feedKimeText}>{formatAiScore(p.kimeRate)}</Text>
-                  </View>
-                </ImageBackground>
-                <View style={styles.feedBody}>
-                  <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
-                  <View style={styles.feedAuthorRow}>
-                    <RenMon size={18} color={colors.gold}>
-                      <Text style={styles.feedAvatarChar}>{p.author.slice(0, 1)}</Text>
-                    </RenMon>
-                    <Text style={styles.feedMeta} numberOfLines={1}>　{p.author}／{p.authorRen}</Text>
-                  </View>
-                  {p.tags.length > 0 ? (
-                    <Text style={styles.feedTags} numberOfLines={1}>{p.tags.join('  ')}</Text>
-                  ) : null}
-                  <View style={styles.feedStats}>
-                    <IconNaruko size={13} color={colors.gold} />
-                    <Text style={styles.feedStatText}>{p.claps}</Text>
-                    <View style={{ marginLeft: spacing.md, flexDirection: 'row', alignItems: 'center' }}>
-                      <IconMakimono size={13} color={colors.textMuted} />
-                      <Text style={styles.feedStatText}>{p.comments}</Text>
+          {
+            visibleFeed.length === 0 ? (
+              <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>
+            ) : (
+              visibleFeed.map((p) => {
+                const CatIcon = categoryIcon(p.category);
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.feedCard}
+                    activeOpacity={0.85}
+                    onPress={() => openEnbu(p.id)}
+                  >
+                    <ImageBackground
+                      source={{ uri: p.image }}
+                      style={styles.feedThumb}
+                      imageStyle={{ borderRadius: radius.sm }}
+                    >
+                      <View style={styles.feedCatMark}>
+                        <CatIcon size={12} color={colors.goldBright} />
+                      </View>
+                      <View style={styles.feedKime}>
+                        <Text style={styles.feedKimeText}>
+                          {formatAiScore(p.kimeRate)}
+                        </Text>
+                      </View>
+                    </ImageBackground >
+                    <View style={styles.feedBody}>
+                      <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
+                      <View style={styles.feedAuthorRow}>
+                        <RenMon size={18} color={colors.gold}>
+                          <Text style={styles.feedAvatarChar}>{p.author.slice(0, 1)}</Text>
+                        </RenMon>
+                        <Text style={styles.feedMeta} numberOfLines={1}>　{p.author}／{p.authorRen}</Text>
+                      </View>
+                      {p.tags.length > 0 ? (
+                        <Text style={styles.feedTags} numberOfLines={1}>{p.tags.join('  ')}</Text>
+                      ) : null}
+                      <View style={styles.feedStats}>
+                        <IconNaruko size={13} color={colors.gold} />
+                        <Text style={styles.feedStatText}>{p.claps}</Text>
+                        <View style={{ marginLeft: spacing.md, flexDirection: 'row', alignItems: 'center' }}>
+                          <IconMakimono size={13} color={colors.textMuted} />
+                          <Text style={styles.feedStatText}>{p.comments}</Text>
+                        </View>
+                        <Text style={styles.feedTime}>・{p.timeAgo}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.feedTime}>・{p.timeAgo}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-              );
-            })
-          )}
-        </View>
+                  </TouchableOpacity >
+                );
+              })
+            )}
+        </View >
 
         <View style={{ height: 32 }} />
-      </Animated.ScrollView>
+      </Animated.ScrollView >
 
-      {/* 演舞を投稿する（動画なしはダミー投稿） */}
-      <Modal visible={posting} transparent animationType="slide" onRequestClose={() => setPosting(false)}>
+      {/* 演舞を披露する（ダミー投稿） */}
+      < Modal visible={posting} transparent animationType="slide" onRequestClose={() => setPosting(false)}>
         <KeyboardAvoidingView
           style={styles.modalWrap}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.modalCard}>
             <View style={styles.modalHead}>
-              <Text style={styles.modalTitle}>演舞を投稿する</Text>
+              <Text style={styles.modalTitle}>演舞を披露する</Text>
               <TouchableOpacity onPress={() => setPosting(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <X size={20} color={colors.gold} />
               </TouchableOpacity>
@@ -886,18 +1139,148 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <ActivityIndicator color={colors.textOnGold} />
               ) : (
                 <Text style={styles.modalSubmitText}>
-                  {videoUri ? '交流広場へ投稿する' : '見本として保存する'}
+                  {videoUri ? '広場へ披露する' : '見本として保存する'}
                 </Text>
               )}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-    </SafeAreaView>
+      </Modal >
+    </SafeAreaView >
   );
 }
 
+// ============================================================
+// Home画面のスタイル
+// UI本体とは分離して、見た目の調整をここにまとめる。
+// ============================================================
 const styles = StyleSheet.create({
+
+  /* --- 華やか演出 --- */
+  globalAtmosphere: {
+    ...{
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+    zIndex: 0,
+    opacity: 0.75,
+  },
+  garlandMotion: {
+    zIndex: 2,
+  },
+  playWrap: {
+    width: 58,
+    height: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: radius.pill,
+    backgroundColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playRing: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    borderWidth: 2,
+    borderColor: colors.goldBright,
+    backgroundColor: 'transparent',
+  },
+  heroLightLayer: {
+    ...{
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    },
+    overflow: 'hidden',
+  },
+  shine: {
+    position: 'absolute',
+    top: -100,
+    bottom: -100,
+    width: 70,
+    backgroundColor: 'rgba(255,239,170,0.10)',
+  },
+  masterAccent: {
+    position: 'absolute',
+    top: 112,
+    left: spacing.md,
+    right: spacing.md,
+    height: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  masterAccentDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: colors.goldBright,
+  },
+  masterAccentLine: {
+    flex: 1,
+    height: 1,
+    marginLeft: 5,
+    backgroundColor: colors.gold,
+    opacity: 0.55,
+  },
+  feedStageTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  stageRule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.gold,
+    opacity: 0.35,
+  },
+  stageSparkLeft: {
+    color: colors.goldBright,
+    fontSize: 11,
+    marginRight: spacing.sm,
+  },
+  stageSparkRight: {
+    color: colors.goldBright,
+    fontSize: 11,
+    marginLeft: spacing.sm,
+  },
+  clapBurst: {
+    position: 'absolute',
+    left: 6,
+    top: -10,
+    width: 30,
+    height: 30,
+  },
+  clapBurstText: {
+    position: 'absolute',
+    color: colors.goldBright,
+    fontSize: 12,
+    fontWeight: '700',
+    left: 10,
+    top: 0,
+  },
+  clapBurstText2: {
+    left: 0,
+    top: 7,
+    fontSize: 9,
+  },
+  clapBurstText3: {
+    left: 19,
+    top: 8,
+    fontSize: 9,
+  },
+
   container: { flex: 1, backgroundColor: colors.indigoDeep },
 
   header: {
@@ -941,7 +1324,22 @@ const styles = StyleSheet.create({
   },
   countdownText: { ...typography.metric, color: colors.kinari, fontSize: 10 },
   feedWave: { marginTop: spacing.xs },
+  menuPanelLabel: { ...typography.sectionLabel, color: colors.gold },
+  menuFilterHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
+  menuChipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  menuChip: { marginBottom: spacing.sm },
 
+  activeFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.indigo,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.indigoLine,
+  },
+  activeFilterText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
+  activeFilterClear: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
   topGarland: { backgroundColor: colors.indigoDeep },
 
@@ -963,18 +1361,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heroEyebrowText: { ...typography.sectionLabel, color: colors.gold, letterSpacing: 3 },
-  heroPlayWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroPlayCircle: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.pill,
-    backgroundColor: colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   heroInfoTopRow: {
     flexDirection: 'row',
     alignItems: 'center',

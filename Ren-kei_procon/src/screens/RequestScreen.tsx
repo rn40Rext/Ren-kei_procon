@@ -680,6 +680,7 @@ const styles = StyleSheet.create({
   },
   renSearchLinkText: { ...typography.caption, color: colors.gold, fontWeight: '700', textAlign: 'center' },
 
+  // 「見つける」「送信済み」「受信」の3タブ
   tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.indigoLine },
   tabItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.gold },
@@ -718,6 +719,7 @@ const styles = StyleSheet.create({
   sampleDivider: { alignItems: 'center', marginVertical: spacing.lg },
   sampleDividerText: { ...typography.caption, color: colors.textMuted },
 
+  // サンプルの踊り手カード
   card: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,
@@ -731,6 +733,7 @@ const styles = StyleSheet.create({
   thumbBadge: { margin: 4 },
   cardBody: { flex: 1, marginLeft: spacing.md },
 
+  // 実在するユーザーのカード(サンプルのcardと見た目は同じだが別スタイルとして持つ)
   realCard: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,

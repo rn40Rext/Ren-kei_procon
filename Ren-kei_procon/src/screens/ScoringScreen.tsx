@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
   sectionHead: { marginTop: spacing.xl, marginBottom: spacing.md },
   sectionTitleInline: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.sm },
 
+  // 選択肢1つ分のカード(踊りの型・重点部位どちらにも使う)。右端に丸いラジオボタンを置く
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -134,6 +135,7 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
     backgroundColor: colors.indigo,
   },
+  // 選択中のカードは金色の枠・背景にする
   optionCardActive: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
   optionLabel: { ...typography.bodyStrong, color: colors.textPrimary },
   optionLabelActive: { color: colors.gold },

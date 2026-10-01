@@ -350,6 +350,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
   content: { flex: 1 },
 
+  // アイコン・名前・役割・統計をまとめた、画面上部のプロフィールエリア
   profileSection: {
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
@@ -389,6 +390,7 @@ const styles = StyleSheet.create({
   profileText: { ...typography.body, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   editText: { textAlign: 'center', ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
+  // 「稽古の回数」「直近の極め度」「自己ベスト」を横に並べる行
   statRow: { flexDirection: 'row', marginTop: spacing.xl, justifyContent: 'center' },
   statItem: { alignItems: 'center', paddingHorizontal: spacing.lg },
   statDivider: { borderLeftWidth: 1, borderLeftColor: colors.indigoLine },
@@ -396,6 +398,7 @@ const styles = StyleSheet.create({
   statUnit: { ...typography.caption, color: colors.textMuted },
   statLabel: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
 
+  // メニュー項目をまとめた1つのグループ(「稽古の記録」等のセクション)
   section: {
     backgroundColor: colors.indigo,
     marginTop: spacing.md,
@@ -461,6 +464,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...typography.body,
   },
+  // 編集中に「男踊り」「女踊り」を選ぶボタンを横に並べる行
   danceStyleRow: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
   danceStyleBtn: {
     paddingVertical: spacing.sm,

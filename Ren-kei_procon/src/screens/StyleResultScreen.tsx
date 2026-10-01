@@ -250,6 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   muted: { fontSize: 13, color: colors.textMuted, marginTop: 8 },
+  // 似ている連1件分のカード。左に順位バッジ、右に連名・類似度を並べる
   card: {
     flexDirection: "row",
     backgroundColor: colors.indigo,
@@ -259,6 +260,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  // 順位の数字を表示する丸いバッジ
   rankBadge: {
     width: 36,
     height: 36,
@@ -283,6 +285,7 @@ const styles = StyleSheet.create({
     color: colors.aka,
     fontWeight: "600",
   },
+  // 「検証中の機能です」等の注意書きを目立たせる帯
   notice: {
     backgroundColor: colors.goldSoft,
     borderWidth: 1,

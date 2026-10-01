@@ -11,6 +11,7 @@ export default function SettingScreen() {
   const navigation = useNavigation<any>();
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <ChevronLeft size={22} color={colors.gold} />
@@ -20,6 +21,7 @@ export default function SettingScreen() {
         <AppMenu />
       </View>
       <HeaderSeam />
+      {/* 準備中の案内(画面中央) */}
       <View style={styles.body}>
         <KumihimoRule width={36} />
         <Text style={styles.placeholder}>設定ページ</Text>

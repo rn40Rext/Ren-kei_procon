@@ -11,10 +11,12 @@ import AppMenu from '../components/AppMenu';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { colors, spacing, typography } from '../theme';
 
+/** お問い合わせ画面(準備中の案内だけを出す) */
 export default function ConatctInfoScreen() {
   const navigation = useNavigation<any>();
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <ChevronLeft size={22} color={colors.gold} />

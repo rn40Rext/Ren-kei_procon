@@ -76,6 +76,7 @@ export default function ResultScreen() {
     setShareTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
+  /** 解析結果の動画を交流広場へ投稿する */
   const submitShare = async () => {
     if (!shareTitle.trim()) {
       setShareError('タイトルを入力してください');

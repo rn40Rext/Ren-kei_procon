@@ -21,6 +21,7 @@ export default function AdviceComposeScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
+  /** 指導者コメント(type:'instructor')を投稿に送信する */
   const handleSend = async () => {
     if (!text.trim()) {
       Alert.alert('エラー', 'アドバイスを入力してください');

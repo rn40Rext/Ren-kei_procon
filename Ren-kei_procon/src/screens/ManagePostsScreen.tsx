@@ -84,6 +84,7 @@ export default function ManagePostsScreen() {
     return sorted;
   }, [posts, keyword, sortMode, hasAdviceMap]);
 
+  /** 選んだ投稿への指導者コメント作成画面(AdviceCompose)へ遷移する */
   const handleSendAdvice = () => {
     if (!selectedPost) return;
     setSelectedPost(null);

@@ -37,6 +37,7 @@ const STATUS_COLOR: Record<AnalysisStatus, string> = {
   failed: colors.aka,
 };
 
+/** FirestoreのTimestampを「YYYY/M/D H:MM」形式の文字列にする */
 function formatDate(value: PracticeVideo['createdAt']): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -142,6 +143,7 @@ export default function VideoListScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videos]);
 
+  /** 動画カードをタップ。解析済みなら結果画面へ、未完了なら状態を案内する */
   const onPressVideo = useCallback(
     (v: PracticeVideo) => {
       if (v.analysisStatus === 'completed' && v.latestAnalysisId) {
@@ -155,6 +157,7 @@ export default function VideoListScreen() {
     [navigation]
   );
 
+  /** 「交流広場へ投稿」。交流広場はHomeに統合済みなのでHomeへこの動画のIDを渡す */
   const onPostToCommunity = useCallback(
     (v: PracticeVideo) => {
       navigation.navigate('Home', { shareVideoId: v.id });
@@ -162,6 +165,7 @@ export default function VideoListScreen() {
     [navigation]
   );
 
+  /** 練習動画を削除する。投稿済みの動画は削除できない(投稿側の再生が壊れるため) */
   const onDelete = useCallback(
     (v: PracticeVideo) => {
       if (postedVideoIds.has(v.id)) {

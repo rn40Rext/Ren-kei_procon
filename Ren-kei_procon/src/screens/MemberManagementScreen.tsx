@@ -67,6 +67,7 @@ export default function MemberManagementScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renId]);
 
+  /** メンバーの役割をmember⇔admin切り替える */
   const handleToggleRole = async (member: RenMember) => {
     const nextRole = member.role === 'admin' ? 'member' : 'admin';
     setProcessingUid(member.uid);
@@ -83,6 +84,7 @@ export default function MemberManagementScreen() {
     }
   };
 
+  /** 確認ダイアログの後にメンバーを除名する */
   const confirmRemove = async () => {
     if (!confirmingMember) return;
     const member = confirmingMember;

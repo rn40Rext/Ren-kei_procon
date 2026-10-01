@@ -81,6 +81,7 @@ export default function RenSearchScreen() {
 
   const pendingRequestFor = (renId: string) => myRequests.find((r) => r.renId === renId && r.status === 'pending');
 
+  /** 連カードをタップして詳細モーダルを開く */
   const openRen = async (ren: Ren) => {
     setSelectedRen(ren);
     setMessage('');
@@ -96,6 +97,7 @@ export default function RenSearchScreen() {
     }
   };
 
+  /** 参加リクエスト(FN-04)を送信する */
   const handleSubmit = async () => {
     if (!selectedRen) return;
     setSubmitting(true);
@@ -116,6 +118,7 @@ export default function RenSearchScreen() {
     }
   };
 
+  /** 送信済みの申請(pending)を取り消す */
   const handleCancel = async (requestId: string) => {
     try {
       await cancelJoinRequest(requestId);

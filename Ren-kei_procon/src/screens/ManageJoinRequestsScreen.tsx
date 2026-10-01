@@ -69,6 +69,7 @@ export default function ManageJoinRequestsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renId, tab]);
 
+  /** 申請者のプロフィール・直近の投稿を取得して詳細モーダルを開く */
   const openDetail = async (req: JoinRequest) => {
     setDetailRequest(req);
     setApplicant(null);
@@ -90,6 +91,7 @@ export default function ManageJoinRequestsScreen() {
     setApplicantPosts([]);
   };
 
+  /** 参加リクエストを承認/却下する(FN-05) */
   const handleDecision = async (requestId: string, action: 'approve' | 'reject') => {
     setProcessingId(requestId);
     try {

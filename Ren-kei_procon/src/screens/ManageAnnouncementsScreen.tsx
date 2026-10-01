@@ -45,6 +45,7 @@ export default function ManageAnnouncementsScreen() {
     );
   }, [renId]);
 
+  /** お知らせを作成する */
   const handleSend = async () => {
     if (!title.trim() || !content.trim()) {
       Alert.alert('エラー', 'タイトルと本文を入力してください');

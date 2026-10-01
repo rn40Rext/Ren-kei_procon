@@ -106,6 +106,7 @@ export default function ManageActivitiesScreen() {
     );
   }, [renId]);
 
+  /** 連アイコンを選んでアップロードする */
   const pickIcon = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
     if (result.canceled) return;
@@ -120,6 +121,7 @@ export default function ManageActivitiesScreen() {
     }
   };
 
+  /** 連の基本情報(名前・紹介・活動地域など)を保存する */
   const handleSaveInfo = async () => {
     if (!draftName.trim()) {
       Alert.alert('エラー', '連の名前を入力してください');
@@ -160,6 +162,7 @@ export default function ManageActivitiesScreen() {
     setEditingActivity(activity);
   };
 
+  /** 活動情報を新規作成または更新する(編集中かどうかで分岐) */
   const handleSaveActivity = async () => {
     if (!formTitle.trim()) {
       Alert.alert('エラー', '活動名を入力してください');
@@ -202,6 +205,7 @@ export default function ManageActivitiesScreen() {
     }
   };
 
+  /** 活動情報を削除する */
   const handleDeleteActivity = async () => {
     if (!deletingActivity) return;
     try {

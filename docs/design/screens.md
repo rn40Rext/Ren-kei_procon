@@ -18,7 +18,7 @@
 | U-07 | 連への参加リクエスト | **未作成**（[RequestScreen.tsx](../../Ren-kei_procon/src/screens/RequestScreen.tsx) は空） | ❌ | `ren` 検索, FN-04 |
 | U-08 | マイ連 | [GroupScreen.tsx](../../Ren-kei_procon/src/screens/GroupScreen.tsx) | ✅ 実装済み（#28） | `ren`, `members`(collectionGroup), `announcements`, `activities` |
 | U-09 | マイページ | [MypageScreen.tsx](../../Ren-kei_procon/src/screens/MypageScreen.tsx) | 🔶 部分実装 | `users/{uid}` |
-| U-10 | 成長曲線 | [GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx) | ✅ 実装済み（#37）。総合スコアの推移＋項目別（手の高さ・腰・停止・リズム）の推移、`analysisVersion` 変化点の表示、0〜1件時の空状態に対応。グラフは専用ライブラリを使わず `react-native-svg` で自前実装（N-7で決定） | `analysisResults`（`userId`+`createdAt`、複合インデックス要） |
+| U-10 | 成長の記録 | [GrowthChartScreen.tsx](../../Ren-kei_procon/src/screens/GrowthChartScreen.tsx) | ✅ 実装済み（#37）。総合スコアの推移＋項目別（手の高さ・腰・停止・リズム）の推移、`analysisVersion` 変化点の表示、0〜1件時の空状態に対応。グラフは専用ライブラリを使わず `react-native-svg` で自前実装（N-7で決定）。画面表示名は「成長曲線」から「成長の記録」に変更（2026-10-01、折れ線グラフ表示の実態に合わせた） | `analysisResults`（`userId`+`createdAt`、複合インデックス要） |
 
 ### 連管理者（R-01〜R-08）
 
@@ -154,7 +154,7 @@ const { adminRenIds } = useAdminRens();   // members を横断検索して取得
 | U-03 → U-06 | 解析済み動画をコミュニティへ投稿する場合 |
 | U-04 → U-05 | タイムラインの投稿をタップ |
 | U-07 → U-08 | 参加申請が承認され `members` へ登録された後 |
-| U-09 → U-10 | 成長曲線への導線 |
+| U-09 → U-10 | 成長の記録への導線 |
 | R-03 → R-04 | 投稿詳細からアドバイス送信へ |
 | R-05 → 通知 | 承認・却下時に申請者へ通知 |
 

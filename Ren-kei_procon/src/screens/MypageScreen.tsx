@@ -274,7 +274,7 @@ export default function MypageScreen() {
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('GrowthChart')}>
             <View style={styles.menuLeft}>
               <TrendingUp size={19} color={colors.gold} />
-              <Text style={styles.menuText}>成長曲線</Text>
+              <Text style={styles.menuText}>成長の記録</Text>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
           </TouchableOpacity>

@@ -68,7 +68,7 @@ export default function GrowthChartScreen() {
         >
           <ChevronLeft size={22} color={colors.gold} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>成長曲線</Text>
+        <Text style={styles.headerTitle}>成長の記録</Text>
         <AppMenu />
       </View>
 

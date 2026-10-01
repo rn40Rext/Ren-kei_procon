@@ -29,7 +29,7 @@ const LINKS: { key: NavKey; label: string; note: string; Icon: typeof IconUchiwa
   { key: 'Home', label: '踊り広場・交流広場', note: 'みんなの投稿・交流', Icon: IconUchiwa },
   { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く・連を探す', Icon: IconWagasa },
   { key: 'Scoring', label: '自主稽古・演舞解析', note: 'AI で基本動作を採点', Icon: IconGeta },
-  { key: 'Mypage', label: '稽古手帳', note: 'プロフィール・成長曲線・練習動画・マイ連', Icon: IconMakimono },
+  { key: 'Mypage', label: '稽古手帳', note: 'プロフィール・成長の記録・練習動画・マイ連', Icon: IconMakimono },
 ];
 
 /**

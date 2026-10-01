@@ -27,10 +27,12 @@ export interface PoseDetector {
   load(): Promise<void>;
   /** 1 フレーム推論する。timestampMs は単調増加が必須(MediaPipe VIDEO モードの制約) */
   detect(source: PoseFrameSource, timestampMs: number): PoseDetection;
+  /** モデル・WASMリソースを解放する(画面を離れるときに呼ぶ) */
   close(): void;
   readonly ready: boolean;
 }
 
+/** このプラットフォームでリアルタイム姿勢推定が使えないときに投げるエラー */
 export class PoseNotSupportedError extends Error {
   readonly code = "POSE_NOT_SUPPORTED";
   constructor() {

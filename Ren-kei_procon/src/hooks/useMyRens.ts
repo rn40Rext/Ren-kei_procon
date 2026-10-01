@@ -4,6 +4,7 @@ import { subscribeMyMemberships } from '../repositories/renMembership';
 import { RenMemberRole } from '../types/firestore';
 
 // docs/design/data-model.md 3.8章
+/** 自分が所属する連1件分。連の基本情報に、その連での自分の役割(role)を加えたもの */
 export interface MyRen {
   renId: string;
   name: string;
@@ -30,9 +31,11 @@ export function useMyRens() {
       return;
     }
 
+    // 所属をリアルタイム購読し、画面から外れたら購読を解除する
     return subscribeMyMemberships(
       currentUser.uid,
       (memberships) => {
+        // 連の情報が読めなかった場合でも一覧が崩れないよう、空の値で埋める
         setMyRens(
           memberships.map(({ renId, role, ren }) => ({
             renId,

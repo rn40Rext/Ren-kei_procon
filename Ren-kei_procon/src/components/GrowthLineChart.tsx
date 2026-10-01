@@ -23,8 +23,10 @@ interface Props {
   maxValue?: number;
 }
 
+/** グラフの上下左右に空ける余白(px)。端の点や線が切れないようにする */
 const PADDING = 12;
 
+/** 点数の推移を折れ線で描く。目盛り線・バージョン変更の点線・折れ線・点の順に重ねる */
 export default function GrowthLineChart({
   points,
   width,
@@ -37,7 +39,9 @@ export default function GrowthLineChart({
   const innerW = Math.max(width - PADDING * 2, 1);
   const innerH = Math.max(height - PADDING * 2, 1);
 
+  // i番目の記録の横位置。記録が1件だけなら中央に置く
   const xFor = (i: number) => (points.length <= 1 ? PADDING + innerW / 2 : PADDING + (innerW * i) / (points.length - 1));
+  // 点数の縦位置。範囲外の値は上下端にそろえ、高い点ほど上に来るよう反転する
   const yFor = (v: number) => {
     const clamped = Math.max(minValue, Math.min(maxValue, v));
     const ratio = (clamped - minValue) / (maxValue - minValue || 1);
@@ -49,10 +53,12 @@ export default function GrowthLineChart({
 
   return (
     <Svg width={width} height={height}>
+      {/* 最小・中央・最大の3本の目盛り線 */}
       {[minValue, (minValue + maxValue) / 2, maxValue].map((v) => (
         <Line key={v} x1={PADDING} y1={yFor(v)} x2={width - PADDING} y2={yFor(v)} stroke={colors.indigoLine} strokeWidth={1} />
       ))}
 
+      {/* 採点の仕組み(analysisVersion)が変わった記録に縦の点線を引き、単純比較できないことを示す */}
       {coords.map((c, i) =>
         points[i].versionLabel ? (
           <Line

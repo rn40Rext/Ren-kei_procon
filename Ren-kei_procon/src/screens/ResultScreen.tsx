@@ -42,6 +42,7 @@ const ITEMS: { key: keyof AnalysisResult; label: string; note?: string }[] = [
   { key: 'basePostureScore', label: '基本姿勢', note: '参考（極め度に含まず）' },
 ];
 
+// 点数に応じて表示色を変える(80点以上は金、60点以上は明るい金、それ未満は赤)
 function scoreColor(v: number): string {
   if (v >= 80) return colors.gold;
   if (v >= 60) return colors.goldBright;
@@ -72,6 +73,7 @@ export default function ResultScreen() {
     setShareVisible(true);
   };
 
+  // タグを押すたびに、選択中なら外し、未選択なら追加する
   const toggleShareTag = (tag: string) => {
     setShareTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
@@ -294,20 +296,24 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.md },
   sectionTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
+  // 項目別スコア1行分(ラベル・数値・バー)
   itemRow: { marginBottom: spacing.md },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   itemLabel: { ...typography.bodyStrong, color: colors.textPrimary },
   itemNote: { ...typography.caption, color: colors.textMuted, fontWeight: '400' },
   itemValue: { ...typography.bodyStrong },
+  // 棒グラフの背景と、点数ぶんだけ伸びる色付き部分
   barTrack: { height: 10, backgroundColor: colors.indigoRaised, borderRadius: 5, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
 
+  // 改善点・良かった点のフィードバック1件分の枠。種類によって色を変える
   feedback: { borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1 },
   feedbackImprove: { backgroundColor: colors.akaSoft, borderColor: colors.aka },
   feedbackGood: { backgroundColor: colors.goldSoft, borderColor: colors.gold },
   feedbackTag: { ...typography.sectionLabel, marginBottom: 4 },
   feedbackText: { ...typography.body, color: colors.textPrimary },
 
+  // 総合スコア(極め度)を大きく見せるカード
   totalCard: {
     borderWidth: 1,
     borderColor: colors.gold,
@@ -321,6 +327,7 @@ const styles = StyleSheet.create({
   totalUnit: { fontSize: 16, fontWeight: '700', color: colors.textSecondary },
   totalNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
 
+  // 練習中の参考値(LIVE SCORE)を表示するカード。極め度のカードとは別デザインにして混同を防ぐ
   gameCard: {
     borderWidth: 1,
     borderColor: colors.indigoLine,

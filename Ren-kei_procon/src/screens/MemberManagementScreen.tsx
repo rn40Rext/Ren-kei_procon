@@ -221,6 +221,7 @@ const styles = StyleSheet.create({
 
   list: { flex: 1, padding: spacing.lg },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
+  // メンバー1人分のカード。名前・役割バッジの下に役割変更・除名ボタンを並べる
   card: {
     backgroundColor: colors.indigo,
     borderRadius: radius.md,
@@ -243,6 +244,7 @@ const styles = StyleSheet.create({
   removeBtn: { flex: 1, borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: 10, borderRadius: radius.sm, alignItems: 'center', marginLeft: spacing.sm },
   removeBtnText: { color: colors.aka, fontWeight: '700', fontSize: 12 },
 
+  // 「除名しますか？」の確認ダイアログの背景・カード
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   confirmCard: { backgroundColor: colors.indigoDeep, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.xl, width: '100%' },
   confirmTitle: { ...typography.headingSerif, color: colors.textPrimary, marginBottom: spacing.sm },

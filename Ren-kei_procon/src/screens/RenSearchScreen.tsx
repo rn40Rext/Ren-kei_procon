@@ -304,6 +304,7 @@ const styles = StyleSheet.create({
   loadingText: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
 
+  // 連1件分のカード
   renCard: {
     backgroundColor: colors.indigo,
     borderWidth: 1,
@@ -317,6 +318,7 @@ const styles = StyleSheet.create({
   renRowText: { ...typography.caption, color: colors.textMuted, marginLeft: 6 },
   badgeRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.sm },
 
+  // 連の詳細・参加リクエスト送信モーダルの背景・カード
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,19,43,0.7)' },
   modalCard: {
     backgroundColor: colors.indigoDeep,

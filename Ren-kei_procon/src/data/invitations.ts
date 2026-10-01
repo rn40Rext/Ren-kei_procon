@@ -45,6 +45,7 @@ export interface InvitationDoc {
   createdAtMs: number | null;
 }
 
+/** Firestore Timestamp/秒数/ミリ秒のいずれで来てもミリ秒へ揃える */
 function toMs(v: any): number | null {
   if (v == null) return null;
   if (typeof v === 'number') return v;
@@ -53,12 +54,14 @@ function toMs(v: any): number | null {
   return null;
 }
 
+/** createdAtMsの新しい順に並べる。未確定(null)は先頭に置く */
 function sortNewest<T extends { createdAtMs: number | null }>(list: T[]): T[] {
   return [...list].sort(
     (a, b) => (b.createdAtMs ?? Number.MAX_SAFE_INTEGER) - (a.createdAtMs ?? Number.MAX_SAFE_INTEGER),
   );
 }
 
+/** Firestoreの生データをOtherDancerへ正規化する */
 function mapDancer(id: string, d: any): OtherDancer {
   return {
     id,
@@ -69,6 +72,7 @@ function mapDancer(id: string, d: any): OtherDancer {
   };
 }
 
+/** Firestoreの生データをInvitationDocへ正規化する */
 function mapInvitation(id: string, d: any): InvitationDoc {
   return {
     id,

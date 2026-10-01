@@ -2,8 +2,8 @@
  * U-03 解析結果。仕様書 5章 U-03 / 7.7、docs/design/ai-basic-motion.md 10章。
  *
  * FN-01 がサーバで確定した analysisResults を表示する。
- * 極め度（Analysis Score・0〜100・履歴用）と LIVE SCORE（練習中の参考値）は
- * 混同させない表示にする(D-04)。
+ * LIVE SCORE(Game Score)はチーム判断でユーザーには表示しない(2026-10-01)。
+ * gameScore自体の算出・保存は変更していない。
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -196,17 +196,7 @@ export default function ResultScreen() {
           <Text style={styles.muted}>コメントはありません</Text>
         )}
 
-        <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }} />
-
-        <View style={styles.gameCard}>
-          <Text style={styles.gameLabel}>練習中のLIVE SCORE（参考値）</Text>
-          <Text style={styles.gameValue}>{r.gameScore}</Text>
-          <Text style={styles.gameCounts}>
-            GREAT {r.greatCount} / GOOD {r.goodCount} / MISS {r.missCount}
-            {typeof r.maxCombo === 'number' ? ` / 最大 ${r.maxCombo} COMBO` : ''}
-          </Text>
-          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、極め度とは別物です。</Text>
-        </View>
+        <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.lg }} />
 
         {posted ? (
           <View style={styles.postedNote}>
@@ -336,19 +326,6 @@ const styles = StyleSheet.create({
   totalReveal: { marginTop: spacing.sm, marginBottom: spacing.xs },
   totalNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center', alignSelf: 'stretch' },
   totalBenchmark: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center', alignSelf: 'stretch' },
-
-  gameCard: {
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-    backgroundColor: colors.indigo,
-  },
-  gameLabel: { ...typography.caption, color: colors.textMuted, fontWeight: '700' },
-  gameValue: { fontSize: 28, fontWeight: '900', color: colors.goldBright, marginTop: 2 },
-  gameCounts: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  gameNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
 
   primaryButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', marginBottom: spacing.sm },
   primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },

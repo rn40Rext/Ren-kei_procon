@@ -477,7 +477,9 @@ totalScore = mean([handHeightScore, hipHeightScore, stopScore, rhythmScore].filt
 
 総合評価（0〜100）、項目別評価、AI コメント、グラフ、「コミュニティへ投稿」ボタン。
 
-**実装（[#20](../../../issues/20)）**: `analysisResults/{analysisId}` を購読して表示。総合（Analysis Score）と項目別バー、`feedback`（改善点を先に）、`analysisVersion`。Game Score は「練習中の LIVE SCORE（参考値）」として別枠で、別物であることを文言で明示する（D-04）。「動きの類似度を見る」→ `StyleResult`（AI②）、「コミュニティへ投稿」→ `Community`（`shareVideoId` を渡し、投稿フォームに練習動画を入れる。`publishPost` が `analysisResults.totalScore` を投稿に載せる）。グラフは項目別の横バー（外部ライブラリなし）。
+**実装（[#20](../../../issues/20)）**: `analysisResults/{analysisId}` を購読して表示。総合（Analysis Score）と項目別バー、`feedback`（改善点を先に）、`analysisVersion`。「動きの類似度を見る」→ `StyleResult`（AI②）、「コミュニティへ投稿」→ `Community`（`shareVideoId` を渡し、投稿フォームに練習動画を入れる。`publishPost` が `analysisResults.totalScore` を投稿に載せる）。グラフは項目別の横バー（外部ライブラリなし）。
+
+**2026-10-01 変更**: Game Score（LIVE SCORE）はチーム判断でユーザーに表示しないことにした。CameraScreen（U-02）右上のバッジ、ResultScreen（U-03）の「練習中の LIVE SCORE」カードを削除。D-04 の「Game Score と Analysis Score を分離する」という原則自体は維持しているが、分離の実装が「別枠で文言表示」から「Game Score 自体を非表示」に変わった。`gameScore` / `greatCount` 等の算出・`analysisResults`への保存は変更していない（内部では残す）。
 
 ## 11. テスト（仕様書 15.1）
 

@@ -69,6 +69,7 @@ export default function ManagePostsScreen() {
     );
   }, []);
 
+  // 検索キーワードで絞り込み、選んだ並び順で並べ替えた一覧を作る
   const filteredSortedPosts = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     let list = posts;
@@ -238,6 +239,7 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
+  // キーワード検索欄と並び替えタブをまとめたエリア
   searchSection: { paddingTop: spacing.md, paddingBottom: 4, borderBottomWidth: 1, borderColor: colors.indigoLine },
   searchBar: {
     flexDirection: 'row',
@@ -259,6 +261,7 @@ const styles = StyleSheet.create({
 
   list: { flex: 1, padding: spacing.lg },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
+  // 投稿1件分のカード。サムネイルと情報を横に並べる
   card: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
   thumbWrapper: { width: 90, height: 90, borderRadius: radius.sm, backgroundColor: '#000', overflow: 'hidden' },
   cardBody: { flex: 1, marginLeft: spacing.md, justifyContent: 'center' },
@@ -272,6 +275,7 @@ const styles = StyleSheet.create({
   noAdviceBadge: { backgroundColor: colors.goldSoft, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: spacing.sm },
   noAdviceBadgeText: { color: colors.gold, fontSize: 10, fontWeight: '700' },
 
+  // 投稿を選んだときに開く詳細画面
   detailContainer: { flex: 1, backgroundColor: colors.indigoDeep },
   modalHeader: { flexDirection: 'row', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderColor: colors.indigoLine },
   modalBackText: { color: colors.gold, fontWeight: '700', marginLeft: 4 },

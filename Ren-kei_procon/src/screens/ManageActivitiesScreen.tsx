@@ -369,9 +369,12 @@ const styles = StyleSheet.create({
   list: { flex: 1, padding: spacing.lg },
   sectionLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // 「活動スケジュール」の横にある「追加」ボタン
   addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.goldSoft, paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.pill, marginBottom: spacing.sm },
   addBtnText: { color: colors.gold, fontWeight: '700', fontSize: 12, marginLeft: 3 },
+  // 連の基本情報(名前・紹介文など)を編集するカード
   formCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: spacing.xl },
+  // 連アイコンを選ぶ丸いボタン
   iconPicker: {
     width: 64,
     height: 64,
@@ -417,6 +420,7 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
   emptyText: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.lg },
+  // 活動情報1件分のカード。右端に編集・削除アイコンを置く
   itemCard: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
   itemTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   itemMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4, fontSize: 11 },
@@ -424,6 +428,7 @@ const styles = StyleSheet.create({
   itemActions: { justifyContent: 'center', marginLeft: spacing.sm },
   iconBtn: { padding: spacing.xs },
 
+  // 活動の追加・編集フォームを下から迫り上げて表示するモーダルの背景・カード
   modalOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: colors.indigoDeep,
@@ -437,6 +442,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
+  // 「削除しますか？」の確認ダイアログの背景・カード
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   confirmCard: { backgroundColor: colors.indigoDeep, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.xl, width: '100%' },
   confirmTitle: { ...typography.headingSerif, color: colors.textPrimary, marginBottom: spacing.sm },

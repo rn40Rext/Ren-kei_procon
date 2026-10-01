@@ -148,6 +148,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
   list: { flex: 1, padding: spacing.lg },
+  // お知らせの新規作成フォームを囲むカード
   formCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: spacing.xl },
   label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   input: {
@@ -179,6 +180,7 @@ const styles = StyleSheet.create({
   sendBtnText: { ...typography.button, color: colors.textOnGold, marginLeft: spacing.sm },
   sectionLabel: { ...typography.sectionLabel, color: colors.textPrimary, marginBottom: spacing.sm },
   emptyText: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.lg },
+  // 送信済みのお知らせ1件分のカード
   itemCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
   itemTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   itemMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4, fontSize: 10 },

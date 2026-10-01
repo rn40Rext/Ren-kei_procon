@@ -260,6 +260,7 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
+  // 「未対応」「承認済み」等を切り替えるタブ
   tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.indigoLine },
   tabItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.gold },
@@ -268,6 +269,7 @@ const styles = StyleSheet.create({
 
   list: { flex: 1, padding: spacing.lg },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
+  // 申請1件分のカード。右側に承認・却下ボタンを並べる
   card: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,
@@ -286,6 +288,7 @@ const styles = StyleSheet.create({
   rejectBtn: { borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.sm, minWidth: 64, alignItems: 'center' },
   rejectBtnText: { ...typography.button, color: colors.aka, fontSize: 13 },
 
+  // 申請者の詳細(プロフィール・直近の投稿)を見るモーダルの背景・カード
   modalOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: colors.indigoDeep,

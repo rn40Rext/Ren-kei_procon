@@ -177,6 +177,7 @@ export default function AdminHomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { backgroundColor: colors.indigoDeep },
+  // ヘッダー。「戻る」・アイコン・タイトル・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,15 +190,19 @@ const styles = StyleSheet.create({
   headerIcon: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
 
+  // 管理している連が複数あるときに出す、横スクロールの連切り替えタブ
   switcher: { borderBottomWidth: 1, borderColor: colors.indigoLine },
   switcherContent: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  // 丸いピル形のタブ1つ
   switcherPill: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.indigoRaised, marginRight: spacing.sm },
+  // 選択中のタブは金色で塗りつぶす
   switcherPillActive: { backgroundColor: colors.gold },
   switcherText: { ...typography.caption, color: colors.textSecondary },
   switcherTextActive: { color: colors.textOnGold, fontWeight: '700' },
 
   content: { padding: spacing.lg },
   renName: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 20, marginBottom: spacing.lg },
+  // 「未対応の参加リクエスト件数」のカード
   statCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,10 +215,12 @@ const styles = StyleSheet.create({
   },
   statValue: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 20 },
   statLabel: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  // 未読通知の件数を知らせるカード
   pendingCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: spacing.xl },
   pendingRow: { flexDirection: 'row', alignItems: 'center' },
   pendingText: { flex: 1, marginLeft: spacing.sm, ...typography.caption, color: colors.textSecondary },
   sectionLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
+  // 「投稿一覧」「メンバー管理」等、管理メニュー1項目分の行
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',

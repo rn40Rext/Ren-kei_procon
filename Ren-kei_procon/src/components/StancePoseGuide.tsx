@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ImageStyle, StyleProp } from 'react-native';
+import { Image, StyleProp, View, ViewStyle } from 'react-native';
 import { ScorePart } from '../features/rules/types';
 
 /**
@@ -19,6 +19,9 @@ const SOURCES: Record<ScorePart, number> = {
 /** 元写真に近い濃さ(画像自体はほぼ不透明なシルエット)。右へ少し傾けて静止感を抑える */
 const DEFAULT_OPACITY = 0.9;
 const ROTATE = '10deg';
+// カメラ画面に収まるよう少し小さくし、左寄りに置く(等身大だと画面からはみ出すため)
+const IMAGE_WIDTH = '78%';
+const IMAGE_HEIGHT = '82%';
 
 export function StancePoseGuide({
   scorePart,
@@ -27,15 +30,17 @@ export function StancePoseGuide({
 }: {
   scorePart: ScorePart;
   opacity?: number;
-  style?: StyleProp<ImageStyle>;
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
-    <Image
-      source={SOURCES[scorePart]}
-      resizeMode="contain"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={[{ width: '100%', height: '100%', opacity, transform: [{ rotate: ROTATE }] }, style]}
-    />
+    <View style={[{ width: '100%', height: '100%', alignItems: 'flex-start', justifyContent: 'center' }, style]}>
+      <Image
+        source={SOURCES[scorePart]}
+        resizeMode="contain"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={{ width: IMAGE_WIDTH, height: IMAGE_HEIGHT, opacity, transform: [{ rotate: ROTATE }] }}
+      />
+    </View>
   );
 }

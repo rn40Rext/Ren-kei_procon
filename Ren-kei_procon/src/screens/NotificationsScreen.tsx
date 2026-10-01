@@ -30,6 +30,7 @@ import { fetchPost } from '../repositories/posts';
 import { fetchUserProfile } from '../repositories/users';
 import type { AppNotification, NotificationType } from '../types/firestore';
 
+/** 通知の種類ごとに、カードの左に出すアイコン */
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   comment: MessageSquare,
   join_result: UserCheck,
@@ -50,16 +51,19 @@ function formatDateTime(value: AppNotification['createdAt']): string {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** 自分宛ての通知の一覧画面。タップで既読にして、通知の内容に合った画面へ移動する */
 export default function NotificationsScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
   const navigation = useNavigation<any>();
   const { uid } = useAuth();
 
+  // 通知の一覧 / 読み込み中か / 移動処理中の通知ID / 「すべて既読」の処理中か
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
 
+  // 自分宛ての通知をリアルタイム購読する
   useEffect(() => {
     if (!uid) return;
     setLoading(true);
@@ -76,6 +80,7 @@ export default function NotificationsScreen() {
     );
   }, [uid]);
 
+  // まだ読んでいない通知のID(「すべて既読」の対象)
   const unreadIds = useMemo(() => notifications.filter((n) => !n.read).map((n) => n.id), [notifications]);
 
   // 1件だけ既読にする(カードの横にある「✓」ボタンから呼ばれる)
@@ -113,6 +118,7 @@ export default function NotificationsScreen() {
       try {
         if (!n.read) await markNotificationRead(uid, n.id);
 
+        // 種類ごとの移動先: コメント→投稿の詳細(削除済みならホーム)
         if (n.type === 'comment' && n.referenceId) {
           const post = await fetchPost(n.referenceId);
           if (post) {
@@ -123,12 +129,14 @@ export default function NotificationsScreen() {
           return;
         }
 
+        // 参加申請の結果→その連のマイ連画面
         if (n.type === 'join_result' && n.referenceId) {
           const request = await fetchJoinRequest(n.referenceId);
           navigation.navigate('Group', request ? { renId: request.renId } : undefined);
           return;
         }
 
+        // 参加申請が届いた(管理者向け)→その連の参加申請管理
         if (n.type === 'join_request' && n.referenceId) {
           const request = await fetchJoinRequest(n.referenceId);
           if (request) {
@@ -139,6 +147,7 @@ export default function NotificationsScreen() {
           return;
         }
 
+        // 役割の変更・新メンバーの加入→その連のマイ連画面
         if (n.type === 'role_changed' && n.referenceId) {
           navigation.navigate('Group', { renId: n.referenceId });
           return;
@@ -155,11 +164,13 @@ export default function NotificationsScreen() {
           return;
         }
 
+        // お誘いへの返事→リクエスト画面
         if (n.type === 'invitation_result') {
           navigation.navigate('Request');
           return;
         }
 
+        // チャットのメッセージ→相手とのチャット画面(チャットIDの中から相手のuidを取り出す)
         if (n.type === 'chat_message' && n.referenceId) {
           const chatId = n.referenceId;
           const otherUid = chatId.split('_').find((u) => u !== uid);
@@ -190,6 +201,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* 画面上部の笠の飾りと、戻るボタン・画面名・「すべて既読」ボタン(未読があるときだけ)・メニューのヘッダー */}
       <KasaGarland width={SCREEN_W} count={7} height={40} style={styles.garland} />
       <View style={styles.header}>
         <TouchableOpacity
@@ -217,6 +229,7 @@ export default function NotificationsScreen() {
         <AppMenu />
       </View>
 
+      {/* 通知の一覧。読み込み中・0件の場合は案内を出す */}
       {loading ? (
         <NarutoLoader size={26} color={colors.gold} style={{ marginTop: 60, alignSelf: 'center' }} />
       ) : notifications.length === 0 ? (
@@ -229,6 +242,7 @@ export default function NotificationsScreen() {
           {notifications.map((n) => {
             const Icon = TYPE_ICON[n.type] ?? Bell;
             return (
+              // 通知1件分のカード。未読は金色の枠にし、タップで既読にして移動する
               <TouchableOpacity
                 key={n.id}
                 style={[styles.card, !n.read && styles.cardUnread]}
@@ -236,9 +250,11 @@ export default function NotificationsScreen() {
                 disabled={openingId === n.id}
                 activeOpacity={0.85}
               >
+                {/* 通知の種類のアイコン(未読なら金色の丸) */}
                 <View style={[styles.iconWrap, !n.read && styles.iconWrapUnread]}>
                   <Icon size={17} color={!n.read ? colors.textOnGold : colors.textMuted} />
                 </View>
+                {/* タイトル・本文(2行まで)・日時 */}
                 <View style={styles.cardBody}>
                   <Text style={[styles.cardTitle, !n.read && styles.cardTitleUnread]}>{n.title}</Text>
                   <Text style={styles.cardText} numberOfLines={2}>
@@ -246,6 +262,7 @@ export default function NotificationsScreen() {
                   </Text>
                   <Text style={styles.cardTime}>{formatDateTime(n.createdAt)}</Text>
                 </View>
+                {/* 未読なら、移動せずに既読だけにする「✓」ボタンを出す */}
                 {!n.read ? (
                   <TouchableOpacity
                     style={styles.markOneBtn}
@@ -270,6 +287,7 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、上部の笠の飾り
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { backgroundColor: colors.indigoDeep },
   // ヘッダー。「戻る」・ベルアイコン・タイトル・「すべて既読」・メニューを横一列に並べる
@@ -284,12 +302,15 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: spacing.sm },
   headerIcon: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
+  // 「すべて既読」ボタン(金色の文字)
   markAllBtn: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.md },
   markAllText: { ...typography.caption, color: colors.gold, fontWeight: '700', marginLeft: 4 },
 
+  // 通知が0件のときの表示(画面の中央にベルと案内文)
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
   emptyText: { ...typography.body, color: colors.textMuted, marginTop: spacing.md },
 
+  // 一覧のスクロール部分の余白
   list: { padding: spacing.lg },
   // 通知1件分のカード
   card: {
@@ -304,6 +325,7 @@ const styles = StyleSheet.create({
   },
   // 未読のカードは金色の枠・背景にして目立たせる
   cardUnread: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
+  // カード左の種類アイコンを入れる丸
   iconWrap: {
     width: 34,
     height: 34,
@@ -314,6 +336,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   iconWrapUnread: { backgroundColor: colors.gold },
+  // カードの中のタイトル(未読は太字)・本文・日時と、既読にする「✓」ボタン
   cardBody: { flex: 1 },
   cardTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   cardTitleUnread: { fontWeight: '900' },

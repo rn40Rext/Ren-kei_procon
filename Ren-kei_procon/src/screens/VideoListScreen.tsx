@@ -19,10 +19,13 @@ import { HeaderSeam } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
 
+/** この画面で使う画面遷移の型 */
 type Nav = NativeStackNavigationProp<RootStackParamList, 'VideoList'>;
 
+/** 踊りの種類の表示名 */
 const DANCE_TYPE_LABEL: Record<string, string> = { male: '男踊り', female: '女踊り' };
 
+/** 解析の状態の表示名 */
 const STATUS_LABEL: Record<AnalysisStatus, string> = {
   uploaded: '未解析',
   analyzing: '解析中',
@@ -30,6 +33,7 @@ const STATUS_LABEL: Record<AnalysisStatus, string> = {
   failed: '解析失敗',
 };
 
+/** 解析の状態ごとのバッジの色(未解析=灰、解析中=金、完了=明るい金、失敗=朱) */
 const STATUS_COLOR: Record<AnalysisStatus, string> = {
   uploaded: colors.textMuted,
   analyzing: colors.gold,
@@ -45,10 +49,13 @@ function formatDate(value: PracticeVideo['createdAt']): string {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** 自分が撮った練習動画の一覧画面。結果の確認・交流広場への投稿・削除ができる */
 export default function VideoListScreen() {
   const navigation = useNavigation<Nav>();
   const { uid } = useAuth();
 
+  // 動画の一覧(読み込み前は null) / 読み込みのエラー文 / 解析結果(解析IDごと)
+  // 投稿済みの動画ID / サムネイル用の再生URL(動画IDごと) / 削除処理中の動画ID
   const [videos, setVideos] = useState<PracticeVideo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scores, setScores] = useState<Record<string, AnalysisResult | null>>({});
@@ -56,6 +63,7 @@ export default function VideoListScreen() {
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // 自分の練習動画をリアルタイム購読する
   useEffect(() => {
     if (!uid) return;
     return subscribeMyVideos(uid, setVideos, (e) => {
@@ -194,10 +202,12 @@ export default function VideoListScreen() {
     [postedVideoIds]
   );
 
+  // 表示する動画の一覧(読み込み前は空)
   const sortedVideos = useMemo(() => videos ?? [], [videos]);
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 稽古手帳へ戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
@@ -212,6 +222,7 @@ export default function VideoListScreen() {
       </View>
       <HeaderSeam />
 
+      {/* 読み込み中・エラー・0件の場合は案内を出し、それ以外は動画の一覧を出す */}
       {videos === null && !error ? (
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
       ) : error ? (
@@ -230,7 +241,9 @@ export default function VideoListScreen() {
             const scoreText = v.analysisStatus === 'completed' ? formatAiScore(result?.totalScore) : null;
             const posted = postedVideoIds.has(v.id);
             return (
+              // 動画1件分のカード
               <View key={v.id} style={styles.card}>
+                {/* 上段: サムネイル・撮影日時・踊りの種類・解析の状態・公開/非公開・極め度。タップで結果画面へ */}
                 <TouchableOpacity style={styles.cardMain} onPress={() => onPressVideo(v)} activeOpacity={0.85}>
                   <View style={styles.thumbWrapper}>
                     {thumbUrls[v.id] ? (
@@ -268,6 +281,7 @@ export default function VideoListScreen() {
                   </View>
                 </TouchableOpacity>
 
+                {/* 下段: 「交流広場へ投稿」(解析済みで未投稿のときだけ)・「投稿済み」の表示・削除ボタン */}
                 <View style={styles.actionRow}>
                   {v.analysisStatus === 'completed' && !posted && (
                     <TouchableOpacity style={styles.postBtn} onPress={() => onPostToCommunity(v)} activeOpacity={0.85}>
@@ -295,6 +309,7 @@ export default function VideoListScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、戻るボタン・画面名を並べるヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
@@ -305,13 +320,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 「＜ 稽古手帳」の戻るボタンと、画面名
   backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
   backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary, fontSize: 15 },
 
+  // 読み込みエラー・0件のときの表示(画面の中央に案内文)
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   emptyText: { marginTop: 12, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
 
+  // 一覧のスクロール部分の余白
   list: { padding: spacing.md },
   // 練習動画1件分のカード
   card: {
@@ -322,6 +340,7 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
     overflow: 'hidden',
   },
+  // カード上段(サムネイルと情報を横に並べる)
   cardMain: { flexDirection: 'row', padding: spacing.md },
   // サムネイル(映像が無ければ中央にアイコン)を表示する枠
   thumbWrapper: {
@@ -333,15 +352,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // カード上段の右側: 日時と踊りの種類の行
   cardBody: { flex: 1, marginLeft: spacing.md, justifyContent: 'center' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dateText: { fontSize: 12, color: colors.textMuted },
   danceTypeText: { fontSize: 12, color: colors.textPrimary, fontWeight: '600' },
+  // 解析の状態のバッジ(状態ごとの色の枠)と、公開/非公開の表示
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   statusBadge: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
   statusBadgeText: { fontSize: 11, fontWeight: '600' },
   visibilityBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   visibilityText: { fontSize: 11, color: colors.textMuted },
+  // 極め度の行
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   scoreText: { fontSize: 13, fontWeight: 'bold', color: colors.textPrimary },
 
@@ -354,6 +376,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     gap: 10,
   },
+  // 「交流広場へ投稿」ボタン(金色)・「投稿済み」の文字・削除ボタン
   postBtn: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -203,7 +203,7 @@ export default function VideoListScreen() {
           <ChevronLeft size={22} color={colors.gold} />
           <Text style={styles.backText}>稽古手帳</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>自分の練習動画一覧</Text>
+        <Text style={styles.headerTitle}>練習動画一覧</Text>
         <AppMenu />
       </View>
       <HeaderSeam />

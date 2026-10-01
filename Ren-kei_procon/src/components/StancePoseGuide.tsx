@@ -16,13 +16,16 @@ const SOURCES: Record<ScorePart, number> = {
   whole: require('../../assets/images/stance-guide/whole.png'),
 };
 
+/** 元写真に近い濃さ(画像自体はほぼ不透明なシルエット)。右へ少し傾けて静止感を抑える */
+const DEFAULT_OPACITY = 0.9;
+const ROTATE = '10deg';
+
 export function StancePoseGuide({
   scorePart,
-  opacity = 0.35,
+  opacity = DEFAULT_OPACITY,
   style,
 }: {
   scorePart: ScorePart;
-  /** 映像が見えなくならない程度の薄さ。既定0.35 */
   opacity?: number;
   style?: StyleProp<ImageStyle>;
 }) {
@@ -32,7 +35,7 @@ export function StancePoseGuide({
       resizeMode="contain"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={[{ width: '100%', height: '100%', opacity }, style]}
+      style={[{ width: '100%', height: '100%', opacity, transform: [{ rotate: ROTATE }] }, style]}
     />
   );
 }

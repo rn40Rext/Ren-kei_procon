@@ -22,6 +22,7 @@ import { SCORING_DURATIONS_SEC, STANCE_HOLD_MS, ScoringDurationSec, stanceGuide 
 import { RuleSnapshot } from "../features/rules/types";
 import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
+import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
@@ -231,6 +232,13 @@ export default function CameraScreen() {
       <View style={styles.videoArea}>
         <PoseCameraView onSource={onSource} onEnded={analyzing ? onFinish : undefined} allowFile={!active && !busy} />
 
+        {/* 構え待ち中、阿波踊りを知らない人でも真似しやすいよう構えのお手本を薄く重ねる */}
+        {waitingStance && (
+          <View style={styles.stanceGuideLayer} pointerEvents="none">
+            <StancePoseGuide scorePart={scorePart} />
+          </View>
+        )}
+
         {/* 上: 状態・警告 */}
         <View style={styles.topBar}>
           <View style={[styles.statusChip, analyzing && styles.statusChipLive]}>
@@ -417,6 +425,7 @@ const styles = StyleSheet.create({
 
   container: { flex: 1, backgroundColor: "#000" },
   videoArea: { flex: 1, position: "relative" },
+  stanceGuideLayer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   topBar: { position: "absolute", left: spacing.md, top: spacing.md, right: spacing.md, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, pointerEvents: "none" },
   statusChip: { backgroundColor: "rgba(11,19,43,0.75)", borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: colors.indigoLine },
   statusChipLive: { backgroundColor: colors.aka, borderColor: colors.aka },

@@ -350,6 +350,7 @@ const styles = StyleSheet.create({
   },
   searchBtnText: { ...typography.button, color: colors.textOnGold, marginLeft: spacing.sm },
 
+  // 複数の連に所属しているときに出す、横スクロールの連切り替えタブ
   switcher: { borderBottomWidth: 1, borderColor: colors.indigoLine },
   switcherContent: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   switcherPill: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.indigoRaised, marginRight: spacing.sm },
@@ -358,6 +359,7 @@ const styles = StyleSheet.create({
   switcherTextActive: { color: colors.textOnGold, fontWeight: '700' },
 
   content: { padding: spacing.lg },
+  // 選んだ連の基本情報(名前・紹介・地域・メンバー数)を表示するカード
   renCard: {
     backgroundColor: colors.indigo,
     borderWidth: 1,
@@ -388,6 +390,7 @@ const styles = StyleSheet.create({
   itemMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
   itemBody: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 18 },
 
+  // 「連を作成する」フォーム画面
   formContainer: { flex: 1, backgroundColor: colors.indigoDeep },
   formHeader: {
     flexDirection: 'row',

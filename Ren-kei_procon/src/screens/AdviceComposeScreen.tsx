@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
   content: { padding: spacing.xl },
+  // コメントを送る対象の投稿を、サムネイルとタイトルで示すカード
   postCard: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.indigoLine },
   thumbWrapper: { width: 70, height: 70, borderRadius: radius.sm, backgroundColor: '#000', overflow: 'hidden' },
   postTitle: { ...typography.bodyStrong, color: colors.textPrimary },

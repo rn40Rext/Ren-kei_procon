@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { position: "absolute", top: 0, left: 0, right: 0 },
   inner: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
+  // ロゴ・キャッチコピーをまとめて画面上部中央に表示するエリア
   logoContainer: { alignItems: "center", marginBottom: spacing.xxl },
   danceRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.md },
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.lg },

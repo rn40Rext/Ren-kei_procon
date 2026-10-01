@@ -4,6 +4,7 @@
  * 文言をサーバに持たせるとデプロイなしで変えられないため、
  * クライアント側で解決する（docs/design/api-functions.md 2章）。
  */
+/** スタイル診断のエラーコードごとの表示文言 */
 export const STYLE_ERROR_MESSAGES: Record<string, string> = {
   UNAUTHORIZED: "ログインが必要です。",
   FORBIDDEN: "この動画を解析する権限がありません。",

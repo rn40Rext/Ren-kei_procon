@@ -6,8 +6,10 @@ import { useEffect, useState } from 'react';
 import { auth, db } from '../config/firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
 
+/** 役割の種類(踊り手/連の世話役/運営) */
 export type Role = 'user' | 'ren_admin' | 'service_admin';
 
+/** 役割ごとの画面表示名 */
 export const ROLE_LABEL: Record<Role, string> = {
   user: '踊り手',
   ren_admin: '連の世話役',

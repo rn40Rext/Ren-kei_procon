@@ -15,8 +15,10 @@ import { MIN_VISIBILITY } from "../features/pose/normalize";
 import { colors } from "../theme";
 import type { PoseCameraViewProps } from "./PoseCameraView";
 
+/** この端末でリアルタイム判定ができるか(Web版は true) */
 export const POSE_CAMERA_SUPPORTED = true;
 
+/** 映像の入力元。camera=カメラ、file=保存済みの動画ファイル */
 type Mode = "camera" | "file";
 
 /** play() の拒否・中断(AbortError / NotAllowedError)を例外にしない。 */
@@ -309,6 +311,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
   );
 }
 
+/** <video>と<canvas>を同じ位置・大きさで重ねるための共通スタイル */
 const domFill: React.CSSProperties = {
   position: "absolute",
   left: 0,
@@ -343,7 +346,9 @@ function drawPose(ctx: CanvasRenderingContext2D, pose: Landmark[], w: number, h:
 }
 
 const styles = StyleSheet.create({
+  // 黒背景で画面いっぱいに映像を出す。はみ出した部分は隠す
   container: { flex: 1, backgroundColor: "#000", overflow: "hidden" },
+  // カメラを開けなかったときに画面上部に出す朱色の枠のエラー表示
   errorBox: {
     position: "absolute",
     left: 12,
@@ -356,6 +361,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: { color: colors.textPrimary, fontSize: 13, lineHeight: 19 },
+  // 左下の「動画ファイルで試す/カメラに戻す」ボタン(半透明の黒)
   fileRow: { position: "absolute", left: 12, bottom: 12, flexDirection: "row" },
   fileButton: {
     backgroundColor: "rgba(0,0,0,0.55)",

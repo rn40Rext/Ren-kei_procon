@@ -8,6 +8,7 @@ import { GameScoreState } from "../rules/gameScore";
 import { RhythmEstimate } from "../rules/rhythm";
 import { RuleEvent, RuleSnapshot } from "../rules/types";
 
+/** 録画した(または選んだ)動画の中身と形式 */
 export type RecordedMedia = { blob: Blob; contentType: string };
 
 /** カメラ(または動画ファイル)の映像ソース。Web では PoseCameraView が実装する。 */
@@ -28,6 +29,7 @@ export interface LiveVideoSource {
   fileMedia?: RecordedMedia | null;
 }
 
+/** 判定画面の進み具合 */
 export type LiveStatus =
   | "idle" // 未開始
   | "loading" // モデル読み込み中
@@ -46,6 +48,7 @@ export type LiveWarning =
   | "MULTIPLE_PERSONS_DETECTED"
   | "NOT_FULL_BODY";
 
+/** 警告コードごとに画面へ出す案内文 */
 export const LIVE_WARNING_MESSAGES: Record<LiveWarning, string> = {
   PERSON_NOT_DETECTED: "人が映っていません。カメラの前に立ってください",
   LOW_LANDMARK_CONFIDENCE: "検出が不安定です。明るい場所で映してください",

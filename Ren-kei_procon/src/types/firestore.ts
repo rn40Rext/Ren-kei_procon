@@ -9,6 +9,7 @@ import { Timestamp } from 'firebase/firestore';
 // nullになり得るため、表示側では未設定を考慮する必要がある。
 export type FirestoreDate = Timestamp | null;
 
+/** 踊りの種類(男踊り/女踊り)。未設定なら null */
 export type DanceStyle = 'male' | 'female' | null;
 
 // 仕様書2.2。ren_adminは「連管理者のロールを持ち得る」という印でしかなく、
@@ -48,6 +49,7 @@ export interface Post {
   createdAt?: FirestoreDate;
 }
 
+/** コメントの種類(指導者からの指導コメント/通常のコメント) */
 export type CommentType = 'instructor' | 'normal';
 
 // docs/design/data-model.md 3.4章
@@ -77,7 +79,9 @@ export interface Ren {
   updatedAt?: FirestoreDate;
 }
 
+/** 連の中での役割(メンバー/管理者) */
 export type RenMemberRole = 'member' | 'admin';
+/** 連への所属の状態(所属中/脱退済み) */
 export type RenMemberStatus = 'active' | 'left';
 
 // docs/design/data-model.md 3.9章
@@ -107,6 +111,7 @@ export interface Announcement {
   createdAt?: FirestoreDate;
 }
 
+/** 参加申請の状態(審査待ち/承認/却下/取り下げ) */
 export type JoinRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 // docs/design/data-model.md 3.10章
@@ -119,6 +124,7 @@ export interface JoinRequest {
   createdAt?: FirestoreDate;
 }
 
+/** 通知の種類。種類によって referenceId が指すものが変わる */
 export type NotificationType =
   | 'comment'
   | 'join_result'

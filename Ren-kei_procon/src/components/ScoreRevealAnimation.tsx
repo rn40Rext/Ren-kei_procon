@@ -10,14 +10,17 @@ import { colors, spacing, typography } from '../theme';
  * 下の一言(message)は呼び出し側が決める。ここでは既定の控えめな一言のみ持つ。
  */
 
+/** 数字のまわりに咲かせる飾り(渦)を置く角度。5つを等間隔に配置する */
 const SPARKLE_ANGLES = [0, 72, 144, 216, 288];
 
+/** message が指定されなかったときの一言。点数で断定せず、続ける気持ちを応援する文にする */
 function defaultMessage(score: number): string {
   if (score >= 70) return 'とても良い調子です！';
   if (score >= 40) return 'いい感じです。続けていきましょう。';
   return 'ここからが伸びしろです。次も続けてみましょう。';
 }
 
+/** ScoreRevealAnimation に渡す値 */
 export type ScoreRevealAnimationProps = {
   /** 0〜100 */
   score: number;
@@ -29,10 +32,12 @@ export type ScoreRevealAnimationProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+/** 紋が広がる→数字が0から数え上がる→飾りと一言が出る、の順に演出する */
 export function ScoreRevealAnimation({ score, message, size = 132, onFinish, style }: ScoreRevealAnimationProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const sparkleRadius = size * 0.56;
 
+  // 演出の各段階で動かす値(紋の大きさ・濃さ、数え上げる数字、飾りと一言の濃さ)
   const ringScale = React.useRef(new Animated.Value(0.6)).current;
   const ringOpacity = React.useRef(new Animated.Value(0)).current;
   const countUp = React.useRef(new Animated.Value(0)).current;
@@ -46,6 +51,7 @@ export function ScoreRevealAnimation({ score, message, size = 132, onFinish, sty
     let cancelled = false;
     const listenerId = countUp.addListener(({ value }) => setDisplayValue(Math.round(value)));
 
+    // 端末で「視差効果を減らす」が有効な人には、演出を省いて最終の状態をすぐ出す
     AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
       if (cancelled) return;
       if (reduced) {
@@ -58,6 +64,7 @@ export function ScoreRevealAnimation({ score, message, size = 132, onFinish, sty
         onFinish?.();
         return;
       }
+      // 1) 紋がはねるように現れる 2) 数字を数え上げる(点が高いほど少し長く) 3) 飾りと一言を出す
       Animated.sequence([
         Animated.parallel([
           Animated.spring(ringScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
@@ -99,6 +106,7 @@ export function ScoreRevealAnimation({ score, message, size = 132, onFinish, sty
             </Text>
           </View>
         </RenMon>
+        {/* 紋の外周に飾りの渦を並べる */}
         {SPARKLE_ANGLES.map((deg) => (
           <Animated.View
             key={deg}

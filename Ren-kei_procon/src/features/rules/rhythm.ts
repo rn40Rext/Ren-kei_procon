@@ -88,26 +88,32 @@ export function estimateFrequency(
 
   const minLag = Math.max(2, Math.floor(1000 / (maxHz * stepMs)));
   const maxLag = Math.min(n - 2, Math.ceil(1000 / (minHz * stepMs)));
-  if (maxLag <= minLag) return { frequencyHz: null, strength: 0 };
+  // 局所最大の判定に両隣が要るため、探索区間の内側([minLag+1, maxLag-1])が
+  // 最低 1 点なければ判定できない
+  if (maxLag <= minLag + 1) return { frequencyHz: null, strength: 0 };
 
   const scores = new Array<number>(maxLag + 1).fill(-Infinity);
-  let globalBest = 0;
   for (let lag = minLag; lag <= maxLag; lag++) {
     let acc = 0;
     for (let i = 0; i + lag < n; i++) acc += centered[i] * centered[i + lag];
     // ラグが大きいほど重なる区間が短くなるので正規化する
     scores[lag] = acc / energy / ((n - lag) / n);
+  }
+  // globalBest・ピーク探索とも探索区間の両端(minLag・maxLag)は含めない。
+  // 両端は片側の隣接値が探索範囲外で存在しないため「局所最大か」を判定できず、
+  // 単調に減衰しているだけの非周期的な区間でも誤って局所最大と判定してしまう
+  // (実機で常に一定の BPM に張り付くバグの原因だった)。
+  let globalBest = 0;
+  for (let lag = minLag + 1; lag < maxLag; lag++) {
     if (scores[lag] > globalBest) globalBest = scores[lag];
   }
   if (globalBest <= 0.1) return { frequencyHz: null, strength: Math.max(0, globalBest) };
   // 周期の整数倍のラグにも同じ高さのピークが出る。基本周期(最小のラグ)を採るため、
   // 最大値の 85% 以上の高さを持つ最初の局所最大を選ぶ
   let bestLag = -1;
-  for (let lag = minLag; lag <= maxLag; lag++) {
+  for (let lag = minLag + 1; lag < maxLag; lag++) {
     const s = scores[lag];
-    const left = lag > minLag ? scores[lag - 1] : -Infinity;
-    const right = lag < maxLag ? scores[lag + 1] : -Infinity;
-    if (s >= 0.85 * globalBest && s >= left && s >= right) {
+    if (s >= 0.85 * globalBest && s >= scores[lag - 1] && s >= scores[lag + 1]) {
       bestLag = lag;
       break;
     }

@@ -1,10 +1,10 @@
 /**
  * U-02 踊り解析(本体)。仕様書 5.2 / 7.6、docs/design/ai-basic-motion.md 10章。
  *
- * ライブカメラ + 骨格表示、右上に LIVE SCORE のバッジ、下の操作エリアに
- * 判定ゲージ・GREAT/GOOD/MISS 回数・リズムを表示し、映像上に GREAT 等と改善メッセージを重ねる。
- * 終了時に FN-01 でスコアを確定し U-03 へ。
- * LIVE SCORE(Game Score)は UX 用の参考値で、履歴に残る Analysis Score とは別物(D-04)。
+ * ライブカメラ + 骨格表示、下に判定ゲージ・GREAT/GOOD/MISS 回数、
+ * 映像上に GREAT 等と改善メッセージを重ねる。終了時に FN-01 でスコアを確定し U-03 へ。
+ * LIVE SCORE(Game Score)はチーム判断でユーザーには表示しない(2026-10-01)。
+ * gameScore自体の算出・保存(useLiveAnalysis/SessionAggregator)は変更していない。
  *
  * 判定ロジックは src/features/pose・src/features/rules・useLiveAnalysis にあり、
  * この画面はそれを呼び出して表示するだけ（判定ロジックをここに書かない）。
@@ -23,6 +23,7 @@ import { SCORING_DURATIONS_SEC, STANCE_HOLD_MS, ScoringDurationSec, stanceGuide 
 import { RuleSnapshot } from "../features/rules/types";
 import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
+import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
@@ -74,13 +75,6 @@ function mergeGauges(gauges: RuleSnapshot[]): { ruleId: string; label: string; v
   }
   return [...map.values()];
 }
-
-/**
- * 右上のLIVE SCOREバッジの幅。中央の判定表示(centerOverlay)はこの幅を避けて置くので、
- * バッジは中身(スコア桁数・コンボ数)が増えても広がらない固定幅にする。
- */
-const SCORE_BADGE_WIDTH = 110;
-const SCORE_BADGE_RIGHT = spacing.md;
 
 function formatSec(sec: number): string {
   return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
@@ -237,6 +231,13 @@ export default function CameraScreen() {
         {/* 採点中に映像が終わったら(動画ファイルの場合)自動)で保存・採点へ */}
         <PoseCameraView onSource={onSource} onEnded={analyzing ? onFinish : undefined} allowFile={!active && !busy} />
 
+        {/* 構え待ち中、阿波踊りを知らない人でも真似しやすいよう構えのお手本を薄く重ねる */}
+        {waitingStance && (
+          <View style={styles.stanceGuideLayer} pointerEvents="none">
+            <StancePoseGuide scorePart={scorePart} />
+          </View>
+        )}
+
         {/* 上: 状態・警告 */}
         <View style={styles.topBar}>
           <View style={[styles.statusChip, analyzing && styles.statusChipLive]}>
@@ -280,19 +281,6 @@ export default function CameraScreen() {
           {snapshot.message && analyzing && <Text style={styles.adviceText}>{snapshot.message}</Text>}
         </View>
 
-        {/* 右上: LIVE SCOREのみの小さなバッジ(細い画面でも他要素と重ならないよう最小限にする)。
-            ゲージ・回数・リズムなど詳細は下の操作エリア(scoreDetail)に出す */}
-        {(analyzing || snapshot.status === "timeUp" || snapshot.status === "finalizing") && (
-          <View style={styles.scoreBadge}>
-            <Text style={styles.liveLabel} numberOfLines={1}>LIVE SCORE</Text>
-            <Text style={styles.liveScore} numberOfLines={1}>{snapshot.game.score}</Text>
-            {snapshot.game.combo >= 2 && (
-              <Text style={styles.combo} numberOfLines={1}>
-                {snapshot.game.combo} COMBO
-              </Text>
-            )}
-          </View>
-        )}
       </View>
 
       {/* 下: 情報(スクロール) + 操作ボタン(常に見える位置に固定) */}
@@ -344,9 +332,7 @@ export default function CameraScreen() {
               </View>
             </View>
           )}
-          <Text style={styles.footnote}>
-            LIVE SCORE は練習中の目安です。{"\n"}極め度（0〜100点）は終了後にサーバで確定します。
-          </Text>
+          <Text style={styles.footnote}>極め度（0〜100点）は終了後にサーバで確定します。</Text>
         </ScrollView>
         {/* 操作ボタンはスクロール領域の外に置き、ゲージが増えても押せる位置から外さない */}
         <View style={styles.bottomActions}>
@@ -424,6 +410,8 @@ const styles = StyleSheet.create({
 
   container: { flex: 1, backgroundColor: "#000" },
   videoArea: { flex: 1, position: "relative" },
+  // 構え待ち中のお手本シルエットを映像全面に重ねるレイヤー
+  stanceGuideLayer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   // 映像の左上に重ねる、状態・残り時間・警告のチップを並べるエリア
   topBar: { position: "absolute", left: spacing.md, top: spacing.md, right: spacing.md, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, pointerEvents: "none" },
   statusChip: { backgroundColor: "rgba(11,19,43,0.75)", borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: colors.indigoLine },
@@ -432,15 +420,9 @@ const styles = StyleSheet.create({
   metaText: { ...typography.caption, color: colors.textPrimary, backgroundColor: "rgba(11,19,43,0.6)", paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
   warningChip: { backgroundColor: colors.aka, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4 },
   warningText: { ...typography.caption, color: colors.textOnAka, fontWeight: "700" },
-  // 右上のscoreBadge(固定幅)と重ならないよう、その幅+余白ぶん右側を空ける
-  centerOverlay: { position: "absolute", left: 0, right: SCORE_BADGE_RIGHT + SCORE_BADGE_WIDTH + spacing.sm, top: "30%", alignItems: "center", pointerEvents: "none" },
+  centerOverlay: { position: "absolute", left: 0, right: 0, top: "30%", alignItems: "center", pointerEvents: "none" },
   gradeFlash: { ...typography.displaySerif, fontSize: 44, letterSpacing: 3, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
   adviceText: { marginTop: spacing.sm, color: colors.textPrimary, fontSize: 18, fontWeight: "700", backgroundColor: "rgba(11,19,43,0.7)", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.sm },
-  // LIVE SCOREだけの小さなバッジ。ゲージ等の詳細はscoreDetail(下の操作エリア)へ
-  scoreBadge: { position: "absolute", right: SCORE_BADGE_RIGHT, top: 56, width: SCORE_BADGE_WIDTH, backgroundColor: "rgba(11,19,43,0.85)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, pointerEvents: "none" },
-  liveLabel: { ...typography.sectionLabel, color: colors.gold, fontSize: 10 },
-  liveScore: { color: colors.textPrimary, fontSize: 28, fontWeight: "900", lineHeight: 32 },
-  combo: { color: colors.gold, fontWeight: "bold", marginTop: 2 },
   scoreDetail: { backgroundColor: colors.indigoRaised, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, marginBottom: spacing.sm },
   countsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap" },
   countText: { ...typography.caption, fontWeight: "700" },

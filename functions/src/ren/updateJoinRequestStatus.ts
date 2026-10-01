@@ -1,7 +1,9 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {FieldValue, Firestore, getFirestore} from "firebase-admin/firestore";
 import {requireAuth, requireRenAdmin} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
+import {notifyUser} from "../lib/notifications";
+import {resolveDisplayName} from "../lib/users";
 
 interface UpdateJoinRequestStatusRequest {
   requestId: string;
@@ -37,6 +39,8 @@ function assertValidRequest(
  * status更新・members作成・notification作成が部分的にしか成功しない
  * 状態を避けるため、1つのトランザクションで行う。
  */
+const NOTIFICATION_BATCH_SIZE = 500;
+
 export const updateJoinRequestStatus = onCall(async (request) => {
   const uid = requireAuth(request);
   assertValidRequest(request.data);
@@ -44,6 +48,9 @@ export const updateJoinRequestStatus = onCall(async (request) => {
 
   const db = getFirestore();
   const requestRef = db.collection("joinRequests").doc(requestId);
+
+  let approvedRenId: string | null = null;
+  let approvedApplicantId: string | null = null;
 
   await db.runTransaction(async (tx) => {
     const requestSnap = await tx.get(requestRef);
@@ -77,25 +84,80 @@ export const updateJoinRequestStatus = onCall(async (request) => {
         status: "active",
         joinedAt: FieldValue.serverTimestamp(),
       });
+      approvedRenId = renId;
+      approvedApplicantId = applicantId;
     }
 
-    const notificationRef = db
-      .collection("users")
-      .doc(applicantId)
-      .collection("notifications")
-      .doc();
-    tx.set(notificationRef, {
-      userId: applicantId,
-      type: "join_result",
-      referenceId: requestId,
-      title: action === "approve" ? "参加リクエストが承認されました" : "参加リクエストが却下されました",
-      body: action === "approve" ?
-        `「${renName}」への参加が承認されました。` :
-        `「${renName}」への参加リクエストは却下されました。`,
-      read: false,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    await notifyUser(
+      db,
+      {
+        uid: applicantId,
+        type: "join_result",
+        referenceId: requestId,
+        title: action === "approve" ? "参加リクエストが承認されました" : "参加リクエストが却下されました",
+        body: action === "approve" ?
+          `「${renName}」への参加が承認されました。` :
+          `「${renName}」への参加リクエストは却下されました。`,
+      },
+      {tx}
+    );
   });
+
+  if (approvedRenId && approvedApplicantId) {
+    await notifyExistingMembersOfNewJoiner(
+      db,
+      approvedRenId,
+      approvedApplicantId,
+      uid
+    );
+  }
 
   return {status: action === "approve" ? "approved" : "rejected"};
 });
+
+/**
+ * 新メンバーが加入したことを、その連の既存メンバー全員(新メンバー本人と、
+ * 今回承認した管理者自身を除く)へ通知する。
+ * @param {Firestore} db Admin SDKのFirestoreインスタンス。
+ * @param {string} renId 加入先の連ID。
+ * @param {string} newMemberUid 新しく加入したメンバーのuid。
+ * @param {string} approvedByUid 今回承認した管理者のuid(通知対象から除く)。
+ * @return {Promise<void>} 通知の書き込み完了。
+ */
+async function notifyExistingMembersOfNewJoiner(
+  db: Firestore,
+  renId: string,
+  newMemberUid: string,
+  approvedByUid: string
+): Promise<void> {
+  const [renSnap, membersSnap, newMemberName] = await Promise.all([
+    db.doc(`ren/${renId}`).get(),
+    db
+      .collection(`ren/${renId}/members`)
+      .where("status", "==", "active")
+      .get(),
+    resolveDisplayName(db, newMemberUid),
+  ]);
+  const renName = (renSnap.data()?.name as string) ?? "連";
+
+  const recipientUids = membersSnap.docs
+    .map((memberDoc) => memberDoc.id)
+    .filter(
+      (memberUid) => memberUid !== newMemberUid && memberUid !== approvedByUid
+    );
+
+  for (let i = 0; i < recipientUids.length; i += NOTIFICATION_BATCH_SIZE) {
+    const chunk = recipientUids.slice(i, i + NOTIFICATION_BATCH_SIZE);
+    await Promise.all(
+      chunk.map((memberUid) =>
+        notifyUser(db, {
+          uid: memberUid,
+          type: "member_joined",
+          referenceId: renId,
+          title: "新しいメンバーが参加しました",
+          body: `「${renName}」に${newMemberName}さんが参加しました。`,
+        })
+      )
+    );
+  }
+}

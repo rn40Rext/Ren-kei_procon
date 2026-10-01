@@ -35,7 +35,7 @@ All screens that are `navigate()`d are registered now ([#51](../../../../issues/
 - `CameraScreen` only orchestrates: the pose/rule logic lives in `src/features/pose/`, `src/features/rules/` and `src/features/analysis/useLiveAnalysis.ts`. Do not put judgement logic in the screen.
 - `PoseCameraView.web.tsx` (DOM `<video>` + `<canvas>`) is the Web implementation; `PoseCameraView.tsx` is the native fallback. Metro picks the platform file. Keep both exporting the same props.
 - Per-frame state goes in refs; React state is published at ~10Hz (`useLiveAnalysis`). Do not `setState` on every frame.
-- LIVE SCORE (Game Score) and the 0–100 Analysis Score must stay visually distinct (D-04).
+- LIVE SCORE (Game Score) is no longer shown to users at all (team decision, 2026-10-01; see `docs/design/ai-basic-motion.md` §10 U-03). The underlying `gameScore`/`greatCount`/etc. computation and storage in `analysisResults` stays — just don't render it in `CameraScreen` or `ResultScreen`. D-04 (Game Score vs. the 0–100 Analysis Score) is still honored, just via omission rather than a labeled separate section.
 
 ## Do not call Firestore directly
 

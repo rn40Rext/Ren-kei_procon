@@ -4,7 +4,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Modal } from 'react-native';
 import { Alert } from '../utils/alert';
-import { ChevronLeft, Search, Heart, MessageSquare, Award, Shield, User as UserIcon, Send } from 'lucide-react-native';
+import { ChevronLeft, Search, Heart, MessageSquare, Award, User as UserIcon, Send } from 'lucide-react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';
 import { NarutoLoader } from '../components/motifs';
@@ -31,6 +31,7 @@ export default function ManagePostsScreen() {
   const [posts, setPosts] = useState<PostDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [memberUids, setMemberUids] = useState<Set<string>>(new Set());
+  const [membersLoaded, setMembersLoaded] = useState(false);
   const [hasAdviceMap, setHasAdviceMap] = useState<Record<string, boolean>>({});
   const [keyword, setKeyword] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
@@ -39,7 +40,10 @@ export default function ManagePostsScreen() {
   useEffect(() => {
     return subscribeActiveMembers(
       renId,
-      (members) => setMemberUids(new Set(members.map((m) => m.uid))),
+      (members) => {
+        setMemberUids(new Set(members.map((m) => m.uid)));
+        setMembersLoaded(true);
+      },
       (error) => console.error('自連メンバーの取得に失敗しました', error),
     );
   }, [renId]);
@@ -69,10 +73,17 @@ export default function ManagePostsScreen() {
     );
   }, []);
 
+  // 連管理者は自連メンバー(自分含む)の投稿のみ確認できる(#120。
+  // 2026-09-11の#30時点の決定(全公開投稿を閲覧可)を覆した)。
+  const ownRenPosts = useMemo(
+    () => posts.filter((p) => memberUids.has(p.userId)),
+    [posts, memberUids],
+  );
+
   // 検索キーワードで絞り込み、選んだ並び順で並べ替えた一覧を作る
   const filteredSortedPosts = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
-    let list = posts;
+    let list = ownRenPosts;
     if (kw) {
       list = list.filter((p) => `${p.title} ${p.authorName} ${(p.tags ?? []).join(' ')}`.toLowerCase().includes(kw));
     }
@@ -83,7 +94,7 @@ export default function ManagePostsScreen() {
       sorted.sort((a, b) => Number(!!hasAdviceMap[a.id]) - Number(!!hasAdviceMap[b.id]));
     }
     return sorted;
-  }, [posts, keyword, sortMode, hasAdviceMap]);
+  }, [ownRenPosts, keyword, sortMode, hasAdviceMap]);
 
   /** 選んだ投稿への指導者コメント作成画面(AdviceCompose)へ遷移する */
   const handleSendAdvice = () => {
@@ -134,13 +145,12 @@ export default function ManagePostsScreen() {
       </View>
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        {loading ? (
+        {loading || !membersLoaded ? (
           <NarutoLoader size={22} color={colors.gold} style={{ marginTop: spacing.xl, alignSelf: 'center' }} />
         ) : filteredSortedPosts.length === 0 ? (
           <Text style={styles.emptyText}>該当する投稿はありません</Text>
         ) : (
           filteredSortedPosts.map((p) => {
-            const isOwnRenMember = memberUids.has(p.userId);
             return (
               <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)} activeOpacity={0.85}>
                 <View style={styles.thumbWrapper}>
@@ -152,12 +162,6 @@ export default function ManagePostsScreen() {
                   </Text>
                   <View style={styles.authorRow}>
                     <Text style={styles.authorName}>{p.authorName}</Text>
-                    {isOwnRenMember && (
-                      <View style={styles.memberBadge}>
-                        <Shield size={10} color={colors.textOnGold} />
-                        <Text style={styles.memberBadgeText}>自連</Text>
-                      </View>
-                    )}
                   </View>
                   <View style={styles.metaRow}>
                     <Award size={13} color={colors.textMuted} />
@@ -268,8 +272,6 @@ const styles = StyleSheet.create({
   cardTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   authorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   authorName: { fontSize: 12, color: colors.textMuted },
-  memberBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.gold, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1, marginLeft: 6 },
-  memberBadgeText: { color: colors.textOnGold, fontSize: 9, fontWeight: '700', marginLeft: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, flexWrap: 'wrap' },
   metaText: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
   noAdviceBadge: { backgroundColor: colors.goldSoft, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginLeft: spacing.sm },

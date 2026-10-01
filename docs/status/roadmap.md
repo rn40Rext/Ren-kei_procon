@@ -13,7 +13,7 @@
 | Prototype 2 — 複数ルール・閾値外部化 | ✅ **完了**（3/3） |
 | Prototype 3 — 履歴・成長曲線 | ✅ **完了**（7/7） |
 | Prototype 4 — 連スタイル類似度 | ✅ 実装完了（4/4）。**実データ検証 [#101](../../../issues/101) が残** |
-| MVP Community | 🔶 実装はほぼ完了。残: [#40](../../../issues/40) の本番反映確認・[#41](../../../issues/41) / [#47](../../../issues/47) の残条件 |
+| MVP Community | 🔶 実装はほぼ完了。[#40](../../../issues/40) は本番反映を確認しクローズ可能。残: [#41](../../../issues/41) / [#47](../../../issues/47) の残条件 |
 | MVP Ren | ✅ **完了**。連・連管理者 **9/9**、通知は生成（[#43](../../../issues/43)）・一覧UI（[#44](../../../issues/44)）とも完了。プッシュ通知（[#45](../../../issues/45)）は導入しない決定でクローズ |
 
 **残っている大きな塊は 2 つです。**
@@ -99,7 +99,7 @@
 | [#47](../../../issues/47) | FN-03 publishPost（投稿と公開のトランザクション化） |
 | [#48](../../../issues/48) | 非正規化カウンタ同期トリガと Storage 実体削除 |
 
-🔶 **#39 / #42 / #48 は完了。#41 / #47 は実装が入ったが受け入れ条件に未達部分が残る**（#41: ギャラリーから直接投稿する経路の Storage パスが所有者情報を含まない / #47: `analysisStatus == 'completed'` の検証が無く、採点の無い投稿を許容する設計に変わった → **仕様と実装の食い違いとして要判断**）。#40 は Rules の実装・テスト（50 件）は完了し、**本番への反映のみ未確認**。
+🔶 **#39 / #42 / #48 は完了。#41 / #47 は実装が入ったが受け入れ条件に未達部分が残る**（#41: ギャラリーから直接投稿する経路の Storage パスが所有者情報を含まない / #47: `analysisStatus == 'completed'` の検証が無く、採点の無い投稿を許容する設計に変わった → **仕様と実装の食い違いとして要判断**）。**#40 は2026-09-26、`firebase deploy --only firestore:rules,firestore:indexes,storage` で本番プロジェクト`ren-kei`への反映を確認済み。クローズ可能。**
 
 追加で [#102](../../../issues/102)（`finalizeBasicAnalysis` がクライアント提供の集計値のみで検証している）が**公開前必須**としてこの段階にぶら下がります。2026-09-24に軽量な対策（`events`との整合性チェック）を実装したが、`holdRatio`/`rhythm`は対象外で完全な防止ではないため、issueは**オープンのまま**（公開前に本格対応の要否を判断）。
 
@@ -148,7 +148,13 @@
 
 ### 本番環境への反映
 
-Functions（FN-01/02/07/08/09）・Rules・Indexes のデプロイと `analysisRules` の投入（`functions npm run seed:rules`）が未実施です。**本番デプロイなので承認が必要**です（[safety.md](../rules/safety.md) 2章）。[#40](../../../issues/40) の受け入れ条件「デプロイで反映済み」もここで確定します。
+**2026-09-26、`firestore:rules` / `firestore:indexes` / `storage` の本番反映を確認しました**（[#40](../../../issues/40) の受け入れ条件「デプロイで反映済み」はこれで満たされ、クローズ可能）。
+
+**同日、`firebase deploy --only functions` で全Cloud Functionsを本番反映しました**（[#114](../../../issues/114)の通知拡充に伴う対応。FN-02/07/08/09（analyzeStyle/rebuildRenStyleProfile/registerStyleReference/deleteStyleReference/onStyleReferenceWritten）はこの時点で初めて本番にデプロイされた「Successful create operation」だった）。デプロイ前提のpredeploy lintが#102/#40由来のmax-len/JSDocエラーでブロックされていたため、ロジック変更なしで解消してから実施した。
+
+**同日、`analysisRules` の投入も完了しました**（`functions npm run seed:rules`、7 written / 0 skipped、version v1。`gcloud auth application-default login`でのADC設定が必要だったため、開発者本人の端末で実行した）。
+
+これで本番環境への反映(Rules・Indexes・Storage・Functions・analysisRules)はすべて完了しました。
 
 ### 解消済み（着手前の障害だった項目）
 
@@ -233,7 +239,7 @@ Functions（FN-01/02/07/08/09）・Rules・Indexes のデプロイと `analysisR
 | --- | --- | --- |
 | N-1 | 1 対 1 チャット（仕様書外の実装）を正式機能にするか、`joinRequests` + 通知へ統合するか | 未割当。v0.4 での要件化を推奨 |
 | N-2 | 「指導リクエスト」（`HomeScreen` のメニュー、仕様書に無い）の位置づけ | ✅ **U-07（連への参加リクエスト）として作り直す**（[#27](../../../issues/27)で決定。`RequestScreen.tsx` を差し替え、メニュー表示も「連を探す」に変更） |
-| N-3 | 連管理者に見せる投稿の範囲（自連メンバーのみ / 全公開投稿） | ✅ **全公開投稿を閲覧可能、自連メンバーはハイライト（案B）に決定**（[#30](../../../issues/30)、詳細は [security-rules.md](../design/security-rules.md)） |
+| N-3 | 連管理者に見せる投稿の範囲（自連メンバーのみ / 全公開投稿） | ✅ **2026-09-29、案A（自連メンバーのみ表示）へ変更決定**（[#120](../../../issues/120)。2026-09-11に[#30](../../../issues/30)で一度決定した案B「全公開投稿を閲覧可・自連メンバーはハイライト」を、実運用の認識と食い違うとして覆した）。詳細は [security-rules.md](../design/security-rules.md) |
 | N-4 | Cloud Functions のリージョン（Firestore は `nam5`、ユーザーは日本国内） | ✅ **`asia-northeast1` に決定**（[#46](../../../issues/46)、詳細は [api-functions.md 6章](../design/api-functions.md#6-デプロイと運用)） |
 | N-5 | `isRenAdmin()` の `get()` 消費を Custom Claims へ移行するか | [#29](../../../issues/29) |
 | N-6 | 既存 Firestore データを移行するか破棄して作り直すか | ✅ **破棄して作り直す**（[#39](../../../issues/39)、詳細は [data-model.md 6.3章](../design/data-model.md#63-users--users-n-6-39-で決定)） |
@@ -251,7 +257,7 @@ Functions（FN-01/02/07/08/09）・Rules・Indexes のデプロイと `analysisR
 | 3 | **スマートフォン実機での fps 計測** | TBD-01 の追加決定の前提。`?poseModel=lite` / `?poseDelegate=CPU` で切り替えて測る |
 | 4 | **事務作業** | [#41](../../../issues/41) / [#47](../../../issues/47) の受け入れ条件の再確認（#47 は仕様と実装が食い違っており判断が要る） |
 
-✅ 完了: #44通知一覧UI（2026-09-15）、Rules/Indexesの本番反映（2026-09-23、analysisResultsの複合インデックス追加を含む）、#37 U-10成長曲線（2026-09-23）。
+✅ 完了: #44通知一覧UI（2026-09-15）、Rules/Indexesの本番反映（2026-09-23、analysisResultsの複合インデックス追加を含む）、#37 U-10成長曲線（2026-09-23）、firestore.rules/storage.rules（invitations追加分含む）の本番反映確認（2026-09-26、#40）。
 
 ### 発表・デモの前に必ず伝えること
 

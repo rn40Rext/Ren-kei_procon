@@ -1,7 +1,9 @@
 import {HttpsError, onCall} from "firebase-functions/v2/https";
-import {FieldValue, getFirestore} from "firebase-admin/firestore";
+import {FieldValue, Firestore, getFirestore} from "firebase-admin/firestore";
 import {requireAuth} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
+import {notifyUser} from "../lib/notifications";
+import {resolveDisplayName} from "../lib/users";
 
 interface SubmitJoinRequestRequest {
   renId: string;
@@ -74,5 +76,48 @@ export const submitJoinRequest = onCall(async (request) => {
     updatedAt: FieldValue.serverTimestamp(),
   });
 
+  await notifyAdminsOfNewRequest(db, renId, uid, requestRef.id);
+
   return {requestId: requestRef.id};
 });
+
+/**
+ * 連の管理者全員(申請者自身を除く。申請者が既に管理者ということは
+ * 無いが念のため)へ、新しい参加リクエストが届いたことを通知する。
+ * @param {Firestore} db Admin SDKのFirestoreインスタンス。
+ * @param {string} renId 参加申請先の連ID。
+ * @param {string} applicantUid 申請者のuid。
+ * @param {string} requestId 作成したjoinRequestsドキュメントのID。
+ * @return {Promise<void>} 通知の書き込み完了。
+ */
+async function notifyAdminsOfNewRequest(
+  db: Firestore,
+  renId: string,
+  applicantUid: string,
+  requestId: string
+): Promise<void> {
+  const [renSnap, adminsSnap, applicantName] = await Promise.all([
+    db.doc(`ren/${renId}`).get(),
+    db
+      .collection(`ren/${renId}/members`)
+      .where("role", "==", "admin")
+      .where("status", "==", "active")
+      .get(),
+    resolveDisplayName(db, applicantUid),
+  ]);
+  const renName = (renSnap.data()?.name as string) ?? "連";
+
+  await Promise.all(
+    adminsSnap.docs
+      .filter((adminDoc) => adminDoc.id !== applicantUid)
+      .map((adminDoc) =>
+        notifyUser(db, {
+          uid: adminDoc.id,
+          type: "join_request",
+          referenceId: requestId,
+          title: "新しい参加リクエストが届きました",
+          body: `${applicantName}さんから「${renName}」への参加リクエストが届きました。`,
+        })
+      )
+  );
+}

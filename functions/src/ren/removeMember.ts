@@ -2,6 +2,7 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {requireAuth, requireRenAdmin} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
+import {notifyUser} from "../lib/notifications";
 
 interface RemoveMemberRequest {
   renId: string;
@@ -41,7 +42,10 @@ export const removeMember = onCall(async (request) => {
   const memberRef = db.doc(`ren/${renId}/members/${uid}`);
 
   await db.runTransaction(async (tx) => {
-    const snap = await tx.get(memberRef);
+    const [snap, renSnap] = await Promise.all([
+      tx.get(memberRef),
+      tx.get(db.doc(`ren/${renId}`)),
+    ]);
     if (!snap.exists) {
       throw new HttpsError("not-found", "member not found");
     }
@@ -59,6 +63,19 @@ export const removeMember = onCall(async (request) => {
     }
 
     tx.delete(memberRef);
+
+    const renName = (renSnap.data()?.name as string) ?? "連";
+    await notifyUser(
+      db,
+      {
+        uid,
+        type: "member_removed",
+        referenceId: renId,
+        title: "連から除名されました",
+        body: `「${renName}」のメンバーから除名されました。`,
+      },
+      {tx}
+    );
   });
 
   return {removed: true};

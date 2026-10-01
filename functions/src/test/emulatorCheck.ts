@@ -80,6 +80,13 @@ async function main(): Promise<void> {
   const {registerStyleReference} = require("../style/registerStyleReference");
   const {deleteStyleReference} = require("../style/deleteStyleReference");
   const {finalizeBasicAnalysis} = require("../analysis/finalizeBasicAnalysis");
+  const {submitJoinRequest} = require("../ren/submitJoinRequest");
+  const {
+    updateJoinRequestStatus,
+  } = require("../ren/updateJoinRequestStatus");
+  const {removeMember} = require("../ren/removeMember");
+  const {updateMemberRole} = require("../ren/updateMemberRole");
+  const {leaveRen} = require("../ren/leaveRen");
   /* eslint-enable @typescript-eslint/no-var-requires */
 
   const wrap = (fn: any) => functionsTest.wrap(fn);
@@ -259,7 +266,12 @@ async function main(): Promise<void> {
           ...finalizeReq,
           clientRequestId: "req-0004-badts",
           events: [
-            {ruleId: "HAND_STOP", grade: "GREAT", timestampMs: 999999, value: 1},
+            {
+              ruleId: "HAND_STOP",
+              grade: "GREAT",
+              timestampMs: 999999,
+              value: 1,
+            },
           ],
         }),
       )
@@ -446,6 +458,155 @@ async function main(): Promise<void> {
   check(
     !profileBExists,
     "参照を削除するとトリガが代表 Embedding を作り直す（0 件なら削除）",
+  );
+
+  console.log("--- 通知(参加リクエスト・メンバー管理・お誘い・チャット) ---");
+  const notificationsOf = async (uid: string) => {
+    const snap = await db.collection(`users/${uid}/notifications`).get();
+    return snap.docs.map((d: any) => d.data());
+  };
+  const waitForNotification = async (uid: string, type: string) => {
+    for (let i = 0; i < 20; i++) {
+      const list = await notificationsOf(uid);
+      const found = list.find((n: any) => n.type === type);
+      if (found) return found;
+      await sleep(500);
+    }
+    return null;
+  };
+
+  await db.doc("ren/renD").set({name: "通知検証連"});
+  await db
+    .doc("ren/renD/members/adminD")
+    .set({userId: "adminD", role: "admin", status: "active"});
+  await db
+    .doc("ren/renD/members/memberD")
+    .set({userId: "memberD", role: "member", status: "active"});
+  await db.doc("users/adminD").set({nickname: "管理花子"});
+  await db.doc("users/memberD").set({nickname: "既存次郎"});
+  await db.doc("users/applicantD").set({nickname: "申請太郎"});
+
+  const joinReq = await callAs(submitJoinRequest, "applicantD", {
+    renId: "renD",
+    message: "よろしくお願いします",
+  });
+  const adminNotifs = await notificationsOf("adminD");
+  check(
+    adminNotifs.some(
+      (n: any) =>
+        n.type === "join_request" && n.referenceId === joinReq.requestId,
+    ),
+    "参加リクエスト送信で連の管理者に通知される",
+  );
+  const memberNotifsAfterRequest = await notificationsOf("memberD");
+  check(
+    !memberNotifsAfterRequest.some((n: any) => n.type === "join_request"),
+    "管理者でない既存メンバーには参加リクエスト通知が来ない",
+  );
+
+  await callAs(updateJoinRequestStatus, "adminD", {
+    requestId: joinReq.requestId,
+    action: "approve",
+  });
+  const applicantNotifsAfterApprove = await notificationsOf("applicantD");
+  check(
+    applicantNotifsAfterApprove.some((n: any) => n.type === "join_result"),
+    "参加承認で申請者に結果が通知される",
+  );
+  check(
+    (await notificationsOf("memberD")).some(
+      (n: any) => n.type === "member_joined" && n.referenceId === "renD",
+    ),
+    "新メンバー参加で既存メンバーに通知される",
+  );
+  const adminNotifsAfterApprove = await notificationsOf("adminD");
+  check(
+    !adminNotifsAfterApprove.some((n: any) => n.type === "member_joined"),
+    "承認した管理者自身には新メンバー参加の通知が来ない",
+  );
+  check(
+    !applicantNotifsAfterApprove.some((n: any) => n.type === "member_joined"),
+    "新メンバー本人には新メンバー参加の通知が来ない(join_resultのみ)",
+  );
+
+  await callAs(updateMemberRole, "adminD", {
+    renId: "renD",
+    uid: "memberD",
+    role: "admin",
+  });
+  check(
+    (await notificationsOf("memberD")).some(
+      (n: any) => n.type === "role_changed" && n.referenceId === "renD",
+    ),
+    "役職変更で本人に通知される",
+  );
+
+  await callAs(removeMember, "adminD", {renId: "renD", uid: "applicantD"});
+  check(
+    (await notificationsOf("applicantD")).some(
+      (n: any) => n.type === "member_removed" && n.referenceId === "renD",
+    ),
+    "除名で本人に通知される",
+  );
+
+  await db.doc("invitations/invD").set({
+    fromUserId: "adminD",
+    fromUserName: "管理花子",
+    toUserId: "memberD",
+    toUserName: "既存次郎",
+    message: "うちの連にどうぞ",
+    status: "pending",
+    createdAt: new Date(),
+  });
+  await db.doc("invitations/invD").update({
+    status: "accepted",
+    updatedAt: new Date(),
+  });
+  check(
+    (await waitForNotification("adminD", "invitation_result")) !== null,
+    "お誘いへの応答で送信者に通知される(トリガ)",
+  );
+
+  const chatId = ["adminD", "memberD"].sort().join("_");
+  await db.collection(`chats/${chatId}/messages`).add({
+    text: "稽古の相談です",
+    senderId: "adminD",
+    createdAt: new Date(),
+  });
+  check(
+    (await waitForNotification("memberD", "chat_message")) !== null,
+    "DM送信で相手に通知される(トリガ)",
+  );
+
+  console.log("--- leaveRen(本人の脱退) ---");
+  await db.doc("ren/renE").set({name: "脱退検証連"});
+  await db
+    .doc("ren/renE/members/adminE")
+    .set({userId: "adminE", role: "admin", status: "active"});
+  await db
+    .doc("ren/renE/members/memberE")
+    .set({userId: "memberE", role: "member", status: "active"});
+
+  await callAs(leaveRen, "memberE", {renId: "renE"});
+  const memberEAfter = await db.doc("ren/renE/members/memberE").get();
+  check(!memberEAfter.exists, "一般メンバーは自分の意思で連から脱退できる");
+
+  check(
+    (await errorCodeOf(callAs(leaveRen, "adminE", {renId: "renE"}))) ===
+      "INVALID_STATUS_TRANSITION",
+    "連唯一の管理者は脱退できない(最後の管理者不在を防ぐ)",
+  );
+  const adminEAfter = await db.doc("ren/renE/members/adminE").get();
+  check(adminEAfter.exists, "拒否された脱退はドキュメントを削除しない");
+
+  await db
+    .doc("ren/renE/members/memberF")
+    .set({userId: "memberF", role: "admin", status: "active"});
+  await callAs(leaveRen, "adminE", {renId: "renE"});
+  const adminEAfter2 = await db.doc("ren/renE/members/adminE").get();
+  check(
+    !adminEAfter2.exists,
+    "他に管理者がいれば管理者本人も脱退できる",
   );
 
   functionsTest.cleanup();

@@ -31,7 +31,7 @@
 | 10 | `ren/{renId}/announcements/{announcementId}` | Announcements | 自動 ID | ❌ 未実装 |
 | 11 | `ren/{renId}/activities/{activityId}` | RenActivities | 自動 ID | ❌ 未実装 |
 | 12 | `joinRequests/{requestId}` | JoinRequests | 自動 ID | ❌ 未実装 |
-| 13 | `users/{uid}/notifications/{notificationId}` | Notifications | 自動 ID | ✅ 実装済み。生成: `onCommentWrite`（type:'instructor'コメントのみ）/ `updateJoinRequestStatus` / `createAnnouncement`（#43）。一覧UI・既読管理: `NotificationsScreen`（#44） |
+| 13 | `users/{uid}/notifications/{notificationId}` | Notifications | 自動 ID(トリガ起点のものはmessageId/invitationId等を流用) | ✅ 実装済み。type一覧・生成元は3.15章「通知の種類」を参照。一覧UI・既読管理: `NotificationsScreen`（#44） |
 | 14 | `renStyleReferences/{referenceId}` | RenStyleReferences | 自動 ID | ✅ 実装済み（FN-08） |
 | 15 | `renStyleProfiles/{renId}` | RenStyleProfiles | renId | ✅ 実装済み（FN-07） |
 | 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ✅ 実装済み（FN-02） |
@@ -267,6 +267,26 @@
 ### 3.15 その他
 
 `announcements` / `activities` / `notifications` のフィールドは仕様書 9.3 の定義をそのまま採用します。パスのみ本書 2 章で確定しています。
+
+#### 通知の種類（`notifications.type`）
+
+仕様書9.3は`type`を「comment/join_result/announcement等」とだけ定義しており、具体的な追加分はチームの合意事項として本書に記録します（2026-09-26、[#114](../../../../issues/114)で追加。functions/src/lib/notifications.ts の `NotificationType` と Ren-kei_procon/src/types/firestore.ts を一致させること）。
+
+| type | 発生条件 | 通知先 | referenceId | 生成元 |
+| --- | --- | --- | --- | --- |
+| `comment` | 投稿に指導者コメント(`type:'instructor'`)が付いた | 投稿者本人 | postId | `onCommentWrite`トリガ |
+| `join_result` | 参加リクエストが承認/却下された | 申請者本人 | joinRequestId | `updateJoinRequestStatus` |
+| `announcement` | 連管理者がお知らせを作成した | その連のアクティブなメンバー全員(投稿者を除く) | announcementId | `createAnnouncement` |
+| `join_request` | 連への参加リクエストが送られた | その連のアクティブな管理者全員 | joinRequestId | `submitJoinRequest` |
+| `member_removed` | メンバーが除名された | 除名された本人 | renId | `removeMember` |
+| `role_changed` | メンバーの役職(member⇄admin)が変わった | 役職が変わった本人 | renId | `updateMemberRole` |
+| `member_joined` | 参加リクエストが承認され新メンバーが加入した | その連のアクティブなメンバー全員(新メンバー本人・承認した管理者を除く) | renId | `updateJoinRequestStatus`(承認時) |
+| `invitation_result` | 連へのお誘い(`invitations`)に応答(承諾/辞退)があった | お誘いの送信者(`fromUserId`) | invitationId | `onInvitationWrite`トリガ |
+| `chat_message` | 1対1チャットにメッセージが届いた | チャット相手(`chatId`を`_`で分割し送信者以外の uid) | chatId | `onChatMessageWrite`トリガ |
+
+`invitations`・`chats`はクライアントが直接Firestoreへ書き込む経路(#108のprototype実装、Cloud Functions化されていない)のため、他の`ren/`配下と異なりFirestoreトリガー(`onDocumentWritten`/`onDocumentCreated`)で通知を作る。通知ドキュメントIDは、対応するinvitationId/messageIdをそのまま使い、トリガーのat-least-once配信で複数回実行されても冪等になるようにしている(`onCommentWrite`と同じ方針)。
+
+共通のFirestore書き込みは`functions/src/lib/notifications.ts`の`notifyUser()`に集約している。今後typeを追加する場合は、このヘルパーを呼ぶ形で実装し、クライアント側は`Ren-kei_procon/src/types/firestore.ts`の`NotificationType`と`NotificationsScreen.tsx`の`TYPE_ICON`・`onPressNotification`(遷移先)を忘れずに更新すること。
 
 #### プッシュ通知（NOTI-03, [#45](../../../../issues/45)）: 今回は導入しない
 

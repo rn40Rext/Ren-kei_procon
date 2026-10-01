@@ -87,8 +87,7 @@ export function assertPlausibleEventTimestamps(
 /**
  * events からルールごとのGREAT/GOOD/MISS件数を数え直す。
  * @param {EventInput[]} events セッション中に発火したイベント
- * @return {Record<string, {greatCount: number; goodCount: number; missCount: number}>}
- *   ルールID別の件数
+ * @return {object} ルールID別の{greatCount, goodCount, missCount}
  */
 export function deriveGradeCounts(
   events: EventInput[],
@@ -131,7 +130,8 @@ export function reconcileMetricsWithEvents(
       goodCount: 0,
       missCount: 0,
     };
-    const derivedTotal = counts.greatCount + counts.goodCount + counts.missCount;
+    const derivedTotal =
+      counts.greatCount + counts.goodCount + counts.missCount;
     result[ruleId] = {
       ...m,
       ...counts,

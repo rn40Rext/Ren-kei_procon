@@ -41,6 +41,7 @@ import {
 import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firestore';
 import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
 
+/** サンプル表示で探す演舞(本日の演舞・師範・門下生の全部) */
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
 
 /** 投稿詳細画面。postIdがあれば実データ、無ければサンプル演舞を表示する */
@@ -57,6 +58,8 @@ export default function VideoDetailScreen({ navigation, route }: any) {
 /** 実データ(posts/{postId})の投稿詳細。コメント・拍手はFirestoreへ反映する */
 function RealPostDetail({ postId, navigation }: { postId: string; navigation: any }) {
   const { width: SCREEN_W } = useWindowDimensions();
+  // 投稿 / 読み込み中か / コメント一覧 / 表示中のタブ(師匠の教え/門下生の声)
+  // 拍手したか・拍手の数・拍手の送信中か
   const [post, setPost] = useState<PostDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<CommentDoc[]>([]);
@@ -67,6 +70,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   // stateのbusyは非同期更新のため同一イベントループ内の連打(react-native-web
   // でonPressが二重発火することがある)を防げない。refで即座にガードする
   const busyRef = useRef(false);
+  // 入力中のコメントと、送信中か
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const { adminRens } = useAdminRens();
@@ -74,6 +78,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   // 複数連の管理者を兼任している場合は、暫定的に最初の連の管理者として投稿する)
   const canPostInstructor = adminRens.length > 0;
 
+  // 投稿・コメント・拍手したかを読み込む。前回の保存分で先に表示し、届いた最新の内容で置き換える
   useEffect(() => {
     let alive = true;
     let gotPost = false;
@@ -117,6 +122,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
     };
   }, [postId]);
 
+  /** 拍手を送る/取り消す。先に画面を更新し、失敗したら元に戻す */
   const onClap = async () => {
     if (busyRef.current) return;
     busyRef.current = true;
@@ -156,8 +162,10 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
     }
   };
 
+  // 表示中のタブに合うコメントだけを出す(師匠の教え=指導者コメント、門下生の声=通常のコメント)
   const shown = comments.filter((c) => (tab === 'teaching' ? c.type === 'instructor' : c.type === 'normal'));
 
+  // 読み込み中はくるくるだけを出す
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]}>
@@ -166,6 +174,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
       </SafeAreaView>
     );
   }
+  // 投稿が見つからない(削除済みなど)ときは、その旨と戻るボタンを出す
   if (!post) {
     return (
       <SafeAreaView style={[styles.container, styles.center]}>
@@ -180,6 +189,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* ヘッダー: 広場へ戻るボタン・画面名・メニューと、その下の波の飾り */}
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.backBtn}
@@ -195,6 +205,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
         <SeigaihaBand width={SCREEN_W} height={8} color={colors.gold} opacity={0.2} />
 
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* 動画の再生(動画がない投稿は模様と再生アイコンだけ) */}
           <View style={styles.player}>
             {post.videoUrl ? (
               <RenkeiVideo uri={post.videoUrl} style={styles.playerVideo} contentFit="contain" nativeControls />
@@ -206,6 +217,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
             )}
           </View>
 
+          {/* 投稿の情報: タグ・題名・投稿者・説明・極め度/拍手/声の数 */}
           <View style={styles.metaBlock}>
             {post.tags.length > 0 ? (
               <View style={styles.metaBadges}>
@@ -239,6 +251,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
               />
             </Panel>
 
+            {/* 拍手ボタン(拍手済みは朱色に塗る)と、自主稽古への入口 */}
             <TouchableOpacity
               style={[styles.clapBtn, liked && styles.clapBtnActive]}
               onPress={onClap}
@@ -265,6 +278,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
             </TouchableOpacity>
           </View>
 
+          {/* 門下生の声 / 師匠の教え のタブ(件数つき) */}
           <View style={styles.tabBar}>
             <TouchableOpacity
               style={[styles.tabItem, tab === 'voice' && styles.tabItemActive]}
@@ -284,6 +298,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
             </TouchableOpacity>
           </View>
 
+          {/* 選んだタブのコメント一覧。0件なら案内文を出す */}
           <View style={styles.tabBody}>
             {shown.length === 0 ? (
               <Text style={styles.emptyComment}>
@@ -312,6 +327,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
           <View style={{ height: 120 }} />
         </ScrollView>
 
+        {/* 画面下の入力欄。師匠の教えのタブでは、連の管理者でなければ案内文だけを出す */}
         {tab === 'teaching' && !canPostInstructor ? (
           <View style={styles.inputDockDisabled}>
             <Text style={styles.inputDockDisabledText}>指導者コメントは連の管理者のみ投稿できます</Text>
@@ -352,9 +368,11 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
 /** サンプル(ダミーデータ)の演舞詳細。見本であることを明示して表示する */
 function SampleDetail({ navigation, route }: any) {
   const { width: SCREEN_W } = useWindowDimensions();
+  // どの見本の演舞を表示するか(見つからなければ本日の演舞)
   const enbuId: string | undefined = route?.params?.id;
   const enbu = useMemo(() => ALL_ENBU.find((e) => e.id === enbuId) ?? todaysEnbu, [enbuId]);
 
+  // 表示中のタブ / 拍手の数 / 拍手したか / 入力中のコメント(見本なので送信はしない)
   const [tab, setTab] = useState<'teaching' | 'voice'>('teaching');
   const [claps, setClaps] = useState(enbu.cheers);
   const [clapped, setClapped] = useState(false);
@@ -362,6 +380,7 @@ function SampleDetail({ navigation, route }: any) {
   // 連打でonPressが同一イベントループ内で二重発火しても二重に増減しないようにする
   const clapBusyRef = useRef(false);
 
+  /** 見本の拍手。端末の中だけで数を増減する */
   const sendClap = () => {
     if (clapBusyRef.current) return;
     clapBusyRef.current = true;
@@ -413,6 +432,7 @@ function SampleDetail({ navigation, route }: any) {
           </View>
 
           {/* 演舞情報 */}
+          {/* 演舞の情報: 見本の印などのバッジ・題名・踊り手・説明・極め度/演舞尺/調子 */}
           <View style={styles.metaBlock}>
             <View style={styles.metaBadges}>
               {/* 見本データの極め度は本物の採点と同じ表記なので、見本であることを必ず示す(AGENTS.md 5章) */}
@@ -494,6 +514,7 @@ function SampleDetail({ navigation, route }: any) {
             </TouchableOpacity>
           </View>
 
+          {/* 師匠の教え(和紙風のカード)/ 門下生の声(拍手の数つき) */}
           {tab === 'teaching' ? (
             <View style={styles.tabBody}>
               {masterTeachings.map((t) => (
@@ -585,14 +606,17 @@ function SampleDetail({ navigation, route }: any) {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、中央寄せの補助スタイル
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   center: { justifyContent: 'center', alignItems: 'center' },
   // 稽古動画はスマホを縦に持って撮るため縦長(9:16)。固定の低い高さでcoverすると
   // 横長の枠に収めようとして上下が大きく切れていたため、縦長の比率で全体を映す
   playerVideo: { width: '100%', aspectRatio: 9 / 16, backgroundColor: colors.indigoRaised },
+  // コメントが0件のときと、読み込み中の文
   emptyComment: { ...typography.body, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl },
   loadingText: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md },
 
+  // 画面上部のヘッダー。「広場へ戻る」・画面名・メニューを横一列に並べる
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -606,12 +630,14 @@ const styles = StyleSheet.create({
   backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
   topTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
+  // スクロール部分の下の余白
   scroll: { paddingBottom: spacing.xl },
 
   // サンプル用の動画プレイヤー枠(写真の上に再生ボタンを重ねて見せる)
   player: { marginHorizontal: spacing.lg, marginTop: spacing.lg, borderRadius: radius.sm, overflow: 'hidden' },
   playerImage: { width: '100%', height: 220, justifyContent: 'center', alignItems: 'center' },
   playerScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
+  // 写真の中央の丸い再生ボタンと、下端のテンポ・長さの表示
   playCircle: {
     width: 60,
     height: 60,
@@ -631,6 +657,7 @@ const styles = StyleSheet.create({
   },
   playerTime: { ...typography.metric, color: colors.goldBright },
 
+  // 演舞の情報のまとまりと、バッジの並び・題名(大きめの明朝体)
   metaBlock: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
@@ -639,6 +666,7 @@ const styles = StyleSheet.create({
   metaBadges: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.xs, marginBottom: spacing.md },
   enbuTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 22, lineHeight: 32 },
 
+  // 踊り手の行(頭文字の紋・名前・役職・所属)
   performerRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
   performerInitial: { ...typography.bodyStrong, color: colors.gold, fontSize: 13 },
   performerText: { flex: 1, marginLeft: spacing.md },
@@ -646,6 +674,7 @@ const styles = StyleSheet.create({
   performerRole: { ...typography.caption, color: colors.textSecondary },
   performerRen: { ...typography.caption, color: colors.gold, marginTop: 2 },
 
+  // 説明文と、極め度などの数字の枠
   enbuDesc: {
     ...typography.body,
     fontSize: 14,
@@ -673,6 +702,7 @@ const styles = StyleSheet.create({
   clapText: { ...typography.button, color: colors.aka, marginLeft: spacing.sm },
   clapTextActive: { color: colors.textOnAka },
 
+  // 「自主稽古・演舞解析へ」のリンク
   toKeikoBtn: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, paddingVertical: spacing.sm },
   toKeikoText: { ...typography.bodyStrong, color: colors.gold },
 
@@ -688,6 +718,7 @@ const styles = StyleSheet.create({
   tabLabel: { ...typography.bodyStrong, color: colors.textMuted },
   tabLabelActive: { color: colors.gold },
 
+  // タブの中身の余白と、師匠の教えのカード(和紙風の明るい背景なので文字は濃い色)
   tabBody: { padding: spacing.lg },
   washiGap: { marginBottom: spacing.md },
   washiTitle: { ...typography.headingSerif, color: colors.indigoDeep },
@@ -708,6 +739,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
+  // コメントの見出し行(頭文字の丸・名前・種類)・拍手の数・本文
   commentHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   avatar: {
     width: 30,
@@ -741,6 +773,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
   },
+  // 投稿できないときの案内の帯
   inputDockDisabled: {
     padding: spacing.md,
     borderTopWidth: 1,
@@ -748,8 +781,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.indigo,
   },
   inputDockDisabledText: { textAlign: 'center', fontSize: 12, color: colors.textMuted },
+  // 入力欄の上の定型文チップ・入力欄と送信ボタンの行
   inputChips: { flexDirection: 'row', marginBottom: spacing.sm },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end' },
+  // コメントの入力欄(複数行)
   input: {
     flex: 1,
     minHeight: 42,
@@ -762,6 +797,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...typography.body,
   },
+  // 送信ボタン(金色。文が空のときは薄くする)
   sendBtn: {
     width: 42,
     height: 42,

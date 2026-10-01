@@ -50,12 +50,14 @@ export type FinishResult = {
   response: FinalizeResponse;
 };
 
+/** FN-01冪等性キー用のリクエストID(crypto.randomUUIDが無い環境向けのフォールバック付き) */
 function newRequestId(): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c?.randomUUID) return c.randomUUID();
   return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/** LiveSnapshotの初期値(未開始状態) */
 function initialSnapshot(): LiveSnapshot {
   return {
     status: "idle",
@@ -134,6 +136,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  /** refに持っている毎フレームの状態をUI向けsnapshotへ反映する(10Hzで呼ばれる) */
   const publish = useCallback((patch?: Partial<LiveSnapshot>) => {
     if (__DEV__) {
       // 開発時の計測用(ブラウザの console から window.__renkeiLive で読める)
@@ -168,6 +171,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     }));
   }, []);
 
+  /** statusRefを更新してpublishする共通ヘルパー */
   const setStatus = useCallback(
     (status: LiveStatus, errorMessage: string | null = null) => {
       statusRef.current = status;
@@ -213,6 +217,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     [setStatus]
   );
 
+  /** ルール評価で1件イベント(GREAT/GOOD/MISS)が出たときの共通処理 */
   const handleEvent = useCallback((e: RuleEvent) => {
     sessionRef.current?.addEvent(e);
     gameRef.current = applyGrade(gameRef.current, e.grade);
@@ -245,6 +250,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     publish();
   }, [publish]);
 
+  /** 毎フレーム呼ばれる本体。推論→前処理→ルール評価→イベント発火までを1回分行う */
   const processFrame = useCallback(() => {
     const source = sourceRef.current;
     const detector = detectorRef.current;
@@ -381,6 +387,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     }
   }, [beginScoring, handleEvent, publish]);
 
+  /** requestAnimationFrameループ本体。processFrameを呼び続ける */
   const loop = useCallback(() => {
     if (!runningRef.current) return;
     try {
@@ -439,6 +446,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     [loop, setStatus, beginScoring]
   );
 
+  /** RAFループを止める(中止・終了・アンマウント時に呼ぶ) */
   const stopLoop = useCallback(() => {
     runningRef.current = false;
     if (rafRef.current !== null) {

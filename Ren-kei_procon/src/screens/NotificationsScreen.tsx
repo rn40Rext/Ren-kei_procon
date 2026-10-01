@@ -21,6 +21,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   announcement: Megaphone,
 };
 
+// Firestoreの日時を「YYYY/M/D H:MM」の文字列に変換する
 function formatDateTime(value: AppNotification['createdAt']): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -56,6 +57,7 @@ export default function NotificationsScreen() {
 
   const unreadIds = useMemo(() => notifications.filter((n) => !n.read).map((n) => n.id), [notifications]);
 
+  // 1件だけ既読にする(カードの横にある「✓」ボタンから呼ばれる)
   const onMarkOneRead = useCallback(
     async (notificationId: string) => {
       if (!uid) return;
@@ -68,6 +70,7 @@ export default function NotificationsScreen() {
     [uid],
   );
 
+  // 未読をまとめて既読にする(画面右上の「すべて既読」ボタンから呼ばれる)
   const onMarkAllRead = useCallback(async () => {
     if (!uid || unreadIds.length === 0) return;
     setMarkingAll(true);
@@ -202,6 +205,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { backgroundColor: colors.indigoDeep },
+  // ヘッダー。「戻る」・ベルアイコン・タイトル・「すべて既読」・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -220,6 +224,7 @@ const styles = StyleSheet.create({
   emptyText: { ...typography.body, color: colors.textMuted, marginTop: spacing.md },
 
   list: { padding: spacing.lg },
+  // 通知1件分のカード
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -230,6 +235,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 未読のカードは金色の枠・背景にして目立たせる
   cardUnread: { borderColor: colors.gold, backgroundColor: colors.goldSoft },
   iconWrap: {
     width: 34,

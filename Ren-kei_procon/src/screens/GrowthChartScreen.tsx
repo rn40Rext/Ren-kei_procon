@@ -162,6 +162,7 @@ export default function GrowthChartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
+  // 画面上部のヘッダー。「戻る」ボタン・タイトル・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,12 +175,14 @@ const styles = StyleSheet.create({
   backBtn: { padding: 4, width: 34 },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'center' },
 
+  // まだ記録が無いときに、中央に案内文とボタンだけを表示するエリア
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   emptyText: { color: colors.textSecondary, fontSize: 14, marginBottom: 20, textAlign: 'center' },
   ctaBtn: { backgroundColor: colors.gold, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
   ctaBtnText: { color: colors.textOnGold, fontWeight: 'bold' },
 
   content: { padding: 16, alignItems: 'center' },
+  // 「直近スコア」「自己ベスト」の2枚のカードを横に並べる
   summaryRow: { flexDirection: 'row', gap: 12, width: '100%', maxWidth: 600 - 32 },
   summaryCard: {
     flex: 1,
@@ -194,6 +197,7 @@ const styles = StyleSheet.create({
   diffRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 },
   diffText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
 
+  // 総合スコアの折れ線グラフを囲むカード
   chartCard: {
     width: '100%',
     maxWidth: 600 - 32,
@@ -208,6 +212,7 @@ const styles = StyleSheet.create({
   noteText: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
 
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginTop: 24, marginBottom: 10, width: '100%', maxWidth: 600 - 32 },
+  // 項目別(手の高さ等)のミニグラフを、折り返しながら横に並べる
   itemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%', maxWidth: 600 - 32 },
   itemCard: {
     backgroundColor: colors.indigo,

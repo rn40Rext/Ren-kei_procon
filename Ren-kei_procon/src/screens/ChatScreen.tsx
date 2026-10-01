@@ -117,8 +117,11 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingHorizontal: spacing.xl, transform: [{ scaleY: -1 }] },
   emptyText: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.md },
   emptySub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' },
+  // 1つ分の吹き出し。幅は画面の80%まで
   bubble: { maxWidth: '80%', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm },
+  // 自分の発言は右寄せ・金色の吹き出しにする
   myBubble: { alignSelf: 'flex-end', backgroundColor: colors.gold },
+  // 相手の発言は左寄せ・枠線付きの吹き出しにする
   otherBubble: {
     alignSelf: 'flex-start',
     backgroundColor: colors.indigo,
@@ -127,6 +130,7 @@ const styles = StyleSheet.create({
   },
   myText: { ...typography.body, color: colors.textOnGold },
   otherText: { ...typography.body, color: colors.textPrimary },
+  // 画面下部の入力欄エリア。入力欄と送信ボタンを横に並べる
   inputArea: {
     flexDirection: 'row',
     padding: spacing.md,

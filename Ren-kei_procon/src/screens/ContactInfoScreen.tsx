@@ -36,6 +36,7 @@ export default function ConatctInfoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
+  // 画面上部のヘッダー。「戻る」・タイトル・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -48,6 +49,7 @@ const styles = StyleSheet.create({
   backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
   backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
+  // 「準備中」の案内を画面の中央にまとめて表示するエリア
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   placeholder: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
   sub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center', maxWidth: 260 },

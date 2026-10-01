@@ -162,6 +162,7 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
 
+  // 画面上部のヘッダー。「戻る」・タイトル・メニューを横一列に並べる
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -177,10 +178,13 @@ const styles = StyleSheet.create({
 
   scroll: { paddingBottom: spacing.xl },
 
+  // お題の演舞写真を全幅で表示する枠
   banner: { height: 200 },
   bannerImg: { flex: 1 },
+  // 写真の上に薄い暗幕をかけ、その上にバッジ・再生ボタン等を乗せる
   bannerScrim: { flex: 1, padding: spacing.lg, justifyContent: 'space-between' },
   bannerTop: { flexDirection: 'row', alignItems: 'center' },
+  // 写真の中央に重ねる再生ボタン。丸い金色のボタンとして画面中央に固定表示する
   playCircle: {
     position: 'absolute',
     top: '50%',
@@ -204,6 +208,7 @@ const styles = StyleSheet.create({
   posterName: { ...typography.bodyStrong, color: colors.textPrimary },
   posterRole: { ...typography.caption, color: colors.gold, marginTop: 2 },
   participants: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md },
+  // 「連へ勧誘する」ボタン。金色の枠線を付けた控えめなボタンにする
   scoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,6 +232,7 @@ const styles = StyleSheet.create({
   advicePoint: { ...typography.headingSerif, color: colors.indigoDeep },
   adviceDetail: { ...typography.body, color: '#3A3427', marginTop: spacing.sm, lineHeight: 22 },
 
+  // 「自分の演舞で挑戦する」ボタン。横幅いっぱいの大きな金色ボタンにする
   challengeBtn: {
     flexDirection: 'row',
     alignItems: 'center',

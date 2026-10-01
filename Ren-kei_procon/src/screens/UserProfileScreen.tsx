@@ -88,6 +88,7 @@ const styles = StyleSheet.create({
   },
   // 丸いアイコン枠(RenMon)の中に表示する、名前の頭文字
   avatarChar: { color: colors.gold, fontSize: 30, fontFamily: typography.titleSerif.fontFamily, fontWeight: '700' },
+  // 名前(明朝体)と所属連(金色の小さな文字)
   name: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
   team: { ...typography.caption, color: colors.gold, marginTop: spacing.xs },
   // ボタン(または案内文)を置くエリア。カードの横幅いっぱいに広げる

@@ -15,6 +15,7 @@ import GrowthLineChart, { ChartPoint } from '../components/GrowthLineChart';
 import { colors } from '../theme';
 import AppMenu from '../components/AppMenu';
 
+/** この画面で使う画面遷移の型 */
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GrowthChart'>;
 
 // ResultScreen.tsx の ITEMS と表示名を揃える。総合に含まれる4項目のみ(TBD-05)。
@@ -35,6 +36,7 @@ function toChartPoints(results: AnalysisResult[]): ChartPoint[] {
   }));
 }
 
+/** 自分の極め度と項目別の点数が、稽古を重ねてどう変わったかをグラフで見る画面 */
 export default function GrowthChartScreen() {
   const navigation = useNavigation<Nav>();
   const { uid } = useAuth();
@@ -43,6 +45,7 @@ export default function GrowthChartScreen() {
   const [results, setResults] = useState<AnalysisResult[] | null>(null); // null=読み込み中 / 空配列=記録なし / 配列あり=表示できる(JSXの分岐がこの3状態に依存している)
   const [error, setError] = useState<string | null>(null);
 
+  // 自分の解析結果(古い順)をリアルタイム購読する
   useEffect(() => {
     if (!uid) return;
     return subscribeAnalysisResultsByUser(uid, setResults, (e) => {
@@ -51,6 +54,7 @@ export default function GrowthChartScreen() {
     });
   }, [uid]);
 
+  // 極め度の推移グラフに渡す点
   const totalPoints = useMemo(() => (results ? toChartPoints(results) : []), [results]);
 
   // 画面の幅は最大600pxに抑える(広い画面でグラフが間延びしないように)。
@@ -59,6 +63,7 @@ export default function GrowthChartScreen() {
   const contentWidth = Math.min(windowWidth, 600) - 32;
   const chartWidth = contentWidth - 32;
 
+  // 直近の記録・その前の記録・自己ベストの記録と、前回からの点数の差
   const latest = results && results.length > 0 ? results[results.length - 1] : null;
   const previous = results && results.length > 1 ? results[results.length - 2] : null;
   const best = results && results.length > 0 ? results.reduce((a, b) => (b.totalScore > a.totalScore ? b : a)) : null;
@@ -66,6 +71,7 @@ export default function GrowthChartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 稽古手帳へ戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
@@ -172,6 +178,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 戻るボタンと、中央寄せの画面名
   backBtn: { padding: 4, width: 34 },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'center' },
 
@@ -181,6 +188,7 @@ const styles = StyleSheet.create({
   ctaBtn: { backgroundColor: colors.gold, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
   ctaBtnText: { color: colors.textOnGold, fontWeight: 'bold' },
 
+  // スクロール部分の余白(中身を中央に寄せる)
   content: { padding: 16, alignItems: 'center' },
   // 「直近スコア」「自己ベスト」の2枚のカードを横に並べる
   summaryRow: { flexDirection: 'row', gap: 12, width: '100%', maxWidth: 600 - 32 },
@@ -192,6 +200,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 要約カードの見出し・大きな数字と、前回比の行(上がれば金、下がれば朱)
   summaryLabel: { fontSize: 12, color: colors.textSecondary },
   summaryValue: { fontSize: 28, fontWeight: 'bold', color: colors.textPrimary, marginTop: 4 },
   diffRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 },
@@ -208,9 +217,11 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
     marginTop: 16,
   },
+  // グラフの見出しと、グラフの下の注記
   chartTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 8 },
   noteText: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
 
+  // 「項目別の点数の推移」の見出し
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginTop: 24, marginBottom: 10, width: '100%', maxWidth: 600 - 32 },
   // 項目別(手の高さ等)のミニグラフを、折り返しながら横に並べる
   itemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%', maxWidth: 600 - 32 },
@@ -221,6 +232,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 項目別カードの項目名と、直近の点数(項目ごとの色)
   itemLabel: { fontSize: 12, color: colors.textSecondary },
   itemValue: { fontSize: 18, fontWeight: 'bold', marginTop: 2, marginBottom: 4 },
 });

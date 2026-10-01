@@ -27,10 +27,13 @@ import { monkaEnbu } from '../data/mockEnbu';
 import { useMyRole, isRenLeaderClass } from '../data/role';
 import { formatAiScore } from '../features/analysis/format';
 
+/** 先輩が出したチャレンジ(お題)の詳細を見て、自分の演舞で挑戦する画面 */
 export default function ChallengeDetailScreen({ navigation, route }: any) {
+  // どのお題を表示するか(前の画面から受け取る)。見つからなければ先頭のお題を出す
   const id: string | undefined = route?.params?.id;
   const ch = useMemo(() => challengeById(id), [id]);
   const CatIcon = categoryIcon(ch.category);
+  // 自分の役割。連の世話役以上なら「連へ勧誘する」ボタンを出す
   const role = useMyRole();
   const canScout = isRenLeaderClass(role);
 
@@ -42,6 +45,7 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
@@ -201,6 +205,7 @@ const styles = StyleSheet.create({
   catTag: { flexDirection: 'row', alignItems: 'center' },
   catTagText: { ...typography.metric, color: colors.goldBright },
 
+  // お題の見出し・出題者の行(頭文字の紋・名前・役職)・挑戦人数
   head: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   title: { ...typography.titleSerif, color: colors.textPrimary },
   posterRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
@@ -223,10 +228,12 @@ const styles = StyleSheet.create({
   },
   scoutBtnText: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
+  // 「先輩が見てほしいところ」の枠
   focusPanel: { marginHorizontal: spacing.lg, marginTop: spacing.lg, padding: spacing.md },
   focusLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   focusText: { ...typography.body, color: colors.textSecondary },
 
+  // アドバイスのカード(和紙風の明るい背景なので、文字は濃い色にする)
   adviceList: { paddingHorizontal: spacing.lg },
   adviceCard: { marginBottom: spacing.md },
   advicePoint: { ...typography.headingSerif, color: colors.indigoDeep },
@@ -245,6 +252,7 @@ const styles = StyleSheet.create({
   },
   challengeBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
 
+  // 「挑戦した人の演舞」の横スクロールと、1人分のカード(写真・名前・極め度)
   tryScroll: { paddingHorizontal: spacing.lg },
   tryCard: { width: 132, marginRight: spacing.md },
   tryThumb: { width: '100%', height: 84, backgroundColor: colors.indigoRaised },

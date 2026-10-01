@@ -1,3 +1,8 @@
+/**
+ * 1対1のチャット画面。相手とのメッセージをリアルタイムで表示して、送信もできる。
+ * route.params で chatId(会話のID)と recipientName(相手の名前)を受け取る。
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -24,12 +29,14 @@ export default function ChatScreen({ route, navigation }: any) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
 
+  // メッセージをリアルタイム購読(画面を離れたら解除)。chatIdが変わったら購読し直す
   useEffect(() => {
     return subscribeChatMessages(chatId, setMessages, (error) =>
       console.error('メッセージの取得に失敗しました', error)
     );
   }, [chatId]);
 
+  // 空文字・未ログインの時は送らない。送信に成功したら入力欄を空にする
   const sendMessage = async () => {
     if (!inputText.trim() || !uid) return;
     await sendChatMessage(chatId, uid, inputText);
@@ -46,6 +53,8 @@ export default function ChatScreen({ route, navigation }: any) {
       </View>
       <HeaderSeam />
 
+      {/* inverted: 一覧を上下逆にして、新しいメッセージが画面の下に来るようにする。
+          そのためメッセージは新しい順(最新が先頭)で渡す前提 */}
       <FlatList
         data={messages}
         inverted
@@ -58,6 +67,7 @@ export default function ChatScreen({ route, navigation }: any) {
             </View>
           );
         }}
+        // メッセージが無い時は空状態を中央に出す。ある時は通常の余白
         contentContainerStyle={
           messages.length === 0
             ? { flexGrow: 1, justifyContent: 'center' }
@@ -73,6 +83,7 @@ export default function ChatScreen({ route, navigation }: any) {
         }
       />
 
+      {/* 入力欄がキーボードに隠れないようにする(iOSのみ。ヘッダー分の高さ100をずらす) */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={100}>
         <View style={styles.inputArea}>
           <TextInput
@@ -102,6 +113,7 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
   },
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary, flex: 1 },
+  // FlatListが inverted で上下反転しているので、空状態の表示を逆さまにして元に戻す
   empty: { alignItems: 'center', paddingHorizontal: spacing.xl, transform: [{ scaleY: -1 }] },
   emptyText: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: spacing.md },
   emptySub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' },

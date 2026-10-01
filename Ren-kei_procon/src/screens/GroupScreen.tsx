@@ -29,6 +29,7 @@ import { useMyRens } from '../hooks/useMyRens';
 import type { Announcement, RenActivity } from '../types/firestore';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
+// Firestore の Timestamp(toDate() を持つ値)を「2026/09/30 18:30」形式にする。値が無ければ空文字
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -36,6 +37,7 @@ function formatDateTime(value: any): string {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+// 同じく日付だけ「2026/9/30」形式にする(お知らせの投稿日用。月日はゼロ埋めしない)
 function formatDate(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -46,19 +48,23 @@ export default function GroupScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, 'Group'>>();
-  const requestedRenId = route.params?.renId;
+  const requestedRenId = route.params?.renId; // 今選んでいる連のID。複数の連に入っている人が切り替えられる
   const { myRens, loading } = useMyRens();
   const [selectedRenId, setSelectedRenId] = useState<string | null>(null);
   const [activities, setActivities] = useState<RenActivity[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false); // 連を作成するモーダルのフォーム用state
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [beginnerFriendly, setBeginnerFriendly] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  // 表示する連を決める。優先順位は
+  // 1. 画面遷移で指定された連(所属している場合のみ)
+  // 2. すでに選んでいる連(まだ所属していれば)
+  // 3. どちらもなければ先頭の連
   useEffect(() => {
     if (myRens.length === 0) return;
     if (requestedRenId && myRens.some((r) => r.renId === requestedRenId)) {
@@ -70,6 +76,8 @@ export default function GroupScreen() {
     }
   }, [myRens, selectedRenId, requestedRenId]);
 
+  // 選んでいる連の活動情報とお知らせをリアルタイム購読。連を切り替えたら購読し直し、
+  // 未選択のときは表示を空にしておく
   useEffect(() => {
     if (!selectedRenId) {
       setActivities([]);
@@ -88,6 +96,7 @@ export default function GroupScreen() {
     };
   }, [selectedRenId]);
 
+  // 連を作成し、成功したらフォームを空にして閉じ、作った連を選択状態にする
   const handleCreate = async () => {
     if (!name.trim()) {
       Alert.alert('エラー', '連の名前を入力してください');
@@ -138,6 +147,7 @@ export default function GroupScreen() {
         <AppMenu />
       </View>
 
+      {/* 読み込み中 / 未所属 / 所属あり の3パターンで表示を切り替える */}
       {loading ? (
         <NarutoLoader size={26} color={colors.gold} style={{ marginTop: 60, alignSelf: 'center' }} />
       ) : myRens.length === 0 ? (
@@ -151,6 +161,7 @@ export default function GroupScreen() {
         </View>
       ) : (
         <>
+          {/* 連の切り替え(複数の連に所属している時だけ表示) */}
           {myRens.length > 1 && (
             <ScrollView
               horizontal
@@ -175,6 +186,7 @@ export default function GroupScreen() {
 
           {selectedRen && (
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+              {/* 連の基本情報カード。管理者には管理画面へのリンクも出す */}
               <View style={styles.renCard}>
                 <Text style={styles.renName}>{selectedRen.name}</Text>
                 {selectedRen.description ? <Text style={styles.renDescription}>{selectedRen.description}</Text> : null}
@@ -243,6 +255,7 @@ export default function GroupScreen() {
         </>
       )}
 
+      {/* 連を作成するモーダル */}
       <Modal visible={showCreateForm} animationType="slide" onRequestClose={() => setShowCreateForm(false)}>
         <SafeAreaView style={styles.formContainer}>
           <View style={styles.formHeader}>

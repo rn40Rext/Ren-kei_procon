@@ -1,3 +1,8 @@
+/**
+ * お問い合わせ画面(仮)。
+ * 運営への連絡先や、連の世話役への相談窓口を載せる予定だが、今は案内文だけのプレースホルダー。
+ */
+
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -19,6 +24,7 @@ export default function ConatctInfoScreen() {
         <AppMenu />
       </View>
       <HeaderSeam />
+      {/* 仮表示：連絡先一覧ができるまでの案内文。実装したらここを差し替える */}
       <View style={styles.body}>
         <KumihimoRule width={36} />
         <Text style={styles.placeholder}>連絡先一覧</Text>

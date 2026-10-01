@@ -1,3 +1,9 @@
+/**
+ * ログイン / 新規アカウント作成画面。メール+パスワードの Firebase Auth を使い、
+ * isRegisterMode でログインと登録を同じフォームで切り替える。
+ * 成功後の画面遷移はここでは行わない(認証状態の変化を拾う側で切り替わる前提)。
+ */
+
 import React, { useState } from "react";
 import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -21,6 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 入力チェック → ログイン or 新規登録。登録時は Firebase Auth のあとに users ドキュメントも作る
   const handleSubmit = async () => {
     if (!email || !password) return Alert.alert("エラー", "メールとパスワードを入力してください");
     if (isRegisterMode && password.length < 6) {

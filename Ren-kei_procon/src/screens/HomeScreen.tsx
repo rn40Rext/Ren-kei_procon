@@ -84,11 +84,6 @@ function PulsePlay({ children }: { children: React.ReactNode }) {
       }),
     );
     loop.start();
-    // ============================================================
-    // Home画面のUI
-    // 上から「ヘッダー → 投稿 → カウントダウン → フィード → モーダル」
-    // の順に構成している。
-    // ============================================================
     return () => loop.stop();
   }, [p]);
 
@@ -271,7 +266,6 @@ type HeroLike = {
   title: string;
 };
 
-/** ヒーロー画像／動画に重ねる帯（見出し・カウントダウン・再生マーク・題）。 */
 /**
  * 動画の上には再生ボタンだけを重ねる(文字を動画に重ねないでほしいという
  * フィードバックを受け、見出し・タグ・題名などは動画の下(renderHeroInfo)に
@@ -319,6 +313,9 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
 
 // ============================================================
 // Home画面
+// 上から「ヘッダー → 投稿バー → ヒーロー(直近の投稿＋本番カウントダウン)
+// → 先輩からのチャレンジ → 連の広場(交流フィード)」の順に並べ、
+// 最後に投稿モーダルを置いている。
 // ============================================================
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -332,7 +329,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
 
-  // スクロール量を使って、ヘッダーなどの演出を制御するための値
+  // スクロール量を使って、ヘッダーなどの演出を制御するための値、演出には今は使っていない
   const scrollY = useRef(new Animated.Value(0)).current;
   // 阿波おどり本番までの日数。初回表示時に一度だけ計算する。
   const festivalDays = useMemo(() => daysToFestival(), []);
@@ -409,7 +406,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   const openEnbu = (id: string) => navigation.navigate('VideoDetail', { id });
   const openPost = (postId: string) => navigation.navigate('VideoDetail', { postId });
 
-  // 自分が投稿した演舞（新しい順）。実データの投稿があればそれを最優先で主役に据える。
+  // 自分が投稿した演舞（main=ture）。実データの投稿があればそれを最優先で主役に据える。
   const mine = useMemo(() => feed.filter((p) => p.mine), [feed]);
   const myRealPosts = useMemo(
     () => realPosts.filter((p) => p.userId && p.userId === uid),
@@ -1542,7 +1539,7 @@ const styles = StyleSheet.create({
   feedStatTextActive: { color: colors.aka, fontWeight: '700' },
   feedTime: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
 
-  /* --- 投稿モーダル --- */
+  /* --- 投稿モーダル ：動画があれば Firestore/Storage へ公開、無ければ見本としてローカルに保存　--- */
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,19,43,0.7)' },
   modalCard: {
     backgroundColor: colors.indigoDeep,

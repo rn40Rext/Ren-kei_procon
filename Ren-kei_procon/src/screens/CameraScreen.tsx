@@ -1,8 +1,9 @@
 /**
  * U-02 踊り解析(本体)。仕様書 5.2 / 7.6、docs/design/ai-basic-motion.md 10章。
  *
- * ライブカメラ + 骨格表示、右側に LIVE SCORE・判定ゲージ・GREAT/GOOD/MISS 回数、
- * 映像上に GREAT 等と改善メッセージを重ねる。終了時に FN-01 でスコアを確定し U-03 へ。
+ * ライブカメラ + 骨格表示、右上に LIVE SCORE のバッジ、下の操作エリアに
+ * 判定ゲージ・GREAT/GOOD/MISS 回数・リズムを表示し、映像上に GREAT 等と改善メッセージを重ねる。
+ * 終了時に FN-01 でスコアを確定し U-03 へ。
  * LIVE SCORE(Game Score)は UX 用の参考値で、履歴に残る Analysis Score とは別物(D-04)。
  *
  * 判定ロジックは src/features/pose・src/features/rules・useLiveAnalysis にあり、
@@ -90,7 +91,9 @@ export default function CameraScreen() {
   const navigation = useNavigation<CameraNav>();
   const { danceType, scorePart, baseBpm } = route.params;
   const { uid } = useAuth();
+  // 画面の状態: undefined=カメラ確認中 / null=この端末は未対応 / それ以外=映像ソース
   const [source, setSource] = useState<LiveVideoSource | null | undefined>(undefined);
+  // 保存・採点などの処理中。二重押し防止にも使う
   const [busy, setBusy] = useState(false);
   const [durationSec, setDurationSec] = useState<ScoringDurationSec>(SCORING_DURATIONS_SEC[0]);
 
@@ -144,14 +147,15 @@ export default function CameraScreen() {
   const analyzing = snapshot.status === "analyzing";
   const waitingStance = snapshot.status === "waitingStance";
 
-  // 採点中(analyzing)だけBGMをループ再生する。判定ロジックとは無関係なので
-  // useLiveAnalysisではなくこの画面側で扱う(docs/rules/coding.md: 画面は判定ロジックを持たない)。
-  // リアルタイム判定はWeb版のみなのでWeb標準のAudio要素で十分(ネイティブでは何もしない)。
-  // モバイルブラウザは「ユーザー操作と同期していない再生」をブロックするため
-  // (構えを待ってから始まるカメラのanalyzingはボタン押下から時間差があり、
-  // そのままだと再生がブロックされる)、「判定を開始」ボタン押下の中で
-  // 同期的に一度play()しておき(unlockBgm)、以降はそのAudioを使い回す。
-  // Audio要素はボタン押下時(unlockBgm)に初めて作る。採点しないなら音源を読み込まない。
+  // --- 採点中のBGM ---
+  // 採点中(analyzing)だけループ再生する。判定ロジックとは無関係なので
+  // useLiveAnalysis ではなくこの画面側で扱う(docs/rules/coding.md)。
+  // リアルタイム判定はWeb版のみなので、Web標準のAudio要素で足りる(ネイティブでは何もしない)。
+  //
+  // モバイルブラウザは「ユーザー操作と同期していない再生」をブロックする。
+  // 構え待ちを挟むと analyzing はボタン押下から時間差で始まるため、
+  // 「判定を開始」押下の中で一度 play() しておき(unlockBgm)、以降はそのAudioを使い回す。
+  // Audio要素は unlockBgm で初めて作る(採点しないなら音源を読み込まない)。
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   /** 今BGMを鳴らすべきか。unlockの非同期な後始末が本再生を止めないよう判定に使う */
   const bgmWantedRef = useRef(false);
@@ -204,6 +208,7 @@ export default function CameraScreen() {
       bgmRef.current = null;
     };
   }, []);
+
   /** 判定を始めてから保存に入るまで(構え待ち + 採点中) */
   const active = waitingStance || analyzing;
   const remainingSec = Math.max(0, Math.ceil((snapshot.durationMs - snapshot.elapsedMs) / 1000));
@@ -229,6 +234,7 @@ export default function CameraScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.videoArea}>
+        {/* 採点中に映像が終わったら(動画ファイルの場合)自動)で保存・採点へ */}
         <PoseCameraView onSource={onSource} onEnded={analyzing ? onFinish : undefined} allowFile={!active && !busy} />
 
         {/* 上: 状態・警告 */}
@@ -349,6 +355,7 @@ export default function CameraScreen() {
               {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
             </TouchableOpacity>
           )}
+          {/* 採点時間の選択(判定を始める前だけ) */}
           {!active && (
             <View style={styles.durationRow}>
               <Text style={styles.durationLabel}>採点時間</Text>

@@ -18,6 +18,7 @@ import AppMenu from '../components/AppMenu';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GrowthChart'>;
 
 // ResultScreen.tsx の ITEMS と表示名を揃える。総合に含まれる4項目のみ(TBD-05)。
+// 並び順がそのまま「項目別の点数の推移」のカードの並び順になる。
 const ITEM_DEFS: { key: 'handHeightScore' | 'hipHeightScore' | 'stopScore' | 'rhythmScore'; label: string; color: string }[] = [
   { key: 'handHeightScore', label: '手の高さ', color: colors.gold },
   { key: 'hipHeightScore', label: '腰の低さ', color: colors.goldBright },
@@ -25,6 +26,8 @@ const ITEM_DEFS: { key: 'handHeightScore' | 'hipHeightScore' | 'stopScore' | 'rh
   { key: 'rhythmScore', label: 'リズム', color: colors.success },
 ];
 
+// 総合スコアをグラフの点に変換する。直前の記録から analysisVersion(採点基準)が
+// 変わった点にだけ versionLabel を付けて、グラフ上に点線で区切りを出せるようにする
 function toChartPoints(results: AnalysisResult[]): ChartPoint[] {
   return results.map((r, i) => ({
     value: r.totalScore,
@@ -37,7 +40,7 @@ export default function GrowthChartScreen() {
   const { uid } = useAuth();
   const { width: windowWidth } = useWindowDimensions();
 
-  const [results, setResults] = useState<AnalysisResult[] | null>(null);
+  const [results, setResults] = useState<AnalysisResult[] | null>(null); // null=読み込み中 / 空配列=記録なし / 配列あり=表示できる(JSXの分岐がこの3状態に依存している)
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,6 +53,9 @@ export default function GrowthChartScreen() {
 
   const totalPoints = useMemo(() => (results ? toChartPoints(results) : []), [results]);
 
+  // 画面の幅は最大600pxに抑える(広い画面でグラフが間延びしないように)。
+  // contentWidth はスクロール領域の左右余白16pxずつ(合計32)を引いた幅、
+  // chartWidth はさらにカード内の左右余白16pxずつ(合計32)を引いた、グラフ本体の幅
   const contentWidth = Math.min(windowWidth, 600) - 32;
   const chartWidth = contentWidth - 32;
 
@@ -72,6 +78,7 @@ export default function GrowthChartScreen() {
         <AppMenu />
       </View>
 
+      {/* 4つの表示状態: 読み込み中 / エラー / 記録なし / 記録あり */}
       {results === null && !error ? (
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
       ) : error ? (
@@ -87,6 +94,7 @@ export default function GrowthChartScreen() {
         </View>
       ) : results ? (
         <ScrollView contentContainerStyle={styles.content}>
+          {/* 直近の極め度と前回比、自己ベスト */}
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>直近の極め度</Text>
@@ -117,6 +125,7 @@ export default function GrowthChartScreen() {
             </View>
           </View>
 
+          {/* 総合スコア(極め度)の推移グラフ */}
           <View style={styles.chartCard}>
             <Text style={styles.chartTitle}>極め度の推移</Text>
             <GrowthLineChart points={totalPoints} width={chartWidth} height={140} />
@@ -126,6 +135,7 @@ export default function GrowthChartScreen() {
             )}
           </View>
 
+          {/* 項目別の推移。その項目のスコアが1件も無い項目はカードごと出さない。2列で並べる */}
           <Text style={styles.sectionLabel}>項目別の点数の推移</Text>
           <View style={styles.itemGrid}>
             {ITEM_DEFS.map((def) => {

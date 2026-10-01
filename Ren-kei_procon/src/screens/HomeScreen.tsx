@@ -30,7 +30,6 @@ import {
   IconUchiwa,
   IconNaruko,
   IconMakimono,
-  IconTenugui,
   IconGeta,
   IconWagasa,
   categoryIcon,
@@ -52,7 +51,6 @@ import {
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
 import {
-  filterChips,
   feedTags,
   feedPosts as seedFeed,
   myPosts as seedMine,
@@ -327,8 +325,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   // スマホの縦横比が変わってもレイアウトが崩れにくいようにする。
   const { width: SCREEN_W } = useWindowDimensions();
   const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
-  // 上部の絞り込みチップ／フィードタグ／検索欄の状態
-  const [activeChip, setActiveChip] = useState(filterChips[0]);
+  // フィードタグ／検索欄の状態（絞り込みは「みんなの演舞と門下生の声」側に統一）
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
 
@@ -529,6 +526,17 @@ export default function HomeScreen({ navigation, route }: Props) {
     });
   }, [feed, feedTag, search]);
 
+  // 実データの投稿も、見本と同じ検索・タグ絞り込みを適用する
+  // (以前はここが抜けていて、検索欄・タグが実際の投稿に効かなかった)
+  const visibleRealPosts = useMemo(() => {
+    return feedRealPosts.filter((p) => {
+      const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
+      const q = search.trim();
+      const searchOk = !q || p.title.includes(q) || p.authorName.includes(q);
+      return tagOk && searchOk;
+    });
+  }, [feedRealPosts, feedTag, search]);
+
   const resetDraft = () => {
     setDraftTitle('');
     setDraftDesc('');
@@ -667,23 +675,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           <RenKeiWordmark size={21} />
           <Text style={styles.logoSub}>稽古と交流の広場</Text>
         </View>
-        <AppMenu>
-          <View style={styles.menuFilterHead}>
-            <IconTenugui size={14} color={colors.gold} />
-            <Text style={styles.menuPanelLabel}>　連・流派・調子で絞り込む</Text>
-          </View>
-          <View style={styles.menuChipWrap}>
-            {filterChips.map((c) => (
-              <Chip
-                key={c}
-                label={c}
-                active={activeChip === c}
-                onPress={() => setActiveChip(c)}
-                style={styles.menuChip}
-              />
-            ))}
-          </View>
-        </AppMenu>
+        <AppMenu />
       </View>
       <Noren width={SCREEN_W} height={24} style={styles.noren} />
 
@@ -696,16 +688,6 @@ export default function HomeScreen({ navigation, route }: Props) {
         <IconUchiwa size={16} color={colors.textOnGold} />
         <Text style={styles.postBarText}>　演舞を投稿する</Text>
       </TouchableOpacity>
-
-      {activeChip !== filterChips[0] ? (
-        <View style={styles.activeFilterBar}>
-          <IconTenugui size={13} color={colors.gold} />
-          <Text style={styles.activeFilterText}>　絞り込み：{activeChip}</Text>
-          <Text style={styles.activeFilterClear} onPress={() => setActiveChip(filterChips[0])}>
-            解除
-          </Text>
-        </View>
-      ) : null}
 
       <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -918,10 +900,11 @@ export default function HomeScreen({ navigation, route }: Props) {
         </ScrollView>
 
         <View style={styles.feedList}>
-          {/* 実データ：交流広場に投稿された演舞（新着順。ヒーローに出している自分の最新分は除く） */}
-          {feedRealPosts.length > 0 ? (
+          {/* 実データ：交流広場に投稿された演舞（新着順。ヒーローに出している自分の最新分は除く。
+              検索・タグの絞り込みも見本と同じように適用する） */}
+          {visibleRealPosts.length > 0 ? (
             <>
-              {feedRealPosts.map((p) => (
+              {visibleRealPosts.map((p) => (
                 <TouchableOpacity
                   key={p.id}
                   style={styles.feedCard}
@@ -1324,22 +1307,6 @@ const styles = StyleSheet.create({
   },
   countdownText: { ...typography.metric, color: colors.kinari, fontSize: 10 },
   feedWave: { marginTop: spacing.xs },
-  menuPanelLabel: { ...typography.sectionLabel, color: colors.gold },
-  menuFilterHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  menuChipWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  menuChip: { marginBottom: spacing.sm },
-
-  activeFilterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.indigo,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.indigoLine,
-  },
-  activeFilterText: { ...typography.caption, color: colors.textSecondary, flex: 1 },
-  activeFilterClear: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
   topGarland: { backgroundColor: colors.indigoDeep },
 

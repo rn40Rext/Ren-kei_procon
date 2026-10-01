@@ -313,6 +313,7 @@ const styles = StyleSheet.create({
   emptyText: { marginTop: 12, color: colors.textMuted, fontSize: 14, textAlign: 'center' },
 
   list: { padding: spacing.md },
+  // 練習動画1件分のカード
   card: {
     backgroundColor: colors.indigo,
     borderRadius: radius.md,
@@ -322,6 +323,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardMain: { flexDirection: 'row', padding: spacing.md },
+  // サムネイル(映像が無ければ中央にアイコン)を表示する枠
   thumbWrapper: {
     width: 84,
     height: 84,
@@ -343,6 +345,7 @@ const styles = StyleSheet.create({
   scoreRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   scoreText: { fontSize: 13, fontWeight: 'bold', color: colors.textPrimary },
 
+  // カード下部の「交流広場へ投稿」「削除」ボタンを右寄せで並べる行
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',

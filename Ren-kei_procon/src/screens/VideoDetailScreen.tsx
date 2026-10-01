@@ -590,6 +590,7 @@ const styles = StyleSheet.create({
 
   scroll: { paddingBottom: spacing.xl },
 
+  // サンプル用の動画プレイヤー枠(写真の上に再生ボタンを重ねて見せる)
   player: { marginHorizontal: spacing.lg, marginTop: spacing.lg, borderRadius: radius.sm, overflow: 'hidden' },
   playerImage: { width: '100%', height: 220, justifyContent: 'center', alignItems: 'center' },
   playerScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
@@ -636,6 +637,7 @@ const styles = StyleSheet.create({
   },
   metricsPanel: { marginTop: spacing.lg, paddingVertical: spacing.md, paddingHorizontal: spacing.lg },
 
+  // 拍手ボタン。押した状態(active)では背景を塗りつぶして色を反転する
   clapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -656,6 +658,7 @@ const styles = StyleSheet.create({
   toKeikoBtn: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, paddingVertical: spacing.sm },
   toKeikoText: { ...typography.bodyStrong, color: colors.gold },
 
+  // 「師匠の教え」「門下生の声」を切り替えるタブ
   tabBar: {
     flexDirection: 'row',
     marginTop: spacing.sm,
@@ -678,6 +681,7 @@ const styles = StyleSheet.create({
   },
   washiMaster: { ...typography.caption, color: colors.akaDeep, marginTop: spacing.md, textAlign: 'right' },
 
+  // コメント1件分の吹き出し
   comment: {
     backgroundColor: colors.indigo,
     borderWidth: 1,
@@ -703,12 +707,14 @@ const styles = StyleSheet.create({
   commentClapText: { ...typography.caption, color: colors.gold, marginLeft: 3 },
   commentText: { ...typography.body, color: colors.textSecondary },
 
+  // 「同じ型に取り組む門下生」を横スクロールで並べるエリア
   relatedScroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
   relatedCard: { width: 150, marginRight: spacing.md },
   relatedThumb: { width: '100%', height: 92, backgroundColor: colors.indigoRaised },
   relatedTitle: { ...typography.caption, color: colors.textPrimary, marginTop: spacing.sm, fontWeight: '700' },
   relatedMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2, fontSize: 10 },
 
+  // 画面下部に固定された、コメント入力欄のエリア
   inputDock: {
     borderTopWidth: 1,
     borderTopColor: colors.indigoLine,

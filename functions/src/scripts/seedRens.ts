@@ -16,6 +16,7 @@
 import {getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 
+/** 投入するサンプル連1件分 */
 interface SeedRen {
   name: string;
   description: string;
@@ -24,6 +25,7 @@ interface SeedRen {
   memberCount: number;
 }
 
+/** 開発・デモ用に投入するサンプルの連 */
 const SAMPLE_RENS: SeedRen[] = [
   {
     name: "阿波の風連",

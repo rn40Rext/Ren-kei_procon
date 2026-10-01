@@ -16,6 +16,7 @@ export type NotificationType =
   | "invitation_result"
   | "chat_message";
 
+/** 通知を1件作るときに渡す中身 */
 export interface NotificationInput {
   uid: string;
   type: NotificationType;

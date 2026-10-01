@@ -32,6 +32,7 @@ export class NoApprovedReferenceError extends Error {
   }
 }
 
+/** 代表 Embedding を作り直した結果 */
 export type RebuildResult = {
   renId: string;
   embeddingVersion: string;

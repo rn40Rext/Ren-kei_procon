@@ -12,6 +12,7 @@ import {
   rebuildRenStyleProfile as rebuild,
 } from "./profile";
 
+/** FN-07 本体。連の管理者だけが呼べる */
 export const rebuildRenStyleProfile = onCall(async (request) => {
   const uid = requireAuth(request);
   const renId = requireString(request.data?.renId, "renId");

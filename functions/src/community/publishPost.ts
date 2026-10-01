@@ -15,6 +15,7 @@ const TAG_OPTIONS = [
   "#ちびっこ踊り",
 ];
 
+/** 投稿の公開で送られるリクエストの中身 */
 interface PublishPostRequest {
   title: string;
   description?: string;

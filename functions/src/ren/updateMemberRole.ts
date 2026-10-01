@@ -4,11 +4,13 @@ import {requireAuth, requireRenAdmin} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
 import {notifyUser} from "../lib/notifications";
 
+/** 通知文に使う役割の表示名 */
 const ROLE_LABEL: Record<"admin" | "member", string> = {
   admin: "管理者",
   member: "メンバー",
 };
 
+/** メンバーの役割変更で送られるリクエストの中身 */
 interface UpdateMemberRoleRequest {
   renId: string;
   uid: string;

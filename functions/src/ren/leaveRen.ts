@@ -3,6 +3,7 @@ import {getFirestore} from "firebase-admin/firestore";
 import {requireAuth} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
 
+/** 連からの脱退で送られるリクエストの中身 */
 interface LeaveRenRequest {
   renId: string;
 }

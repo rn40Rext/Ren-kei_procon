@@ -36,6 +36,7 @@ const REQUIRED_LANDMARKS: number[] = [
 /** 低信頼度点を捨てる閾値（ai-basic-motion.md 4章と同値） */
 export const MIN_VISIBILITY = 0.5;
 
+/** 体の点1つ分の位置と、見えている確かさ */
 export type Landmark = {
   x: number;
   y: number;
@@ -43,6 +44,7 @@ export type Landmark = {
   visibility: number;
 };
 
+/** 1フレーム分の姿勢 */
 export type PoseFrame = {
   /** 動画先頭からの経過ミリ秒 */
   timestampMs: number;
@@ -57,6 +59,7 @@ export type PoseSeries = {
   frames: PoseFrame[];
 };
 
+/** 姿勢系列の保存形式の版。アプリ側と同じ値にする */
 export const POSE_SERIES_FORMAT_VERSION = "pose-series-v1";
 
 /**

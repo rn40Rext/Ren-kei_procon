@@ -24,9 +24,11 @@ import { AnalysisResult, subscribeAnalysisResultsByUser } from '../repositories/
 import { RenMon, HeaderSeam } from '../components/motifs';
 import { colors, spacing, radius, typography } from '../theme';
 
+/** 踊りの種類(男踊り/女踊り/未設定) と、ユーザーの役割 */
 type DanceStyle = 'male' | 'female' | null;
 type Role = 'user' | 'ren_admin' | 'service_admin';
 
+/** 役割の表示名(名前の下のバッジに出す) */
 const ROLE_LABEL: Record<Role, string> = {
   user: '踊り手',
   ren_admin: '連の世話役',
@@ -44,6 +46,7 @@ export default function MypageScreen() {
     if (!uid) return;
     return subscribeAnalysisResultsByUser(uid, setResults, (e) => console.warn('subscribeAnalysisResultsByUser', e));
   }, [uid]);
+  // 直近の極め度と自己ベスト(記録がなければ null)。上部の3つの数字に出す
   const latest = results.length ? results[results.length - 1].totalScore : null;
   const best = results.length ? Math.max(...results.map((r) => r.totalScore)) : null;
   const keikoStats = [
@@ -52,6 +55,7 @@ export default function MypageScreen() {
     { label: '自己ベスト', value: best === null ? '―' : `${Math.round(best)}`, unit: best === null ? '' : '点' },
   ];
 
+  // プロフィールを編集中か / 保存中か
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -146,6 +150,7 @@ export default function MypageScreen() {
     }
   };
 
+  // 画面を開いたときに、自分のプロフィール(users/{uid})を1回読み込む
   useEffect(() => {
     const fetchProfile = async () => {
       const user = auth.currentUser;
@@ -168,11 +173,13 @@ export default function MypageScreen() {
     fetchProfile();
   }, []);
 
+  // 表示する名前(踊り名 → メールアドレスの@より前 → 未設定の案内の順に使う)と、表示するアイコン(編集中は下書き)
   const displayName = nickname || auth.currentUser?.email?.split('@')[0] || '踊り名を定める';
   const shownIcon = editing ? draftIcon : icon;
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 画面名とメニュー(左は中央寄せのための空きスペース) */}
       <View style={styles.header}>
         <View style={{ width: 38 }} />
         <Text style={styles.headerTitle}>稽古手帳</Text>
@@ -181,7 +188,9 @@ export default function MypageScreen() {
       <HeaderSeam />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* プロフィール欄: アイコン・名前・役割・自己紹介と、稽古の実績 */}
         <View style={styles.profileSection}>
+          {/* アイコン。編集中はタップで画像を選び、それ以外はタップで編集を始める */}
           <TouchableOpacity
             style={styles.avatarWrap}
             onPress={editing ? pickIcon : startEditing}
@@ -194,6 +203,7 @@ export default function MypageScreen() {
                 <Text style={styles.avatarChar}>{(nickname || '阿').slice(0, 1)}</Text>
               )}
             </RenMon>
+            {/* 編集中はアイコンの右下にカメラのバッジを出す */}
             {editing ? (
               <View style={styles.avatarEditBadge}>
                 <Camera size={13} color={colors.textOnGold} />
@@ -201,6 +211,7 @@ export default function MypageScreen() {
             ) : null}
           </TouchableOpacity>
 
+          {/* 編集中は入力欄(踊り名・自己紹介・踊りの種類)と「やめる」「改める」ボタン、それ以外は名前と役割のバッジを出す */}
           {editing ? (
             <>
               <TextInput
@@ -259,6 +270,7 @@ export default function MypageScreen() {
             </TouchableOpacity>
           )}
 
+          {/* 稽古の回数・直近の極め度・自己ベスト(編集中は隠す) */}
           {!editing ? (
             <View style={styles.statRow}>
               {keikoStats.map((s, i) => (
@@ -274,6 +286,7 @@ export default function MypageScreen() {
           ) : null}
         </View>
 
+        {/* 稽古の記録: 成長曲線・練習動画一覧・マイ連への入口 */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>稽古の記録</Text>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('GrowthChart')}>
@@ -299,6 +312,7 @@ export default function MypageScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* サポート・設定: お問い合わせ・アプリ設定・プライバシーポリシー(未実装) */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>サポート・設定</Text>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ContactInfo')}>
@@ -324,6 +338,7 @@ export default function MypageScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ログアウト */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LogOut size={19} color={colors.danger} />
           <Text style={styles.logoutText}>ログアウト</Text>
@@ -336,6 +351,7 @@ export default function MypageScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、画面名を中央に置くヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     height: 56,
@@ -359,6 +375,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // アイコン(紋の中に丸く表示)と、編集中に右下へ出すカメラのバッジ
   avatarWrap: { marginBottom: spacing.md },
   avatarImage: { width: 60, height: 60, borderRadius: radius.pill },
   avatarChar: { color: colors.gold, fontSize: 30, fontFamily: typography.titleSerif.fontFamily, fontWeight: '700' },
@@ -372,6 +389,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.indigo,
   },
+  // 名前・役割のバッジ(丸い枠)・自己紹介・「タップして改める」の案内
   userName: { ...typography.titleSerif, color: colors.textPrimary, textAlign: 'center' },
   roleBadge: {
     flexDirection: 'row',
@@ -407,6 +425,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // セクションの見出し(金色)と、メニューの1行(アイコン・名前・右矢印)
   sectionLabel: {
     ...typography.sectionLabel,
     color: colors.gold,
@@ -425,6 +444,7 @@ const styles = StyleSheet.create({
   menuLeft: { flexDirection: 'row', alignItems: 'center' },
   menuText: { ...typography.body, fontSize: 14, color: colors.textPrimary, marginLeft: spacing.md },
 
+  // ログアウトのボタン(赤い文字で注意を促す)
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -438,6 +458,7 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: colors.danger, ...typography.button, marginLeft: spacing.sm },
 
+  // 編集中の踊り名(金色の枠)と自己紹介(複数行)の入力欄
   nameInput: {
     minWidth: 220,
     borderWidth: 1,
@@ -478,6 +499,7 @@ const styles = StyleSheet.create({
   danceStyleText: { ...typography.caption, color: colors.textSecondary },
   danceStyleTextActive: { color: colors.textOnGold, fontWeight: '700' },
 
+  // 「やめる」(文字だけ)と「改める」(金色)のボタン
   nameButtonRow: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.md },
   cancelButton: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
   cancelButtonText: { ...typography.button, color: colors.textSecondary },

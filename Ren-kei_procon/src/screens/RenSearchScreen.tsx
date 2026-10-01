@@ -30,21 +30,25 @@ import { fetchRenMember } from '../repositories/renMembership';
 import { subscribeMyJoinRequests, submitJoinRequest, cancelJoinRequest } from '../repositories/joinRequests';
 import type { JoinRequest, Ren } from '../types/firestore';
 
+/** 連の一覧を検索・絞り込みし、気になる連に参加を申請する画面 */
 export default function RenSearchScreen() {
   const navigation = useNavigation<any>();
 
+  // 連の一覧 / 自分が出した参加申請 / 読み込み中か / 検索キーワード / 「初心者歓迎のみ」の絞り込み
   const [rens, setRens] = useState<Ren[]>([]);
   const [myRequests, setMyRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
   const [beginnerOnly, setBeginnerOnly] = useState(false);
 
+  // 詳細を開いている連(null なら閉じる) / その連のメンバーか、その確認中か / 申請メッセージ / 送信中か
   const [selectedRen, setSelectedRen] = useState<Ren | null>(null);
   const [isMember, setIsMember] = useState(false);
   const [checkingMembership, setCheckingMembership] = useState(false);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // 連の一覧をリアルタイム購読する
   useEffect(() => {
     return subscribeRens(
       (list) => {
@@ -59,6 +63,7 @@ export default function RenSearchScreen() {
     );
   }, []);
 
+  // 自分が出した参加申請をリアルタイム購読する(「申請中」の表示に使う)
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -72,6 +77,7 @@ export default function RenSearchScreen() {
     );
   }, []);
 
+  // 「初心者歓迎のみ」とキーワード(連の名前・説明・地域)で絞り込んだ一覧
   const filteredRens = rens.filter((r) => {
     if (beginnerOnly && !r.beginnerFriendly) return false;
     if (!keyword.trim()) return true;
@@ -79,6 +85,7 @@ export default function RenSearchScreen() {
     return target.includes(keyword.trim().toLowerCase());
   });
 
+  // その連へ出している、まだ審査待ちの申請(なければ undefined)
   const pendingRequestFor = (renId: string) => myRequests.find((r) => r.renId === renId && r.status === 'pending');
 
   /** 連カードをタップして詳細モーダルを開く */
@@ -130,6 +137,7 @@ export default function RenSearchScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* 画面上部の笠の飾りと、戻るボタン・画面名・メニューのヘッダー */}
       <KasaGarland width={360} count={7} height={40} style={styles.garland} />
       <View style={styles.header}>
         <TouchableOpacity
@@ -148,6 +156,7 @@ export default function RenSearchScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {/* キーワード検索欄と「初心者歓迎のみ表示」のチェック */}
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchInput}
@@ -162,6 +171,7 @@ export default function RenSearchScreen() {
           <Text style={styles.filterLabel}>初心者歓迎のみ表示</Text>
         </TouchableOpacity>
 
+        {/* 連の一覧。読み込み中・該当なしの場合は案内文を出す */}
         {loading ? (
           <View style={styles.loadingRow}>
             <NarutoLoader size={22} color={colors.gold} />
@@ -173,6 +183,7 @@ export default function RenSearchScreen() {
           filteredRens.map((ren) => {
             const pending = pendingRequestFor(ren.id);
             return (
+              // 連1件分のカード: 名前・地域・人数と「初心者歓迎」「申請中」のバッジ。タップで詳細を開く
               <TouchableOpacity key={ren.id} style={styles.renCard} onPress={() => openRen(ren)} activeOpacity={0.85}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.renName}>{ren.name}</Text>
@@ -204,6 +215,7 @@ export default function RenSearchScreen() {
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
+      {/* 連の詳細ダイアログ。メンバーなら案内のみ、申請中なら取り消し、それ以外は申請フォームを出す */}
       <Modal visible={!!selectedRen} animationType="slide" transparent onRequestClose={() => setSelectedRen(null)}>
         <KeyboardAvoidingView style={styles.modalWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
@@ -215,6 +227,7 @@ export default function RenSearchScreen() {
             </View>
             {selectedRen?.description ? <Text style={styles.modalDesc}>{selectedRen.description}</Text> : null}
 
+            {/* メンバーかどうかを確認中はくるくるを出す */}
             {checkingMembership ? (
               <NarutoLoader size={22} color={colors.gold} style={{ marginVertical: spacing.xl, alignSelf: 'center' }} />
             ) : isMember ? (
@@ -268,8 +281,10 @@ export default function RenSearchScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、上部の笠の飾り
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { backgroundColor: colors.indigoDeep },
+  // アイコン・画面名・説明文を並べるヘッダー。下に区切り線を引く
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -283,6 +298,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
   headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
+  // 一覧部分の余白と、角を少し丸めた検索欄
   body: { padding: spacing.lg },
   searchBar: {
     backgroundColor: colors.indigoRaised,
@@ -295,11 +311,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   searchInput: { color: colors.textPrimary, ...typography.body, fontSize: 13 },
+  // 「初心者歓迎のみ」のチェック。オンのときは四角が金色に塗られる
   filterRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   checkbox: { width: 18, height: 18, borderRadius: 5, borderWidth: 1, borderColor: colors.indigoLine, marginRight: spacing.sm },
   checkboxOn: { backgroundColor: colors.gold, borderColor: colors.gold },
   filterLabel: { ...typography.caption, color: colors.textSecondary },
 
+  // 読み込み中・該当なしの表示
   loadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl },
   loadingText: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
@@ -313,6 +331,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
+  // 連の名前・地域や人数の行・バッジの並び
   renName: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 16 },
   renRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   renRowText: { ...typography.caption, color: colors.textMuted, marginLeft: 6 },
@@ -329,10 +348,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
+  // ダイアログの見出し・連の説明・状態の案内文
   modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   modalDesc: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 17 },
   infoText: { ...typography.body, color: colors.textPrimary, textAlign: 'center', marginVertical: spacing.lg },
+  // 申請メッセージの入力欄
   modalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   modalInput: {
     backgroundColor: colors.indigoRaised,
@@ -346,6 +367,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...typography.body,
   },
+  // 「参加を申請する」(金色)と「申請を取り消す」(枠線)のボタン。送信中は薄くする
   submitBtn: { backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center' },
   submitBtnDisabled: { opacity: 0.6 },
   submitBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },

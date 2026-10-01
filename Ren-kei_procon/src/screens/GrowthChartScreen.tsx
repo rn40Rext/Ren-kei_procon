@@ -89,7 +89,7 @@ export default function GrowthChartScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryLabel}>直近スコア</Text>
+              <Text style={styles.summaryLabel}>直近の極め度</Text>
               <Text style={styles.summaryValue}>{Math.round(latest!.totalScore)}</Text>
               {diff !== null && (
                 <View style={styles.diffRow}>
@@ -118,7 +118,7 @@ export default function GrowthChartScreen() {
           </View>
 
           <View style={styles.chartCard}>
-            <Text style={styles.chartTitle}>総合スコアの推移</Text>
+            <Text style={styles.chartTitle}>極め度の推移</Text>
             <GrowthLineChart points={totalPoints} width={chartWidth} height={140} />
             {results.length === 1 && <Text style={styles.noteText}>もう1回記録すると推移が見られます</Text>}
             {totalPoints.some((p) => p.versionLabel) && (
@@ -126,7 +126,7 @@ export default function GrowthChartScreen() {
             )}
           </View>
 
-          <Text style={styles.sectionLabel}>項目別スコアの推移</Text>
+          <Text style={styles.sectionLabel}>項目別の点数の推移</Text>
           <View style={styles.itemGrid}>
             {ITEM_DEFS.map((def) => {
               const itemResults = results.filter((r) => typeof r[def.key] === 'number');

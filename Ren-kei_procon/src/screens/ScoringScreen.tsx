@@ -39,7 +39,7 @@ export default function AnalysisScreen() {
         <IconOdoriko size={22} color={colors.gold} style={styles.headerIcon} />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>自主稽古・演舞解析</Text>
-          <Text style={styles.headerSub}>手本に重ねて撮り、{lexicon.aiAdvice}を受ける</Text>
+          <Text style={styles.headerSub}>踊りを撮って、{lexicon.aiAdvice}を受ける</Text>
         </View>
         <AppMenu />
       </View>

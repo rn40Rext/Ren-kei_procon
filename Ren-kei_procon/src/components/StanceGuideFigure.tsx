@@ -54,16 +54,17 @@ export function StanceGuideFigure({ scorePart, size = 160, color = colors.goldBr
   const needsKneeBend = scorePart === 'feet' || scorePart === 'whole';
 
   // 頭・胴は共通。腕と脚だけ構えの条件に応じて変える
+  const hipY = needsKneeBend ? 14.6 : 14; // 腰を落とす分だけわずかに胴を沈める
   const arms = needsHandsUp
-    ? // 両手を頭より高く上げる
-      ['M12 7 L7 1.5', 'M12 7 L17 1.5']
+    ? // 両手を頭より高く上げる。肘を曲げ、右手を左手より高く上げることで
+      // 本物の阿波踊りの構え(片手は顔の横で折り畳み、もう片手を高く掲げる)に近づける
+      ['M12 7 L8.5 5 L6.5 2', 'M12 7 L15.5 4.5 L17.5 1']
     : // 自然に下げる(脚だけの構えでは腕の条件なし)
       ['M12 8 L9 13', 'M12 8 L15 13'];
   const legs = needsKneeBend
-    ? // 腰を落として膝を曲げる(膝で一度折れる)
-      ['M12 14 L9.5 17.5 L9 21', 'M12 14 L14.5 17.5 L15 21']
+    ? // 腰を落として膝を曲げる。左右で高さを変え、片足を踏み出す動きを出す
+      [`M12 ${hipY} L9.5 17.5 L10 21`, `M12 ${hipY} L15 16.5 L17 18.5`]
     : ['M12 14 L10 21', 'M12 14 L14 21'];
-  const hipY = needsKneeBend ? 14.6 : 14; // 腰を落とす分だけわずかに胴を沈める
 
   return (
     <Animated.View style={[{ width: size, height: size, transform: [{ scale }] }, style]}>

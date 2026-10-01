@@ -36,6 +36,7 @@ import {
 } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
+import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
 import { RenKeiWordmark } from '../components/Brand';
 import { auth } from '../config/firebaseConfig';
 import { subscribeUnreadNotificationCount } from '../repositories/notifications';
@@ -337,6 +338,10 @@ export default function HomeScreen({ navigation, route }: Props) {
   // ダミー：投稿はローカル state で保持（自分の投稿 + 交流フィード）
   const [feed, setFeed] = useState<FeedPost[]>([...seedMine, ...seedFeed]);
   const [posting, setPosting] = useState(false);
+  // Web版の「今すぐ撮る」はOSのカメラアプリに丸投げせず、採点画面と同じ
+  // getUserMedia+MediaRecorderでアプリ内完結させる(launchCameraAsyncはWebでは
+  // 撮影後にアプリへ戻ってこないことがある。expo-image-picker公式ドキュメント参照)
+  const [recording, setRecording] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
@@ -562,8 +567,14 @@ export default function HomeScreen({ navigation, route }: Props) {
     }
   };
 
-  // 初心者サポート：見てほしい演舞をその場で撮って、そのまま解析・投稿に回せるように
+  // 初心者サポート：見てほしい演舞をその場で撮って、そのまま解析・投稿に回せるように。
+  // Web版はOSカメラアプリへの丸投げ(launchCameraAsync)をやめ、採点画面と同じ
+  // getUserMedia+MediaRecorderでアプリ内完結の録画モーダルを開く
   const recordVideo = async () => {
+    if (Platform.OS === 'web') {
+      setRecording(true);
+      return;
+    }
     const camPerm = await ImagePicker.requestCameraPermissionsAsync();
     if (!camPerm.granted) {
       Alert.alert('権限が必要です', '撮影にはカメラへのアクセスを許可してください。');
@@ -578,6 +589,12 @@ export default function HomeScreen({ navigation, route }: Props) {
       setVideoUri(res.assets[0].uri);
       setExistingVideoId(null);
     }
+  };
+
+  const onRecordedInPage = (media: RecordedVideo) => {
+    setVideoUri(URL.createObjectURL(media.blob));
+    setExistingVideoId(null);
+    setRecording(false);
   };
 
   const submitPost = async () => {
@@ -1129,6 +1146,12 @@ export default function HomeScreen({ navigation, route }: Props) {
           </View>
         </KeyboardAvoidingView>
       </Modal >
+
+      <InPageVideoRecorder
+        visible={recording}
+        onCancel={() => setRecording(false)}
+        onDone={onRecordedInPage}
+      />
     </SafeAreaView >
   );
 }

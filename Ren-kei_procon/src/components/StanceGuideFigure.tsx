@@ -10,7 +10,10 @@ import { ScorePart } from '../features/rules/types';
  * ポーズ(男踊り=片手を高く上げてもう片方は横に張る、女踊り=編笠)なので、
  * ここでの「構え」(src/features/analysis/stance.ts の isStance の条件。
  * 両手を頭より上げる/腰を落として膝を曲げる)とは姿勢が異なる。
- * そのため構えの条件に合わせた専用の棒人間をここで用意する。
+ * そのため構えの条件に合わせた専用の棒人間をここで用意する(骨格はユーザーの手描きラフに準拠)。
+ *
+ * scorePart が hands/feet のときは、その部位しか採点しないことが伝わるよう、
+ * 上半身・下半身だけを切り出して表示する(全身を出すと脚/腕の条件があるように誤解されるため)。
  */
 
 type Props = {
@@ -19,6 +22,24 @@ type Props = {
   color?: string;
   opacity?: number;
   style?: StyleProp<ViewStyle>;
+};
+
+const HEAD = { cx: 12, cy: 7, r: 2.2 };
+const SHOULDER = { x: 12, y: 9.5 };
+const WAIST_Y = 12; // 上半身/下半身を切り出すときの境目
+const HIP = { x: 12, y: 17 };
+
+// 左手は顔の横あたりまで、右手は肘を曲げて大きく高く掲げる(非対称にして踊りの途中らしさを出す)
+const LEFT_ARM = 'M12 9.5 L7 5';
+const RIGHT_ARM = 'M12 9.5 L17 7 L20 1';
+// 腰を落として膝を曲げ、幅広く片足を踏み出す
+const LEFT_LEG = 'M12 17 L8 21 L6 24';
+const RIGHT_LEG = 'M12 17 L16 21 L18 24';
+
+const VIEW_BOX: Record<ScorePart, string> = {
+  hands: `0 0 24 ${WAIST_Y + 1}`,
+  feet: `0 ${WAIST_Y - 1} 24 ${26 - (WAIST_Y - 1)}`,
+  whole: '0 0 24 26',
 };
 
 /** 構え待ちの間、呼吸するようにゆっくり拡縮して目を引く(視差効果を減らす設定では静止)。 */
@@ -50,34 +71,24 @@ function useBreathing(enabled: boolean): Animated.AnimatedInterpolation<number> 
 
 export function StanceGuideFigure({ scorePart, size = 160, color = colors.goldBright, opacity = 0.45, style }: Props) {
   const scale = useBreathing(true);
-  const needsHandsUp = scorePart === 'hands' || scorePart === 'whole';
-  const needsKneeBend = scorePart === 'feet' || scorePart === 'whole';
+  const showUpper = scorePart === 'hands' || scorePart === 'whole';
+  const showLower = scorePart === 'feet' || scorePart === 'whole';
 
-  // 頭・胴は共通。腕と脚だけ構えの条件に応じて変える
-  const hipY = needsKneeBend ? 14.6 : 14; // 腰を落とす分だけわずかに胴を沈める
-  const arms = needsHandsUp
-    ? // 両手を頭より高く上げる。肘を曲げ、右手を左手より高く上げることで
-      // 本物の阿波踊りの構え(片手は顔の横で折り畳み、もう片手を高く掲げる)に近づける
-      ['M12 7 L8.5 5 L6.5 2', 'M12 7 L15.5 4.5 L17.5 1']
-    : // 自然に下げる(脚だけの構えでは腕の条件なし)
-      ['M12 8 L9 13', 'M12 8 L15 13'];
-  const legs = needsKneeBend
-    ? // 腰を落として膝を曲げる。左右で高さを変え、片足を踏み出す動きを出す
-      [`M12 ${hipY} L9.5 17.5 L10 21`, `M12 ${hipY} L15 16.5 L17 18.5`]
-    : ['M12 14 L10 21', 'M12 14 L14 21'];
+  let torso: string;
+  if (scorePart === 'hands') torso = `M${SHOULDER.x} ${SHOULDER.y} L12 ${WAIST_Y}`;
+  else if (scorePart === 'feet') torso = `M12 ${WAIST_Y} L${HIP.x} ${HIP.y}`;
+  else torso = `M${SHOULDER.x} ${SHOULDER.y} L${HIP.x} ${HIP.y}`;
 
   return (
     <Animated.View style={[{ width: size, height: size, transform: [{ scale }] }, style]}>
-      <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Svg width={size} height={size} viewBox={VIEW_BOX[scorePart]}>
         <G stroke={color} strokeWidth={0.9} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={opacity}>
-          <Circle cx="12" cy="4" r="2" />
-          <Path d={`M12 6 L12 ${hipY}`} />
-          {arms.map((d) => (
-            <Path key={d} d={d} />
-          ))}
-          {legs.map((d) => (
-            <Path key={d} d={d} />
-          ))}
+          {showUpper && <Circle cx={HEAD.cx} cy={HEAD.cy} r={HEAD.r} />}
+          <Path d={torso} />
+          {showUpper && <Path d={LEFT_ARM} />}
+          {showUpper && <Path d={RIGHT_ARM} />}
+          {showLower && <Path d={LEFT_LEG} />}
+          {showLower && <Path d={RIGHT_LEG} />}
         </G>
       </Svg>
     </Animated.View>

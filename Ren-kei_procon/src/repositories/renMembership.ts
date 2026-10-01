@@ -15,6 +15,7 @@ import { Ren, RenMember, RenMemberRole } from '../types/firestore';
 
 /** メンバー(ren/{renId}/members/{uid})へのアクセスを集約する(docs/design/data-model.md 3.9章)。 */
 
+/** 連の現在のメンバー(status:'active')一覧をリアルタイム購読する */
 export function subscribeActiveMembers(
   renId: string,
   onData: (members: RenMember[]) => void,
@@ -28,6 +29,7 @@ export function subscribeActiveMembers(
   );
 }
 
+/** 連の特定メンバー1件を取得する(権限確認などに使う) */
 export async function fetchRenMember(renId: string, uid: string): Promise<RenMember | null> {
   const snap = await getDoc(doc(db, 'ren', renId, 'members', uid));
   return snap.exists() ? ({ uid: snap.id, ...snap.data() } as RenMember) : null;

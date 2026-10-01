@@ -54,6 +54,7 @@ export async function finalizeBasicAnalysis(request: FinalizeRequest): Promise<F
   return res.data;
 }
 
+/** 解析結果を1件取得する(U-03結果画面など)。無ければnull */
 export async function fetchAnalysisResult(analysisId: string): Promise<AnalysisResult | null> {
   const snap = await getDoc(doc(db, 'analysisResults', analysisId));
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as AnalysisResult) : null;
@@ -80,6 +81,7 @@ export function subscribeAnalysisResultsByUser(
   );
 }
 
+/** 解析結果1件をリアルタイム購読する(FN-01完了直後の確定待ち表示などに使う) */
 export function subscribeAnalysisResult(
   analysisId: string,
   onData: (result: AnalysisResult | null) => void,

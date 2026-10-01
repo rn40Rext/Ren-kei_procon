@@ -51,6 +51,7 @@ export async function myDisplayName(): Promise<string> {
   return user.email?.split('@')[0] || '踊り子';
 }
 
+/** ユーザープロフィールを1件取得する */
 export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {
   const snap = await getDoc(doc(db, 'users', uid));
   return snap.exists() ? ({ uid, ...snap.data() } as UserProfile) : null;

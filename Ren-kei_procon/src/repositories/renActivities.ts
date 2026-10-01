@@ -15,6 +15,7 @@ import { RenActivity } from '../types/firestore';
 
 /** 活動情報(ren/{renId}/activities、R-08)へのアクセスを集約する(docs/design/data-model.md 3.15章)。 */
 
+/** 連の活動情報一覧を開始日時の古い順にリアルタイム購読する */
 export function subscribeRenActivities(
   renId: string,
   onData: (activities: RenActivity[]) => void,
@@ -36,10 +37,12 @@ export interface RenActivityInput {
   location: string;
 }
 
+/** 連の活動情報を1件作成する(連管理者のみ、Rulesで判定) */
 export async function createRenActivity(renId: string, input: RenActivityInput): Promise<void> {
   await addDoc(collection(db, 'ren', renId, 'activities'), input);
 }
 
+/** 連の活動情報を1件更新する */
 export async function updateRenActivity(
   renId: string,
   activityId: string,
@@ -48,6 +51,7 @@ export async function updateRenActivity(
   await updateDoc(doc(db, 'ren', renId, 'activities', activityId), { ...input });
 }
 
+/** 連の活動情報を1件削除する */
 export async function deleteRenActivity(renId: string, activityId: string): Promise<void> {
   await deleteDoc(doc(db, 'ren', renId, 'activities', activityId));
 }

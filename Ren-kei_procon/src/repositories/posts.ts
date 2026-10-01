@@ -38,6 +38,7 @@ export const POST_TAG_OPTIONS = [
   '#ちびっこ踊り',
 ] as const;
 
+/** createdAtの新しい順に並べる。未確定(サーバ確定前)のものは先頭に置く */
 function sortNewest<T extends { createdAt?: { toMillis?: () => number } | null }>(list: T[]): T[] {
   const ms = (v: T) => v.createdAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER;
   return [...list].sort((a, b) => ms(b) - ms(a));
@@ -64,6 +65,7 @@ function mapPost(id: string, d: any): Post {
   };
 }
 
+/** Firestoreの生データをPostCommentへ正規化する(mapPostと同じ理由) */
 function mapComment(id: string, d: any): PostComment {
   return {
     id,
@@ -147,6 +149,7 @@ export async function loadCachedComments(postId: string): Promise<PostComment[]>
   }
 }
 
+/** 投稿のコメント一覧を新しい順にリアルタイム購読する */
 export function subscribeComments(
   postId: string,
   onData: (comments: PostComment[]) => void,

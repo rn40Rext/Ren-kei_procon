@@ -22,6 +22,7 @@ import { AppNotification } from '../types/firestore';
 const MAX_NOTIFICATIONS = 100;
 const BATCH_WRITE_LIMIT = 500;
 
+/** 通知一覧(R-01/U-01)を新しい順にリアルタイム購読する。直近MAX_NOTIFICATIONS件まで */
 export function subscribeNotifications(
   uid: string,
   onData: (notifications: AppNotification[]) => void,

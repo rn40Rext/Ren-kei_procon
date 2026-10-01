@@ -117,11 +117,13 @@ export async function deleteVideoRecord(videoId: string): Promise<void> {
   await deleteDoc(doc(db, 'videos', videoId));
 }
 
+/** 練習動画を1件取得する */
 export async function fetchVideo(videoId: string): Promise<PracticeVideo | null> {
   const snap = await getDoc(doc(db, 'videos', videoId));
   return snap.exists() ? ({ id: snap.id, ...snap.data() } as PracticeVideo) : null;
 }
 
+/** 練習動画1件(解析状況など)をリアルタイム購読する */
 export function subscribeVideo(
   videoId: string,
   onData: (video: PracticeVideo | null) => void,

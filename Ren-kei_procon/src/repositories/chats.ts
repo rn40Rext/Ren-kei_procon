@@ -16,6 +16,7 @@ import { ChatMessage } from '../types/firestore';
  * 1対1チャットは仕様書に無いプロトタイプ限定機能(docs/status/gap-analysis.md 7章 N-1)。
  */
 
+/** チャット1件分のメッセージを新しい順にリアルタイム購読する */
 export function subscribeChatMessages(
   chatId: string,
   onData: (messages: ChatMessage[]) => void,
@@ -29,6 +30,7 @@ export function subscribeChatMessages(
   );
 }
 
+/** チャットへ1件メッセージを送信する */
 export async function sendChatMessage(chatId: string, senderId: string, text: string): Promise<void> {
   await addDoc(collection(db, 'chats', chatId, 'messages'), {
     text,

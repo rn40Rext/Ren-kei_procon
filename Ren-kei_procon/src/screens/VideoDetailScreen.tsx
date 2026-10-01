@@ -194,10 +194,10 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.player}>
             {post.videoUrl ? (
-              <RenkeiVideo uri={post.videoUrl} style={styles.playerVideo} contentFit="cover" nativeControls />
+              <RenkeiVideo uri={post.videoUrl} style={styles.playerVideo} contentFit="contain" nativeControls />
             ) : (
               <View style={[styles.playerVideo, styles.center]}>
-                <AsanohaBackground width={SCREEN_W} height={220} color={colors.gold} opacity={0.08} />
+                <AsanohaBackground width={SCREEN_W} height={(SCREEN_W * 16) / 9} color={colors.gold} opacity={0.08} />
                 <Play size={26} color={colors.gold} />
               </View>
             )}
@@ -583,7 +583,9 @@ function SampleDetail({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   center: { justifyContent: 'center', alignItems: 'center' },
-  playerVideo: { width: '100%', height: 220, backgroundColor: colors.indigoRaised },
+  // 稽古動画はスマホを縦に持って撮るため縦長(9:16)。固定の低い高さでcoverすると
+  // 横長の枠に収めようとして上下が大きく切れていたため、縦長の比率で全体を映す
+  playerVideo: { width: '100%', aspectRatio: 9 / 16, backgroundColor: colors.indigoRaised },
   emptyComment: { ...typography.body, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl },
   loadingText: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md },
 

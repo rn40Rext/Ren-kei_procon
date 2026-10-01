@@ -269,7 +269,7 @@ export default function VideoListScreen() {
                         ) : (
                           <Lock size={12} color={colors.textMuted} />
                         )}
-                        <Text style={styles.visibilityText}>{v.visibility === 'public' ? '公開中' : '非公開'}</Text>
+                        <Text style={styles.visibilityText}>{v.visibility === 'public' ? '投稿済' : '未投稿'}</Text>
                       </View>
                     </View>
                     {scoreText && (

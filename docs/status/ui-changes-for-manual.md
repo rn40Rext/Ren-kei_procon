@@ -9,7 +9,11 @@ LIVE SCORE非表示化(2026-10-01)以降の変更を対象とする。対応が�
 | 2026-10-01 | CameraScreen(構え待ち) | 構えのお手本(半透明の写真シルエット)を映像に重ねて表示するようになった(手だけ/足だけ/全体で範囲が変わる) | 同上 | [ ] |
 | 2026-10-01 | ResultScreen(採点結果) | 「練習中のLIVE SCORE」カードを削除 | 同上 | [ ] |
 | 2026-10-01 | ResultScreen(採点結果) | 極め度の表示がカラオケ風の演出アニメーション(数え上げ+花火)に変化。「初心者の目安:60点前後」の表記を追加。項目別バーにも目安の縦線を追加 | 同上 | [ ] |
-| 2026-10-01 | VideoDetailScreen(演舞詳細・再生) | 動画プレイヤーの縦横比を修正。縦動画が上下に大きく切れていたのを、全体が映るように修正 | `fix/video-detail-aspect-ratio`([PR作成中](https://github.com/rn40Rext/Ren-kei_procon/compare/main...fix/video-detail-aspect-ratio)) | [ ] |
+| 2026-10-01 | VideoDetailScreen(演舞詳細・再生) | 動画プレイヤーの縦横比を修正。縦動画が上下に大きく切れていたのを、全体が映るように修正 | `fix/video-detail-aspect-ratio`(PR [#130](../../../issues/130)、マージ済み) | [ ] |
+| 2026-10-01 | HomeScreen(ホーム・右上メニュー) | 右上メニューの「連・流派・調子で絞り込む」を削除。検索・タグ絞り込みは「みんなの演舞と門下生の声」側に統一。あわせて、その検索・タグ絞り込みが実データの投稿には効いていなかった不具合を修正(見本データにしか効いていなかった) | `feat/ui-polish`(複数のUI変更をまとめてPR化予定) | [ ] |
+| 2026-10-01 | GrowthChartScreen(画面タイトル)・MypageScreen(メニュー項目)・AppMenu(稽古手帳の説明文) | 「成長曲線」の表記を「成長の記録」に変更(折れ線グラフ表示の実態に合わせた用語変更) | `feat/ui-polish`(同上) | [ ] |
+| 2026-10-01 | VideoListScreen(練習動画一覧) | 動画の公開状態の表記を「非公開」「公開中」から「未投稿」「投稿済」に変更 | `feat/ui-polish`(同上) | [ ] |
+| 2026-10-01 | HomeScreen(演舞を投稿する→今すぐ撮る、Web版のみ) | OS標準カメラアプリに丸投げするexpo-image-picker(launchCameraAsync)をやめ、採点画面と同じgetUserMedia+MediaRecorderでアプリ内完結の録画モーダル(撮影→確認→撮り直し/使う)に変更。ネイティブ版は従来どおり | `feat/ui-polish`(同上) | [ ] |
 
 ## 書き方
 

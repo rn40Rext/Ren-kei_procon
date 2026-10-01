@@ -2,8 +2,8 @@
  * U-03 解析結果。仕様書 5章 U-03 / 7.7、docs/design/ai-basic-motion.md 10章。
  *
  * FN-01 がサーバで確定した analysisResults を表示する。
- * 極め度（Analysis Score・0〜100・履歴用）と LIVE SCORE（練習中の参考値）は
- * 混同させない表示にする(D-04)。
+ * LIVE SCORE(Game Score)はチーム判断でユーザーには表示しない(2026-10-01)。
+ * gameScore自体の算出・保存は変更していない。
  */
 import React, { useEffect, useState } from 'react';
 import {
@@ -29,9 +29,17 @@ import { publishExistingVideo, POST_TAG_OPTIONS } from '../repositories/posts';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
 import { Chip } from '../components/ui';
+import { ScoreRevealAnimation } from '../components/ScoreRevealAnimation';
 
 type ResultNav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultRoute = RouteProp<RootStackParamList, 'Result'>;
+
+/**
+ * 「初心者がここを目指せばいい」という目安として表示する参考値。
+ * RULE-07等の閾値はTBD-02で未検証なので、厳密な合否ラインではなく
+ * あくまで目安(参考値)として扱う。項目別バーにも同じ値を目印として出す。
+ */
+const BEGINNER_TARGET = 60;
 
 const ITEMS: { key: keyof AnalysisResult; label: string; note?: string }[] = [
   { key: 'handHeightScore', label: '手の高さ' },
@@ -136,17 +144,20 @@ export default function ResultScreen() {
         {/* 極め度 = 手の高さ・腰の低さ・手を止める・リズムのうち評価できた項目の平均(サーバで確定。functions/src/analysis/score.ts) */}
         <View style={styles.totalCard}>
           <Text style={styles.totalLabel}>{lexicon.aiScore}</Text>
-          <Text style={[styles.totalValue, { color: scoreColor(r.totalScore) }]}>
-            {Math.round(r.totalScore)}
-            <Text style={styles.totalUnit}> 点</Text>
-          </Text>
+          <ScoreRevealAnimation score={r.totalScore} style={styles.totalReveal} />
           <Text style={styles.totalNote}>手の高さ・腰の低さ・手を止める・リズムのうち、評価できた項目の平均です（100点満点）。</Text>
+          <Text style={styles.totalBenchmark}>初心者の目安：{BEGINNER_TARGET}点前後(参考値。上級者の踊りを厳密に測るものではありません)</Text>
         </View>
 
         <View style={styles.sectionHead}>
           <KumihimoRule width={18} />
           <Text style={styles.sectionTitle}>　項目別</Text>
         </View>
+        {items.length > 0 && (
+          <Text style={styles.barLegend}>
+            <Text style={styles.barLegendMark}>｜</Text> は初心者の目安({BEGINNER_TARGET}点、参考値)
+          </Text>
+        )}
         {items.length === 0 && <Text style={styles.muted}>評価できた項目がありません（全身が映る位置でもう一度お試しください）</Text>}
         {items.map((it) => {
           const v = r[it.key] as number;
@@ -161,6 +172,8 @@ export default function ResultScreen() {
               </View>
               <View style={styles.barTrack}>
                 <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, v))}%`, backgroundColor: scoreColor(v) }]} />
+                {/* 初心者の目安(参考値)。合否ラインではなく、どのくらいで目安に届くかの目印 */}
+                <View style={[styles.barTarget, { left: `${BEGINNER_TARGET}%` }]} />
               </View>
             </View>
           );
@@ -183,17 +196,7 @@ export default function ResultScreen() {
           <Text style={styles.muted}>コメントはありません</Text>
         )}
 
-        <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.sm }} />
-
-        <View style={styles.gameCard}>
-          <Text style={styles.gameLabel}>練習中のLIVE SCORE（参考値）</Text>
-          <Text style={styles.gameValue}>{r.gameScore}</Text>
-          <Text style={styles.gameCounts}>
-            GREAT {r.greatCount} / GOOD {r.goodCount} / MISS {r.missCount}
-            {typeof r.maxCombo === 'number' ? ` / 最大 ${r.maxCombo} COMBO` : ''}
-          </Text>
-          <Text style={styles.gameNote}>ゲーム感覚で練習するための累積点で、極め度とは別物です。</Text>
-        </View>
+        <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.lg }} />
 
         {posted ? (
           <View style={styles.postedNote}>
@@ -300,6 +303,9 @@ const styles = StyleSheet.create({
   itemValue: { ...typography.bodyStrong },
   barTrack: { height: 10, backgroundColor: colors.indigoRaised, borderRadius: 5, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
+  barTarget: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: colors.textPrimary, opacity: 0.55 },
+  barLegend: { ...typography.caption, color: colors.textMuted, marginTop: -spacing.xs, marginBottom: spacing.md },
+  barLegendMark: { color: colors.textPrimary, opacity: 0.55, fontWeight: '900' },
 
   feedback: { borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1 },
   feedbackImprove: { backgroundColor: colors.akaSoft, borderColor: colors.aka },
@@ -314,24 +320,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.lg,
     backgroundColor: colors.indigo,
+    alignItems: 'center',
   },
   totalLabel: { ...typography.sectionLabel, color: colors.gold },
-  totalValue: { fontSize: 40, fontWeight: '900', marginTop: 2 },
-  totalUnit: { fontSize: 16, fontWeight: '700', color: colors.textSecondary },
-  totalNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
-
-  gameCard: {
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.xl,
-    backgroundColor: colors.indigo,
-  },
-  gameLabel: { ...typography.caption, color: colors.textMuted, fontWeight: '700' },
-  gameValue: { fontSize: 28, fontWeight: '900', color: colors.goldBright, marginTop: 2 },
-  gameCounts: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  gameNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
+  totalReveal: { marginTop: spacing.sm, marginBottom: spacing.xs },
+  totalNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center', alignSelf: 'stretch' },
+  totalBenchmark: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center', alignSelf: 'stretch' },
 
   primaryButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', marginBottom: spacing.sm },
   primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },

@@ -14,6 +14,7 @@ type IconProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+/** 各アイコン共通のSvg土台(24x24・線画・丸端で統一する) */
 function Base({
   size = 22,
   color = colors.gold,

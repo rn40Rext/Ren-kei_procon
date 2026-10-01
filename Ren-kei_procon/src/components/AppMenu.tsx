@@ -64,6 +64,7 @@ export default function AppMenu({
     );
   }, [uid]);
 
+  /** メニューを閉じてから遷移する。今いる画面と同じならそのまま閉じるだけ */
   const go = (key: NavKey) => {
     setOpen(false);
     if (key === route.name) return;

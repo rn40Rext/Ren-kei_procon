@@ -54,6 +54,7 @@ export function SectionHeader({
 /* ================================================================== */
 type BadgeTone = 'aka' | 'gold' | 'outline' | 'dark';
 
+/** 小さな色付きラベル(カテゴリ・状態表示に使う) */
 export function Badge({
   label,
   tone = 'dark',
@@ -117,6 +118,7 @@ export function PrimaryButton({
   );
 }
 
+/** 枠線のみの控えめなボタン(PrimaryButtonに対する副次操作用) */
 export function GhostButton({
   label,
   onPress,

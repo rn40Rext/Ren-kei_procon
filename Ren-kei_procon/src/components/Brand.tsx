@@ -15,6 +15,7 @@ export const brandColors = {
   kei: '#57B24A', // 緑
 } as const;
 
+/** 「Ren-Kei」のワードマーク(テキスト)。ヘッダー等の小さいロゴ表示に使う */
 export function RenKeiWordmark({
   size = 20,
   style,
@@ -39,6 +40,7 @@ export function RenKeiWordmark({
   );
 }
 
+/** 円形エンブレム画像版のロゴ */
 export function RenKeiMark({
   size = 26,
   style,

@@ -54,6 +54,7 @@ export function SectionHeader({
 /* ================================================================== */
 type BadgeTone = 'aka' | 'gold' | 'outline' | 'dark';
 
+/** 小さな色付きラベル(カテゴリ・状態表示に使う) */
 export function Badge({
   label,
   tone = 'dark',
@@ -117,6 +118,7 @@ export function PrimaryButton({
   );
 }
 
+/** 枠線のみの控えめなボタン(PrimaryButtonに対する副次操作用) */
 export function GhostButton({
   label,
   onPress,
@@ -193,9 +195,11 @@ export function MetricRow({
   );
 }
 
+/** 文字用のスタイルであることを型で示すための補助(中身はそのまま返す) */
 const textStyle = (t: TextStyle): TextStyle => t;
 
 const uiStyles = StyleSheet.create({
+  // セクション見出し: 組紐の飾り・小見出し(金色)・見出し(明朝体)・補足・「すべて見る」
   sectionHeader: { paddingHorizontal: spacing.lg, marginTop: spacing.xl, marginBottom: spacing.md },
   rule: { marginBottom: spacing.sm },
   sectionCategory: textStyle({ ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.xs }),
@@ -204,6 +208,7 @@ const uiStyles = StyleSheet.create({
   sectionNote: textStyle({ ...typography.caption, color: colors.textMuted, marginTop: spacing.xs }),
   viewAll: textStyle({ ...typography.caption, color: colors.gold }),
 
+  // Badgeコンポーネントの土台。色(tone)ごとの差分はbadge_○○/badgeText_○○で上書きする
   badgeBase: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
@@ -220,6 +225,7 @@ const uiStyles = StyleSheet.create({
   badgeText_outline: { color: colors.gold },
   badgeText_dark: { color: colors.goldBright },
 
+  // 絞り込みなどのチップ。選んでいるものは金色に塗る
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: 7,
@@ -233,6 +239,7 @@ const uiStyles = StyleSheet.create({
   chipText: textStyle({ ...typography.caption, color: colors.textSecondary }),
   chipTextActive: textStyle({ ...typography.caption, color: colors.textOnGold, fontWeight: '700' }),
 
+  // 主のボタン(金色)と、控えめなボタン(枠線のみ)
   primaryBtn: {
     backgroundColor: colors.gold,
     minHeight: 46,
@@ -255,6 +262,7 @@ const uiStyles = StyleSheet.create({
   },
   ghostBtnText: textStyle({ ...typography.button, color: colors.textPrimary }),
 
+  // 和紙風のカード(明るい背景・左端の帯・小見出し)
   washi: {
     backgroundColor: colors.kinari,
     borderRadius: radius.sm,
@@ -269,6 +277,7 @@ const uiStyles = StyleSheet.create({
     marginBottom: spacing.sm,
   }),
 
+  // 枠で囲んだパネル
   panel: {
     backgroundColor: colors.indigo,
     borderRadius: radius.md,
@@ -276,6 +285,7 @@ const uiStyles = StyleSheet.create({
     borderColor: colors.indigoLine,
   },
 
+  // 数字を横に並べる行(区切り線・金色の数字・小さな見出し)
   metricRow: { flexDirection: 'row', alignItems: 'stretch' },
   metricItem: { paddingRight: spacing.lg },
   metricDivider: {

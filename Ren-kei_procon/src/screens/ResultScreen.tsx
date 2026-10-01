@@ -31,6 +31,7 @@ import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
 import { Chip } from '../components/ui';
 import { ScoreRevealAnimation } from '../components/ScoreRevealAnimation';
 
+/** この画面で使う画面遷移と、前の画面から受け取る値(解析IDと動画ID)の型 */
 type ResultNav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
 type ResultRoute = RouteProp<RootStackParamList, 'Result'>;
 
@@ -41,6 +42,7 @@ type ResultRoute = RouteProp<RootStackParamList, 'Result'>;
  */
 const BEGINNER_TARGET = 60;
 
+/** 項目別に表示する点数の一覧。「参考」の2項目は極め度の平均には含めない */
 const ITEMS: { key: keyof AnalysisResult; label: string; note?: string }[] = [
   { key: 'handHeightScore', label: '手の高さ' },
   { key: 'hipHeightScore', label: '腰の低さ' },
@@ -50,19 +52,24 @@ const ITEMS: { key: keyof AnalysisResult; label: string; note?: string }[] = [
   { key: 'basePostureScore', label: '基本姿勢', note: '参考（極め度に含まず）' },
 ];
 
+// 点数に応じて表示色を変える(80点以上は金、60点以上は明るい金、それ未満は赤)
 function scoreColor(v: number): string {
   if (v >= 80) return colors.gold;
   if (v >= 60) return colors.goldBright;
   return colors.aka;
 }
 
+/** 稽古1回分の解析結果(極め度・項目別の点数・アドバイス)を見せ、交流広場への投稿や次の稽古へ進む画面 */
 export default function ResultScreen() {
   const navigation = useNavigation<ResultNav>();
   const route = useRoute<ResultRoute>();
+  // どの解析結果を表示するか(前の画面から受け取る)
   const { analysisId, videoId } = route.params;
+  // 解析結果(undefined=読み込み中、null=見つからない) / 読み込みのエラー文
   const [result, setResult] = useState<AnalysisResult | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
+  // 投稿ダイアログを開いているか / 投稿の題名・ひとこと・タグ / 投稿中か / 投稿のエラー文 / 投稿済みか
   const [shareVisible, setShareVisible] = useState(false);
   const [shareTitle, setShareTitle] = useState('');
   const [shareDescription, setShareDescription] = useState('');
@@ -71,19 +78,23 @@ export default function ResultScreen() {
   const [shareError, setShareError] = useState<string | null>(null);
   const [posted, setPosted] = useState(false);
 
+  // 解析結果をリアルタイム購読する(サーバでの確定を待つため)
   useEffect(() => {
     return subscribeAnalysisResult(analysisId, setResult, (e) => setError(e.message));
   }, [analysisId]);
 
+  /** 投稿ダイアログを開く(前回のエラー表示は消す) */
   const openShare = () => {
     setShareError(null);
     setShareVisible(true);
   };
 
+  // タグを押すたびに、選択中なら外し、未選択なら追加する
   const toggleShareTag = (tag: string) => {
     setShareTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
+  /** 解析結果の動画を交流広場へ投稿する */
   const submitShare = async () => {
     if (!shareTitle.trim()) {
       setShareError('タイトルを入力してください');
@@ -113,6 +124,7 @@ export default function ResultScreen() {
     }
   };
 
+  // 読み込み中はくるくるだけを出す
   if (result === undefined && !error) {
     return (
       <SafeAreaView style={[styles.container, styles.centered]}>
@@ -121,6 +133,7 @@ export default function ResultScreen() {
       </SafeAreaView>
     );
   }
+  // 読み込みに失敗したか結果が見つからないときは、その旨と戻るボタンを出す
   if (error || result === null) {
     return (
       <SafeAreaView style={[styles.container, styles.centered]}>
@@ -132,11 +145,13 @@ export default function ResultScreen() {
     );
   }
   const r = result as AnalysisResult;
+  // 点数が付いている項目だけを表示する
   const items = ITEMS.filter((it) => typeof r[it.key] === 'number');
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* 見出しと説明 */}
         <KumihimoRule width={30} />
         <Text style={styles.title}>解析結果</Text>
         <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した評価です。</Text>
@@ -149,6 +164,7 @@ export default function ResultScreen() {
           <Text style={styles.totalBenchmark}>初心者の目安：{BEGINNER_TARGET}点前後(参考値。上級者の踊りを厳密に測るものではありません)</Text>
         </View>
 
+        {/* 項目別の点数: 項目ごとに点数と棒グラフ(点数で色が変わる)を出し、初心者の目安の位置に縦線を引く */}
         <View style={styles.sectionHead}>
           <KumihimoRule width={18} />
           <Text style={styles.sectionTitle}>　項目別</Text>
@@ -179,6 +195,7 @@ export default function ResultScreen() {
           );
         })}
 
+        {/* アドバイス: 改善点(朱色の枠)とできている点(金色の枠) */}
         <View style={styles.sectionHead}>
           <KumihimoRule width={18} />
           <Text style={styles.sectionTitle}>　{lexicon.aiAdvice}</Text>
@@ -198,6 +215,7 @@ export default function ResultScreen() {
 
         <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.lg }} />
 
+        {/* 交流広場への投稿ボタン(投稿後は「投稿しました」の表示に変える) */}
         {posted ? (
           <View style={styles.postedNote}>
             <Text style={styles.postedNoteText}>交流広場へ投稿しました</Text>
@@ -208,6 +226,7 @@ export default function ResultScreen() {
           </TouchableOpacity>
         )}
 
+        {/* もう一度稽古する / 踊り広場へ戻る */}
         <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring')} activeOpacity={0.85}>
           <Text style={styles.primaryButtonText}>もう一度稽古する</Text>
         </TouchableOpacity>
@@ -218,6 +237,7 @@ export default function ResultScreen() {
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
+      {/* 交流広場への投稿ダイアログ: 題名(必須)・ひとこと・タグと投稿ボタン */}
       <Modal visible={shareVisible} transparent animationType="slide" onRequestClose={() => setShareVisible(false)}>
         <KeyboardAvoidingView
           style={styles.shareModalWrap}
@@ -285,34 +305,42 @@ export default function ResultScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と余白。読み込み中・エラー時は中身を中央に置く
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   centered: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   content: { padding: spacing.xl, alignItems: 'stretch' },
 
+  // 見出しと説明文
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
   lead: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 17 },
 
 
+  // セクションの見出し(組紐の飾り + 明朝体の文字)
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.md },
   sectionTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
+  // 項目別スコア1行分(ラベル・数値・バー)
   itemRow: { marginBottom: spacing.md },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   itemLabel: { ...typography.bodyStrong, color: colors.textPrimary },
   itemNote: { ...typography.caption, color: colors.textMuted, fontWeight: '400' },
   itemValue: { ...typography.bodyStrong },
+  // 棒グラフの背景と、点数ぶんだけ伸びる色付き部分
   barTrack: { height: 10, backgroundColor: colors.indigoRaised, borderRadius: 5, overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
   barTarget: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: colors.textPrimary, opacity: 0.55 },
+  // 「｜は初心者の目安」という棒グラフの凡例
   barLegend: { ...typography.caption, color: colors.textMuted, marginTop: -spacing.xs, marginBottom: spacing.md },
   barLegendMark: { color: colors.textPrimary, opacity: 0.55, fontWeight: '900' },
 
+  // 改善点・良かった点のフィードバック1件分の枠。種類によって色を変える
   feedback: { borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1 },
   feedbackImprove: { backgroundColor: colors.akaSoft, borderColor: colors.aka },
   feedbackGood: { backgroundColor: colors.goldSoft, borderColor: colors.gold },
   feedbackTag: { ...typography.sectionLabel, marginBottom: 4 },
   feedbackText: { ...typography.body, color: colors.textPrimary },
 
+  // 総合スコア(極め度)を大きく見せるカード
   totalCard: {
     borderWidth: 1,
     borderColor: colors.gold,
@@ -323,15 +351,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   totalLabel: { ...typography.sectionLabel, color: colors.gold },
+  // 極め度の数字を演出付きで表示するアニメーションの余白
   totalReveal: { marginTop: spacing.sm, marginBottom: spacing.xs },
   totalNote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center', alignSelf: 'stretch' },
+  // 初心者向けの目安点数の注記
   totalBenchmark: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center', alignSelf: 'stretch' },
 
+  // 「もう一度稽古する」(金色)と「踊り広場へ戻る」(枠線)のボタン
   primaryButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', marginBottom: spacing.sm },
   primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
   secondaryButton: { borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.indigo },
   secondaryButtonText: { ...typography.button, color: colors.textPrimary },
 
+  // 「交流広場へ投稿する」ボタン(金色の枠線)と、投稿後の「投稿しました」の表示
   shareButton: {
     borderWidth: 1,
     borderColor: colors.gold,
@@ -352,6 +384,7 @@ const styles = StyleSheet.create({
   },
   postedNoteText: { ...typography.button, color: colors.gold },
 
+  // 補足の小さな文字と、エラー文(朱色)
   muted: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm },
   errorText: { color: colors.aka, marginBottom: spacing.lg, textAlign: 'center' },
 
@@ -366,10 +399,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
+  // 投稿ダイアログの見出し・説明・入力欄の見出し(金色)
   shareModalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   shareModalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   shareModalLead: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 17 },
   shareModalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, marginTop: spacing.sm },
+  // 題名・ひとことの入力欄と、タグのチップの並び
   shareModalInput: {
     backgroundColor: colors.indigoRaised,
     borderWidth: 1,
@@ -382,6 +417,7 @@ const styles = StyleSheet.create({
   shareModalTextarea: { minHeight: 64, textAlignVertical: 'top' },
   shareModalTagWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   shareModalTag: { marginRight: spacing.sm, marginBottom: spacing.sm },
+  // 投稿のエラー文と投稿ボタン(題名が空か投稿中は薄くする)
   shareModalError: { ...typography.caption, color: colors.aka, marginTop: spacing.sm },
   shareModalSubmit: {
     backgroundColor: colors.gold,

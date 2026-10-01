@@ -15,6 +15,7 @@ import { subscribeRen, updateRenIcon, updateRenInfo } from '../repositories/renP
 import { subscribeRenActivities, createRenActivity, updateRenActivity, deleteRenActivity } from '../repositories/renActivities';
 import type { RenActivity } from '../types/firestore';
 
+/** 編集フォームに出す連の基本情報 */
 interface RenInfo {
   name: string;
   description: string;
@@ -23,6 +24,7 @@ interface RenInfo {
   iconUrl: string;
 }
 
+/** Firestoreの日時を「2026/08/01 18:00」の形にする(一覧表示用) */
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -30,6 +32,7 @@ function formatDateTime(value: any): string {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Firestoreの日時を「2026-08-01 18:00」の形にする(編集フォームの入力欄に入れる用) */
 function toInputFormat(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -38,17 +41,21 @@ function toInputFormat(value: any): string {
 }
 
 // null = 未入力、undefined = 入力はあるが形式が不正
+/** 入力欄の「YYYY-MM-DD HH:mm」を日時に変える */
 function parseDateTime(input: string): Date | null | undefined {
   if (!input.trim()) return null;
   const date = new Date(input.trim().replace(' ', 'T'));
   return isNaN(date.getTime()) ? undefined : date;
 }
 
+/** 連の管理者が、連の基本情報(名前・紹介・地域・アイコン)と活動スケジュールを編集する画面 */
 export default function ManageActivitiesScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  // どの連を管理するか(前の画面から受け取る)
   const { renId } = route.params;
 
+  // 保存済みの基本情報 / 保存中か / 編集フォームの下書き(名前・紹介・地域・初心者歓迎・アイコン)
   const [renInfo, setRenInfo] = useState<RenInfo | null>(null);
   const [savingInfo, setSavingInfo] = useState(false);
   const [draftName, setDraftName] = useState('');
@@ -57,6 +64,8 @@ export default function ManageActivitiesScreen() {
   const [draftBeginnerFriendly, setDraftBeginnerFriendly] = useState(false);
   const [draftIconUrl, setDraftIconUrl] = useState('');
 
+  // 活動の一覧 / 読み込み中か / 編集中の活動('new' なら新規追加、null ならフォームを閉じる)
+  // 活動フォームの入力内容 / 保存中か / 削除の確認ダイアログを出している活動
   const [activities, setActivities] = useState<RenActivity[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [editingActivity, setEditingActivity] = useState<RenActivity | 'new' | null>(null);
@@ -68,6 +77,7 @@ export default function ManageActivitiesScreen() {
   const [savingActivity, setSavingActivity] = useState(false);
   const [deletingActivity, setDeletingActivity] = useState<RenActivity | null>(null);
 
+  // 連の基本情報をリアルタイム購読し、保存済みの値をフォームの下書きにも入れる
   useEffect(() => {
     return subscribeRen(
       renId,
@@ -91,6 +101,7 @@ export default function ManageActivitiesScreen() {
     );
   }, [renId]);
 
+  // 活動スケジュールをリアルタイム購読する
   useEffect(() => {
     return subscribeRenActivities(
       renId,
@@ -106,6 +117,7 @@ export default function ManageActivitiesScreen() {
     );
   }, [renId]);
 
+  /** 連アイコンを選んでアップロードする */
   const pickIcon = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7 });
     if (result.canceled) return;
@@ -120,6 +132,7 @@ export default function ManageActivitiesScreen() {
     }
   };
 
+  /** 連の基本情報(名前・紹介・活動地域など)を保存する */
   const handleSaveInfo = async () => {
     if (!draftName.trim()) {
       Alert.alert('エラー', '連の名前を入力してください');
@@ -142,6 +155,7 @@ export default function ManageActivitiesScreen() {
     }
   };
 
+  /** 空のフォームで「活動を追加」ダイアログを開く */
   const openNewActivityForm = () => {
     setFormTitle('');
     setFormDescription('');
@@ -151,6 +165,7 @@ export default function ManageActivitiesScreen() {
     setEditingActivity('new');
   };
 
+  /** 選んだ活動の内容を入れた状態で「活動を編集」ダイアログを開く */
   const openEditActivityForm = (activity: RenActivity) => {
     setFormTitle(activity.title);
     setFormDescription(activity.description ?? '');
@@ -160,11 +175,13 @@ export default function ManageActivitiesScreen() {
     setEditingActivity(activity);
   };
 
+  /** 活動情報を新規作成または更新する(編集中かどうかで分岐) */
   const handleSaveActivity = async () => {
     if (!formTitle.trim()) {
       Alert.alert('エラー', '活動名を入力してください');
       return;
     }
+    // 開始日時は必須。終了日時は入力があるときだけ形式をチェックする
     const startAt = parseDateTime(formStartAt);
     if (!startAt) {
       Alert.alert('エラー', '開始日時は「YYYY-MM-DD HH:mm」の形式で入力してください');
@@ -202,6 +219,7 @@ export default function ManageActivitiesScreen() {
     }
   };
 
+  /** 活動情報を削除する */
   const handleDeleteActivity = async () => {
     if (!deletingActivity) return;
     try {
@@ -215,6 +233,7 @@ export default function ManageActivitiesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
@@ -229,9 +248,11 @@ export default function ManageActivitiesScreen() {
       </View>
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        {/* 連の基本情報の編集フォーム(読み込むまではくるくる) */}
         <Text style={styles.sectionLabel}>連の基本情報</Text>
         {renInfo ? (
           <View style={styles.formCard}>
+            {/* 連アイコン。タップで画像を選んでアップロードする */}
             <TouchableOpacity style={styles.iconPicker} onPress={pickIcon} activeOpacity={0.85}>
               {draftIconUrl ? <Image source={{ uri: draftIconUrl }} style={styles.iconImage} /> : <Camera size={22} color={colors.gold} />}
             </TouchableOpacity>
@@ -245,6 +266,7 @@ export default function ManageActivitiesScreen() {
             <Text style={styles.label}>活動地域</Text>
             <TextInput style={styles.input} value={draftLocation} onChangeText={setDraftLocation} placeholderTextColor={colors.textMuted} />
 
+            {/* 「初心者歓迎」のチェックと保存ボタン */}
             <TouchableOpacity style={styles.checkboxRow} onPress={() => setDraftBeginnerFriendly((v) => !v)} activeOpacity={0.8}>
               <View style={[styles.checkbox, draftBeginnerFriendly && styles.checkboxOn]} />
               <Text style={styles.checkboxLabel}>初心者歓迎</Text>
@@ -258,6 +280,7 @@ export default function ManageActivitiesScreen() {
           <NarutoLoader size={22} color={colors.gold} style={{ marginBottom: spacing.lg, alignSelf: 'center' }} />
         )}
 
+        {/* 活動スケジュールの見出しと「追加」ボタン */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionLabel}>活動スケジュール</Text>
           <TouchableOpacity style={styles.addBtn} onPress={openNewActivityForm} activeOpacity={0.85}>
@@ -266,6 +289,7 @@ export default function ManageActivitiesScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* 活動の一覧。各カードに日時・場所・説明と、編集・削除のアイコンを出す */}
         {loadingActivities ? (
           <NarutoLoader size={22} color={colors.gold} style={{ marginTop: spacing.lg, alignSelf: 'center' }} />
         ) : activities.length === 0 ? (
@@ -296,6 +320,7 @@ export default function ManageActivitiesScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* 活動の追加・編集ダイアログ(活動名・開始/終了日時・場所・説明) */}
       <Modal visible={!!editingActivity} animationType="slide" transparent onRequestClose={() => setEditingActivity(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -329,6 +354,7 @@ export default function ManageActivitiesScreen() {
         </View>
       </Modal>
 
+      {/* 活動を削除する前の確認ダイアログ */}
       <Modal visible={!!deletingActivity} animationType="fade" transparent onRequestClose={() => setDeletingActivity(null)}>
         <View style={styles.confirmOverlay}>
           <View style={styles.confirmCard}>
@@ -350,6 +376,7 @@ export default function ManageActivitiesScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、戻るボタン・画面名を並べるヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
@@ -362,12 +389,16 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 16 },
 
+  // スクロール部分の余白と、セクション見出し(金色)・見出しと「追加」ボタンの行
   list: { flex: 1, padding: spacing.lg },
   sectionLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  // 「活動スケジュール」の横にある「追加」ボタン
   addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.goldSoft, paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.pill, marginBottom: spacing.sm },
   addBtnText: { color: colors.gold, fontWeight: '700', fontSize: 12, marginLeft: 3 },
+  // 連の基本情報(名前・紹介文など)を編集するカード
   formCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: spacing.xl },
+  // 連アイコンを選ぶ丸いボタン
   iconPicker: {
     width: 64,
     height: 64,
@@ -379,8 +410,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignSelf: 'center',
   },
+  // 選んだアイコン画像と、入力欄の見出し
   iconImage: { width: 64, height: 64 },
   label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, fontSize: 12 },
+  // 1行の入力欄と、複数行の入力欄(紹介・説明)
   input: {
     backgroundColor: colors.indigoRaised,
     borderWidth: 1,
@@ -405,6 +438,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...typography.body,
   },
+  // 「初心者歓迎」のチェック(オンで金色に塗る)と、保存ボタン(保存中は薄くする)
   checkboxRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl },
   checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: colors.indigoLine, marginRight: spacing.sm },
   checkboxOn: { backgroundColor: colors.gold, borderColor: colors.gold },
@@ -413,13 +447,16 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
   emptyText: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.lg },
+  // 活動情報1件分のカード。右端に編集・削除アイコンを置く
   itemCard: { flexDirection: 'row', backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
+  // 活動カードの中の活動名・日時と場所・説明と、編集・削除のアイコン
   itemTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   itemMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4, fontSize: 11 },
   itemBody: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 18 },
   itemActions: { justifyContent: 'center', marginLeft: spacing.sm },
   iconBtn: { padding: spacing.xs },
 
+  // 活動の追加・編集フォームを下から迫り上げて表示するモーダルの背景・カード
   modalOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: colors.indigoDeep,
@@ -433,10 +470,12 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
+  // 「削除しますか？」の確認ダイアログの背景・カード
   confirmOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   confirmCard: { backgroundColor: colors.indigoDeep, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.xl, width: '100%' },
   confirmTitle: { ...typography.headingSerif, color: colors.textPrimary, marginBottom: spacing.sm },
   confirmMessage: { ...typography.body, color: colors.textSecondary, lineHeight: 20, marginBottom: spacing.xl },
+  // ダイアログのボタン。キャンセルは目立たない色、削除するは朱色
   confirmActions: { flexDirection: 'row' },
   confirmCancelBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.indigoRaised, marginRight: spacing.sm },
   confirmCancelText: { color: colors.textPrimary, fontWeight: '700', fontSize: 14 },

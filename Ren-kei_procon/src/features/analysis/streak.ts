@@ -8,17 +8,21 @@
  */
 import { Timestamp } from "firebase/firestore";
 
+/** Firestoreの日時(Timestamp)・Date・未設定のどれでも受け取れるようにした型 */
 export type FirestoreDateLike = Timestamp | Date | null | undefined;
 
+/** Timestamp/Date を Date にそろえる。未設定なら null */
 function toDate(d: FirestoreDateLike): Date | null {
   if (!d) return null;
   return d instanceof Date ? d : d.toDate();
 }
 
+/** 同じ日の0時0分にそろえる(時刻を無視して「日」だけで比べるため) */
 function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+/** 指定した日数だけずらした日付を返す(元の日付は変えない) */
 function addDays(d: Date, days: number): Date {
   const copy = new Date(d);
   copy.setDate(copy.getDate() + days);
@@ -31,6 +35,7 @@ function addDays(d: Date, days: number): Date {
  * タイムゾーンは呼び出し側(デバイス)のローカル時刻に従う。
  */
 export function computePracticeStreak(dates: FirestoreDateLike[], now: Date = new Date()): number {
+  // 稽古した日を「日」単位にそろえて重複を消し、新しい順に並べる
   const days = Array.from(
     new Set(
       dates
@@ -51,6 +56,7 @@ export function computePracticeStreak(dates: FirestoreDateLike[], now: Date = ne
     return 0;
   }
 
+  // 最新の稽古日から1日ずつさかのぼり、稽古した日が続く限り数える
   let streak = 1;
   let cursor = mostRecent;
   for (let i = 1; i < days.length; i++) {

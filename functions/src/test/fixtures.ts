@@ -21,6 +21,7 @@ export type DancerParams = {
   kneeBend: number;
 };
 
+/** テスト用の姿勢系列を作るときの設定 */
 export type RenderOptions = {
   frames?: number;
   fps?: number;

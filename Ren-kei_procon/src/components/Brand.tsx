@@ -9,12 +9,14 @@ import { fontFamily } from '../theme';
  * RenKeiMark: 円形エンブレム（踊り手＋連結ネットワーク）。assets/ren-kei-mark.png を表示する。
  */
 
+/** ワードマークの3色 */
 export const brandColors = {
   ren: '#4C7FD0', // 青
   hyphen: '#F49B1E', // 橙
   kei: '#57B24A', // 緑
 } as const;
 
+/** 「Ren-Kei」のワードマーク(テキスト)。ヘッダー等の小さいロゴ表示に使う */
 export function RenKeiWordmark({
   size = 20,
   style,
@@ -39,6 +41,7 @@ export function RenKeiWordmark({
   );
 }
 
+/** 円形エンブレム画像版のロゴ */
 export function RenKeiMark({
   size = 26,
   style,
@@ -57,5 +60,6 @@ export function RenKeiMark({
 }
 
 const styles = StyleSheet.create({
+  // 「Ren」「-」「Kei」の3つの文字を、文字の下端をそろえて横に並べる
   row: { flexDirection: 'row', alignItems: 'baseline' },
 });

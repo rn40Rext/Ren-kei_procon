@@ -10,6 +10,7 @@ import { ScorePart } from '../features/rules/types';
  * assets/images/stance-guide/ の3枚は同じ構図から切り出しており、
  * 上半身・下半身の境目付近は重なりを持たせてある。
  */
+// 採点部位ごとのお手本画像
 const SOURCES: Record<ScorePart, number> = {
   hands: require('../../assets/images/stance-guide/hands.png'),
   feet: require('../../assets/images/stance-guide/feet.png'),
@@ -26,6 +27,7 @@ const IMAGE_HEIGHT = '82%';
 // 明るい場所(白飛びした映像)でも見分けやすい
 // (Image の tintColor は Expo Web では効かないため、アセット側で着色している)
 
+/** お手本のシルエットを、画面の左寄り・縦中央に半透明で重ねる */
 export function StancePoseGuide({
   scorePart,
   opacity = DEFAULT_OPACITY,

@@ -32,6 +32,7 @@ export const LM = {
   R_FOOT_INDEX: 32,
 } as const;
 
+/** MediaPipe Pose が1人あたりに返す点の数 */
 export const NUM_LANDMARKS = 33;
 
 /** 骨格オーバーレイで結ぶ線(体幹・腕・脚。顔の細かい点は描かない)。 */
@@ -52,6 +53,7 @@ export const SKELETON_CONNECTIONS: ReadonlyArray<readonly [number, number]> = [
   [LM.R_ANKLE, LM.R_FOOT_INDEX],
 ];
 
+/** 体の点1つ分の位置(画像に対する0〜1の割合)と、見えている確かさ */
 export type Landmark = {
   x: number;
   y: number;
@@ -82,4 +84,5 @@ export type PoseSeries = {
   frames: PoseFrame[];
 };
 
+/** 姿勢系列の保存形式の版。形式を変えたらサーバ側と合わせて上げる */
 export const POSE_SERIES_FORMAT_VERSION = "pose-series-v1";

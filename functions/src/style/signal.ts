@@ -111,6 +111,7 @@ export function resampleUniform(
   return out;
 }
 
+/** 動きの周期(テンポ)の推定結果 */
 export type Periodicity = {
   /** 推定した基本周波数（Hz）。推定できなければ null */
   frequencyHz: number | null;

@@ -31,6 +31,7 @@ function assertReferencePath(path: string, renId: string): void {
   }
 }
 
+/** FN-08 本体。参照動画の姿勢系列から Embedding を作って保存する */
 export const registerStyleReference = onCall(async (request) => {
   const uid = requireAuth(request);
   const data = request.data ?? {};

@@ -12,6 +12,7 @@ import {requireAuth, requireRenAdmin, requireString} from "../lib/guards";
 import {COLLECTIONS, RenStyleReference} from "../lib/types";
 import {deletePoseSeries} from "./poseSeriesStore";
 
+/** FN-09 本体。連の管理者だけが呼べる */
 export const deleteStyleReference = onCall(async (request) => {
   const uid = requireAuth(request);
   const referenceId = requireString(request.data?.referenceId, "referenceId");

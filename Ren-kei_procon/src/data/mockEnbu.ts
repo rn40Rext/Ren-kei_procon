@@ -5,8 +5,10 @@
  */
 import { awaImage } from './awaImages';
 
+/** 踊りの種類(男踊り・女踊り・鳴り物) */
 export type DanceCategory = '男踊り' | '女踊り' | '鳴り物';
 
+/** 演舞(踊りの動画)1件分の表示用データ */
 export interface Enbu {
   id: string;
   title: string;
@@ -25,6 +27,7 @@ export interface Enbu {
   tokusen?: boolean;
 }
 
+/** 師匠の教え1件分(誰が・どんな題で・何を教えたか) */
 export interface MasterTeaching {
   id: string;
   master: string;
@@ -32,6 +35,7 @@ export interface MasterTeaching {
   body: string;
 }
 
+/** 門下生の声(コメント)1件分 */
 export interface MonkaComment {
   id: string;
   name: string;
@@ -41,6 +45,7 @@ export interface MonkaComment {
   claps: number;
 }
 
+/** ホームの一番上に大きく出す「本日の演舞」 */
 export const todaysEnbu: Enbu = {
   id: 'e-hero',
   title: '網打ちの構え・地を踏み鳴らす男踊り',
@@ -60,6 +65,7 @@ export const todaysEnbu: Enbu = {
   tokusen: true,
 };
 
+/** 師範・連頭による手本の演舞一覧 */
 export const masterEnbu: Enbu[] = [
   {
     id: 'e-m1',
@@ -95,6 +101,7 @@ export const masterEnbu: Enbu[] = [
   },
 ];
 
+/** 門下生(練習中の踊り手)の演舞一覧 */
 export const monkaEnbu: Enbu[] = [
   {
     id: 'e-s1',
@@ -128,11 +135,13 @@ export const monkaEnbu: Enbu[] = [
   },
 ];
 
+/** ホームの演舞一覧を絞り込むチップの選択肢 */
 export const filterChips = ['すべての連', '早調子', 'のんびり調子', '男踊り', '女踊り', '鳴り物', '初心者歓迎'];
 
 /* ------------------------------------------------------------------ */
 /* 交流フィード（旧コミュニティ）— ホームに統合                          */
 /* ------------------------------------------------------------------ */
+/** 交流フィードの投稿1件分 */
 export interface FeedPost {
   id: string;
   title: string;
@@ -153,6 +162,7 @@ export interface FeedPost {
 /** ログイン中ユーザーの表示名（ダミー） */
 export const ME = { name: 'あなた', ren: '傘連・阿波徳島' } as const;
 
+/** 交流フィードを絞り込むタグの選択肢 */
 export const feedTags = ['すべて', '#男踊り', '#女踊り', '#鳴り物', '#初心者歓迎', '#足の運び', '#腰落とし', '#二拍子'];
 
 // 自分が投稿した演舞（ダミー）
@@ -191,6 +201,7 @@ export const myPosts: FeedPost[] = [
   },
 ];
 
+/** 他の人が投稿した演舞(ダミー) */
 export const feedPosts: FeedPost[] = [
   {
     id: 'f1',
@@ -272,6 +283,7 @@ export const feedPosts: FeedPost[] = [
   },
 ];
 
+/** 師匠の教えの一覧(ダミー) */
 export const masterTeachings: MasterTeaching[] = [
   {
     id: 't1',
@@ -289,6 +301,7 @@ export const masterTeachings: MasterTeaching[] = [
   },
 ];
 
+/** 門下生の声の一覧(ダミー) */
 export const monkaComments: MonkaComment[] = [
   {
     id: 'c1',

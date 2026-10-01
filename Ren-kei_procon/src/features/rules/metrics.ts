@@ -42,6 +42,7 @@ export function basePostureMargin(
   );
 }
 
+/** 左右2値の平均。片方がnullならもう片方をそのまま使う */
 function meanOf(a: number | null, b: number | null): number | null {
   if (a !== null && b !== null) return (a + b) / 2;
   return a ?? b;
@@ -108,6 +109,7 @@ export class MetricsTracker {
   /** 全身が映ったフレームから実測した「胴体長 ÷ 肩〜足首」。上半身だけの構図で使う */
   private torsoRatio: number | undefined;
 
+  /** 状態を初期化する(セッション開始時に呼ぶ) */
   reset(): void {
     this.prev = null;
     this.lastMotionMs = { left: -Infinity, right: -Infinity };
@@ -119,6 +121,7 @@ export class MetricsTracker {
     return this.torsoRatio;
   }
 
+  /** 1フレーム分の指標を計算し、内部状態(前フレーム・体格比)を更新する */
   update(frame: PoseFrame): MetricValues {
     // 全身が映っているうちに体格比を実測しておく(移動平均で安定させる)。
     // 後で足元が枠外に出ても、この比率で胴体長からスケールを推定できる

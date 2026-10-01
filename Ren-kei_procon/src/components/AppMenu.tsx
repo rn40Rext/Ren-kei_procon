@@ -23,8 +23,10 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { subscribeUnreadNotificationCount } from '../repositories/notifications';
 
+/** メニューから移動できる画面の名前 */
 type NavKey = 'Home' | 'Scoring' | 'Mypage' | 'Request';
 
+/** メニューに並べるリンク(表示名・説明・アイコン)。上から順に表示する */
 const LINKS: { key: NavKey; label: string; note: string; Icon: typeof IconUchiwa }[] = [
   { key: 'Home', label: '踊り広場・交流広場', note: 'みんなの投稿・交流', Icon: IconUchiwa },
   { key: 'Request', label: 'リクエスト', note: '未所属の踊り手を見つけて連に招く・連を探す', Icon: IconWagasa },
@@ -52,6 +54,7 @@ export default function AppMenu({
   const { uid } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // 未読通知の件数を購読し、ある時はメニューボタンに赤い点を付ける
   useEffect(() => {
     if (!uid) {
       setUnreadCount(0);
@@ -64,6 +67,7 @@ export default function AppMenu({
     );
   }, [uid]);
 
+  /** メニューを閉じてから遷移する。今いる画面と同じならそのまま閉じるだけ */
   const go = (key: NavKey) => {
     setOpen(false);
     if (key === route.name) return;
@@ -140,6 +144,7 @@ export default function AppMenu({
 }
 
 const styles = StyleSheet.create({
+  // ヘッダー右上の丸いメニューボタン(枠線の色は tint で画面ごとに変えられる)
   trigger: {
     width: 38,
     height: 38,
@@ -149,6 +154,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // 未読通知があるときにメニューボタンの右上に付ける朱色の点
   unreadDot: {
     position: 'absolute',
     top: 2,
@@ -161,14 +167,18 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoRaised,
   },
 
+  // メニューを開いたときの全体。左の暗い幕と右から出るパネルを横に並べる
   overlay: { flex: 1, flexDirection: 'row' },
   scrim: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)' },
+  // 右側に出るメニュー本体(濃い藍色)
   panel: {
     backgroundColor: colors.indigoDeep,
     borderLeftWidth: 1,
     borderLeftColor: colors.indigoLine,
   },
+  // パネル上部に吊るす提灯の飾り
   panelGarland: { position: 'absolute', top: spacing.lg, left: 0, right: 0 },
+  // ロゴと閉じるボタンを並べる見出し部分(提灯の下に来るよう上の余白を大きく取る)
   panelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -182,10 +192,12 @@ const styles = StyleSheet.create({
   brandRow: {},
   brandSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 2 },
 
+  // リンク一覧のスクロール部分と、画面から差し込まれた部品(絞り込みなど)の区切り
   panelBody: { paddingVertical: spacing.md },
   childrenWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   divider: { height: 1, backgroundColor: colors.indigoLine, marginVertical: spacing.md },
 
+  // リンク1行分(アイコン・表示名と説明・右矢印)。今いる画面は金色の背景で示す
   link: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -197,5 +209,6 @@ const styles = StyleSheet.create({
   linkLabel: { ...typography.bodyStrong, color: colors.textPrimary },
   linkLabelActive: { color: colors.gold },
   linkNote: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  // 今いる画面の行の右端に付ける朱色の点
   activeMark: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.aka },
 });

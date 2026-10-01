@@ -18,12 +18,14 @@ export type ScoringDurationSec = (typeof SCORING_DURATIONS_SEC)[number];
 /** 構えで手をどこまで上げるか。0 = 頭(鼻)と同じ高さ */
 const STANCE_HAND_MIN_HEIGHT = 0;
 
+/** 両手が頭より上に上がっているか */
 function handsUp(values: MetricValues): boolean {
   const l = values["normalizedHandHeight:left"];
   const r = values["normalizedHandHeight:right"];
   return l !== null && l !== undefined && r !== null && r !== undefined && l >= STANCE_HAND_MIN_HEIGHT && r >= STANCE_HAND_MIN_HEIGHT;
 }
 
+/** 腰を落として基本姿勢の条件を満たしているか */
 function hipsDown(values: MetricValues): boolean {
   const m = values.basePostureMargin;
   return m !== null && m !== undefined && m >= 0;
@@ -51,6 +53,7 @@ export class StanceGate {
   private since: number | null = null;
   private lastOkMs = -Infinity;
 
+  /** 継続カウントを初期化する(判定開始・中止のたびに呼ぶ) */
   reset(): void {
     this.since = null;
     this.lastOkMs = -Infinity;

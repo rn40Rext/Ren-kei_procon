@@ -14,6 +14,7 @@ type IconProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+/** 各アイコン共通のSvg土台(24x24・線画・丸端で統一する) */
 function Base({
   size = 22,
   color = colors.gold,
@@ -195,6 +196,7 @@ export function IconWagasa(p: IconProps) {
   );
 }
 
+/** アイコンを選ぶときの踊りの種類 */
 export type AwaCategory = '男踊り' | '女踊り' | '鳴り物';
 
 /** 踊りの型からアイコンを返す */

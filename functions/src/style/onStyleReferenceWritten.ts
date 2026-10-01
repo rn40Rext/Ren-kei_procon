@@ -26,6 +26,7 @@ function affectsProfile(
   return false;
 }
 
+/** renStyleReferences への書き込みを監視し、影響があるときだけ代表 Embedding を作り直す */
 export const onStyleReferenceWritten = onDocumentWritten(
   "renStyleReferences/{referenceId}",
   async (event) => {

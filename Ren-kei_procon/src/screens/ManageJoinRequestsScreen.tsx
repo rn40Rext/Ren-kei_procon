@@ -17,6 +17,7 @@ import { formatAiScoreShort } from '../features/analysis/format';
 import type { Post as PostDoc } from '../types/firestore';
 import type { JoinRequest, UserProfile } from '../types/firestore';
 
+/** 申請の状態で切り替えるタブ(未対応/承認済み/却下)と、その表示名 */
 type Tab = 'pending' | 'approved' | 'rejected';
 const TABS: { key: Tab; label: string }[] = [
   { key: 'pending', label: '未対応' },
@@ -24,22 +25,27 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'rejected', label: '却下' },
 ];
 
+/** 連の管理者が、届いた参加申請を確認して承認・却下する画面 */
 export default function ManageJoinRequestsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  // どの連の申請を管理するか(前の画面から受け取る)
   const { renId } = route.params;
 
+  // 表示中のタブ / 申請の一覧 / 申請者の名前(uidごと) / 読み込み中か / 承認・却下の処理中の申請ID
   const [tab, setTab] = useState<Tab>('pending');
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [applicantNames, setApplicantNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  // 詳細を開いている申請と、その申請者のプロフィール・投稿動画・読み込み中か
   const [detailRequest, setDetailRequest] = useState<JoinRequest | null>(null);
   const [applicant, setApplicant] = useState<UserProfile | null>(null);
   const [applicantPosts, setApplicantPosts] = useState<PostDoc[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
+  // 選んだタブの状態の申請をリアルタイム購読し、まだ読んでいない申請者の名前を取りに行く
   useEffect(() => {
     setLoading(true);
     return subscribeRenJoinRequests(
@@ -69,6 +75,7 @@ export default function ManageJoinRequestsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renId, tab]);
 
+  /** 申請者のプロフィール・直近の投稿を取得して詳細モーダルを開く */
   const openDetail = async (req: JoinRequest) => {
     setDetailRequest(req);
     setApplicant(null);
@@ -84,12 +91,14 @@ export default function ManageJoinRequestsScreen() {
     }
   };
 
+  /** 申請者の詳細ダイアログを閉じ、読み込んだ情報を消す */
   const closeDetail = () => {
     setDetailRequest(null);
     setApplicant(null);
     setApplicantPosts([]);
   };
 
+  /** 参加リクエストを承認/却下する(FN-05) */
   const handleDecision = async (requestId: string, action: 'approve' | 'reject') => {
     setProcessingId(requestId);
     try {
@@ -111,6 +120,7 @@ export default function ManageJoinRequestsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
@@ -124,6 +134,7 @@ export default function ManageJoinRequestsScreen() {
         <AppMenu />
       </View>
 
+      {/* 未対応・承認済み・却下のタブ */}
       <View style={styles.tabBar}>
         {TABS.map((t) => (
           <TouchableOpacity key={t.key} style={[styles.tabItem, tab === t.key && styles.tabItemActive]} onPress={() => setTab(t.key)} activeOpacity={0.85}>
@@ -132,6 +143,7 @@ export default function ManageJoinRequestsScreen() {
         ))}
       </View>
 
+      {/* 申請の一覧。読み込み中・0件の場合は案内を出す */}
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
         {loading ? (
           <NarutoLoader size={22} color={colors.gold} style={{ marginTop: 40, alignSelf: 'center' }} />
@@ -139,6 +151,7 @@ export default function ManageJoinRequestsScreen() {
           <Text style={styles.emptyText}>該当する申請はありません</Text>
         ) : (
           requests.map((req) => (
+            // 申請1件分のカード: 申請者の名前・メッセージ・詳細へのリンクと、未対応なら承認・却下ボタン
             <View key={req.id} style={styles.card}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardName}>{applicantNames[req.userId] ?? '読み込み中…'}</Text>
@@ -177,6 +190,7 @@ export default function ManageJoinRequestsScreen() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* 申請者の詳細ダイアログ: 名前・申請メッセージ・投稿動画と、未対応なら承認・却下ボタン */}
       <Modal visible={!!detailRequest} animationType="slide" transparent onRequestClose={closeDetail}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -202,6 +216,7 @@ export default function ManageJoinRequestsScreen() {
                   </View>
                 ) : null}
 
+                {/* 申請者の直近の投稿動画を横に並べ、極め度を左下に重ねる */}
                 <Text style={styles.sectionLabel}>投稿動画</Text>
                 {applicantPosts.length === 0 ? (
                   <Text style={styles.noPostsText}>投稿された動画はありません</Text>
@@ -246,6 +261,7 @@ export default function ManageJoinRequestsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、戻るボタン・画面名を並べるヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
@@ -258,14 +274,17 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
+  // 「未対応」「承認済み」等を切り替えるタブ
   tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.indigoLine },
   tabItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.gold },
   tabLabel: { ...typography.bodyStrong, color: colors.textMuted, fontSize: 12 },
   tabLabelActive: { color: colors.gold },
 
+  // 申請一覧のスクロール部分と、0件のときの案内文
   list: { flex: 1, padding: spacing.lg },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.xl },
+  // 申請1件分のカード。右側に承認・却下ボタンを並べる
   card: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,
@@ -275,15 +294,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // カードの中の申請者名・メッセージ・詳細へのリンク
   cardName: { ...typography.bodyStrong, color: colors.textPrimary },
   cardMessage: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
   detailLink: { ...typography.caption, color: colors.gold, fontWeight: '700', marginTop: spacing.sm },
+  // カード右側の承認(金色)・却下(枠線と朱色の文字)ボタンを縦に並べる
   cardActions: { justifyContent: 'center', marginLeft: spacing.sm },
   approveBtn: { backgroundColor: colors.gold, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.sm, marginBottom: spacing.sm, minWidth: 64, alignItems: 'center' },
   approveBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 13 },
   rejectBtn: { borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.sm, minWidth: 64, alignItems: 'center' },
   rejectBtnText: { ...typography.button, color: colors.aka, fontSize: 13 },
 
+  // 申請者の詳細(プロフィール・直近の投稿)を見るモーダルの背景・カード
   modalOverlay: { flex: 1, backgroundColor: 'rgba(11,19,43,0.7)', justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: colors.indigoDeep,
@@ -294,12 +316,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
   },
+  // ダイアログの見出し・申請者名・申請メッセージの枠
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   profileRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
   profileName: { marginLeft: spacing.sm, ...typography.bodyStrong, color: colors.textPrimary },
   messageBox: { flexDirection: 'row', backgroundColor: colors.indigoRaised, borderRadius: radius.sm, padding: spacing.md, marginBottom: spacing.lg },
   messageBoxText: { marginLeft: spacing.sm, flex: 1, ...typography.caption, color: colors.textSecondary, lineHeight: 18 },
+  // 投稿動画の見出しと、動画の小さなサムネイル(左下に極め度)
   sectionLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   noPostsText: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.lg },
   postThumbWrapper: { width: 100, height: 100, borderRadius: radius.sm, backgroundColor: '#000', overflow: 'hidden', marginRight: spacing.sm },
@@ -315,6 +339,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  // ダイアログ下部の大きな承認・却下ボタン
   modalActions: { flexDirection: 'row', marginTop: spacing.xl },
   approveBtnLarge: { flex: 1, backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', marginRight: spacing.sm },
   rejectBtnLarge: { flex: 1, borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', marginLeft: spacing.sm },

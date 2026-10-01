@@ -28,6 +28,7 @@ import {
 import {rebuildRenStyleProfile} from "../style/profile";
 import {cosineSimilarity} from "../style/vector";
 
+/** 返す連の件数の既定値と上限 */
 const DEFAULT_TOP_N = 3;
 const MAX_TOP_N = 10;
 
@@ -49,6 +50,7 @@ function profileVector(
   return emb.vector.length === dim ? emb.vector : null;
 }
 
+/** FN-02 本体。動画の持ち主だけが呼べる */
 export const analyzeStyle = onCall(async (request) => {
   const uid = requireAuth(request);
   const videoId = requireString(request.data?.videoId, "videoId");

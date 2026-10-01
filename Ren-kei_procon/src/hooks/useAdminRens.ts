@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { auth } from '../config/firebaseConfig';
 import { subscribeAdminMemberships } from '../repositories/renMembership';
 
+/** 自分が管理者を務める連1件分(連IDと表示名) */
 export interface AdminRen {
   renId: string;
   name: string;
@@ -23,6 +24,7 @@ export function useAdminRens() {
       return;
     }
 
+    // 管理者としての所属をリアルタイム購読し、画面から外れたら購読を解除する
     return subscribeAdminMemberships(
       currentUser.uid,
       (memberships) => {

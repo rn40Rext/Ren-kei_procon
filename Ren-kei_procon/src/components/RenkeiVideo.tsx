@@ -24,6 +24,7 @@ export default function RenkeiVideo({
   muted?: boolean;
   nativeControls?: boolean;
 }) {
+  // 動画プレイヤーを作り、ループ・消音・自動再生の初期設定を行う
   const player = useVideoPlayer(uri, (p) => {
     p.loop = loop;
     p.muted = muted;

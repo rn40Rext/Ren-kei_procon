@@ -30,6 +30,7 @@ export function clearRuleSetCache(): void {
   cache = null;
 }
 
+/** Firestoreから読んだ値が RuleDefinition の形をしているかの最小限のチェック */
 function isRuleDefinition(v: unknown): v is RuleDefinition {
   if (typeof v !== 'object' || v === null) return false;
   const r = v as Record<string, unknown>;

@@ -6,6 +6,7 @@
 import type { DanceCategory } from './mockEnbu';
 import { awaImage } from './awaImages';
 
+/** 連に所属していない踊り手1人分(連長がお誘いを送る相手) */
 export interface FreeDancer {
   id: string;
   name: string;
@@ -19,8 +20,10 @@ export interface FreeDancer {
   seekingRen: boolean; // 連を探している
 }
 
+/** お誘いの状態 */
 export type InviteStatus = '返答待ち' | '承諾' | '辞退';
 
+/** 送ったお誘い1件分 */
 export interface Invitation {
   id: string;
   dancerName: string;

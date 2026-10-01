@@ -15,9 +15,11 @@ import GrowthLineChart, { ChartPoint } from '../components/GrowthLineChart';
 import { colors } from '../theme';
 import AppMenu from '../components/AppMenu';
 
+/** この画面で使う画面遷移の型 */
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GrowthChart'>;
 
 // ResultScreen.tsx の ITEMS と表示名を揃える。総合に含まれる4項目のみ(TBD-05)。
+// 並び順がそのまま「項目別の点数の推移」のカードの並び順になる。
 const ITEM_DEFS: { key: 'handHeightScore' | 'hipHeightScore' | 'stopScore' | 'rhythmScore'; label: string; color: string }[] = [
   { key: 'handHeightScore', label: '手の高さ', color: colors.gold },
   { key: 'hipHeightScore', label: '腰の低さ', color: colors.goldBright },
@@ -25,6 +27,8 @@ const ITEM_DEFS: { key: 'handHeightScore' | 'hipHeightScore' | 'stopScore' | 'rh
   { key: 'rhythmScore', label: 'リズム', color: colors.success },
 ];
 
+// 総合スコアをグラフの点に変換する。直前の記録から analysisVersion(採点基準)が
+// 変わった点にだけ versionLabel を付けて、グラフ上に点線で区切りを出せるようにする
 function toChartPoints(results: AnalysisResult[]): ChartPoint[] {
   return results.map((r, i) => ({
     value: r.totalScore,
@@ -32,14 +36,16 @@ function toChartPoints(results: AnalysisResult[]): ChartPoint[] {
   }));
 }
 
+/** 自分の極め度と項目別の点数が、稽古を重ねてどう変わったかをグラフで見る画面 */
 export default function GrowthChartScreen() {
   const navigation = useNavigation<Nav>();
   const { uid } = useAuth();
   const { width: windowWidth } = useWindowDimensions();
 
-  const [results, setResults] = useState<AnalysisResult[] | null>(null);
+  const [results, setResults] = useState<AnalysisResult[] | null>(null); // null=読み込み中 / 空配列=記録なし / 配列あり=表示できる(JSXの分岐がこの3状態に依存している)
   const [error, setError] = useState<string | null>(null);
 
+  // 自分の解析結果(古い順)をリアルタイム購読する
   useEffect(() => {
     if (!uid) return;
     return subscribeAnalysisResultsByUser(uid, setResults, (e) => {
@@ -48,11 +54,16 @@ export default function GrowthChartScreen() {
     });
   }, [uid]);
 
+  // 極め度の推移グラフに渡す点
   const totalPoints = useMemo(() => (results ? toChartPoints(results) : []), [results]);
 
+  // 画面の幅は最大600pxに抑える(広い画面でグラフが間延びしないように)。
+  // contentWidth はスクロール領域の左右余白16pxずつ(合計32)を引いた幅、
+  // chartWidth はさらにカード内の左右余白16pxずつ(合計32)を引いた、グラフ本体の幅
   const contentWidth = Math.min(windowWidth, 600) - 32;
   const chartWidth = contentWidth - 32;
 
+  // 直近の記録・その前の記録・自己ベストの記録と、前回からの点数の差
   const latest = results && results.length > 0 ? results[results.length - 1] : null;
   const previous = results && results.length > 1 ? results[results.length - 2] : null;
   const best = results && results.length > 0 ? results.reduce((a, b) => (b.totalScore > a.totalScore ? b : a)) : null;
@@ -60,6 +71,7 @@ export default function GrowthChartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 稽古手帳へ戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
@@ -72,6 +84,7 @@ export default function GrowthChartScreen() {
         <AppMenu />
       </View>
 
+      {/* 4つの表示状態: 読み込み中 / エラー / 記録なし / 記録あり */}
       {results === null && !error ? (
         <ActivityIndicator style={{ marginTop: 60 }} color={colors.gold} />
       ) : error ? (
@@ -87,6 +100,7 @@ export default function GrowthChartScreen() {
         </View>
       ) : results ? (
         <ScrollView contentContainerStyle={styles.content}>
+          {/* 直近の極め度と前回比、自己ベスト */}
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryLabel}>直近の極め度</Text>
@@ -117,6 +131,7 @@ export default function GrowthChartScreen() {
             </View>
           </View>
 
+          {/* 総合スコア(極め度)の推移グラフ */}
           <View style={styles.chartCard}>
             <Text style={styles.chartTitle}>極め度の推移</Text>
             <GrowthLineChart points={totalPoints} width={chartWidth} height={140} />
@@ -126,6 +141,7 @@ export default function GrowthChartScreen() {
             )}
           </View>
 
+          {/* 項目別の推移。その項目のスコアが1件も無い項目はカードごと出さない。2列で並べる */}
           <Text style={styles.sectionLabel}>項目別の点数の推移</Text>
           <View style={styles.itemGrid}>
             {ITEM_DEFS.map((def) => {
@@ -152,6 +168,7 @@ export default function GrowthChartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
+  // 画面上部のヘッダー。「戻る」ボタン・タイトル・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -161,15 +178,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 戻るボタンと、中央寄せの画面名
   backBtn: { padding: 4, width: 34 },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'center' },
 
+  // まだ記録が無いときに、中央に案内文とボタンだけを表示するエリア
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   emptyText: { color: colors.textSecondary, fontSize: 14, marginBottom: 20, textAlign: 'center' },
   ctaBtn: { backgroundColor: colors.gold, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
   ctaBtnText: { color: colors.textOnGold, fontWeight: 'bold' },
 
+  // スクロール部分の余白(中身を中央に寄せる)
   content: { padding: 16, alignItems: 'center' },
+  // 「直近スコア」「自己ベスト」の2枚のカードを横に並べる
   summaryRow: { flexDirection: 'row', gap: 12, width: '100%', maxWidth: 600 - 32 },
   summaryCard: {
     flex: 1,
@@ -179,11 +200,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 要約カードの見出し・大きな数字と、前回比の行(上がれば金、下がれば朱)
   summaryLabel: { fontSize: 12, color: colors.textSecondary },
   summaryValue: { fontSize: 28, fontWeight: 'bold', color: colors.textPrimary, marginTop: 4 },
   diffRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 },
   diffText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
 
+  // 総合スコアの折れ線グラフを囲むカード
   chartCard: {
     width: '100%',
     maxWidth: 600 - 32,
@@ -194,10 +217,13 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
     marginTop: 16,
   },
+  // グラフの見出しと、グラフの下の注記
   chartTitle: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 8 },
   noteText: { fontSize: 11, color: colors.textSecondary, marginTop: 8 },
 
+  // 「項目別の点数の推移」の見出し
   sectionLabel: { fontSize: 14, fontWeight: 'bold', color: colors.textPrimary, marginTop: 24, marginBottom: 10, width: '100%', maxWidth: 600 - 32 },
+  // 項目別(手の高さ等)のミニグラフを、折り返しながら横に並べる
   itemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%', maxWidth: 600 - 32 },
   itemCard: {
     backgroundColor: colors.indigo,
@@ -206,6 +232,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
   },
+  // 項目別カードの項目名と、直近の点数(項目ごとの色)
   itemLabel: { fontSize: 12, color: colors.textSecondary },
   itemValue: { fontSize: 18, fontWeight: 'bold', marginTop: 2, marginBottom: 4 },
 });

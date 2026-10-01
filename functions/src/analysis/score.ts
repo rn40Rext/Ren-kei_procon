@@ -6,8 +6,10 @@
  * 重み付けは未確定(TBD-05)のため、存在する項目の単純平均で仮実装する。
  */
 
+/** 判定の評価(よくできた/できた/できなかった) */
 export type Grade = "GREAT" | "GOOD" | "MISS";
 
+/** ルール1つ分の判定回数の集計 */
 export interface RuleMetricSummary {
   attempts: number;
   greatCount: number;
@@ -17,11 +19,13 @@ export interface RuleMetricSummary {
   meanValue?: number;
 }
 
+/** リズム(テンポ)の計測値 */
 export interface RhythmInput {
   userBpm: number;
   baseBpm: number;
 }
 
+/** 項目ごとの点数 */
 export interface ItemScores {
   handHeightScore?: number;
   hipHeightScore?: number;
@@ -31,12 +35,14 @@ export interface ItemScores {
   basePostureScore?: number;
 }
 
+/** 結果画面に出す一言(良かった点/直す点) */
 export interface FeedbackItem {
   type: "good" | "improve";
   ruleId: string;
   message: string;
 }
 
+/** 点数計算の結果一式 */
 export interface ScoreResult {
   totalScore: number;
   scores: ItemScores;
@@ -78,6 +84,7 @@ const FEEDBACK: Record<string, {good: string; improve: string}> = {
   },
 };
 
+// 0〜100の範囲に収める / 小数第1位で四捨五入する
 const clamp100 = (v: number): number => Math.max(0, Math.min(100, v));
 const round1 = (v: number): number => Math.round(v * 10) / 10;
 

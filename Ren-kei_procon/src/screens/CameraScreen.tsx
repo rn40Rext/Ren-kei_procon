@@ -26,6 +26,7 @@ import { NarutoLoader } from "../components/motifs";
 import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
 
+/** この画面で使う画面遷移と、前の画面から受け取る値(踊りの型・重点部位・基準のテンポ)の型 */
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
 type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
 
@@ -36,6 +37,7 @@ type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
 // 見つからずクラッシュするため、ここでは使わない)
 const BGM_URL: string = require("../../assets/audio/bgm-awaodori.mp3");
 
+/** 判定ゲージに出すルールと、その表示名(ここにないルールはゲージに出さない) */
 const GAUGE_LABELS: Record<string, string> = {
   HAND_ABOVE_HEAD: "手の高さ",
   HAND_KEEP: "キープ",
@@ -45,12 +47,14 @@ const GAUGE_LABELS: Record<string, string> = {
   BASE_POSTURE: "基本姿勢",
 };
 
+/** 判定(GREAT/GOOD/MISS)ごとの文字色 */
 const GRADE_COLORS: Record<string, string> = {
   GREAT: colors.gold,
   GOOD: colors.goldBright,
   MISS: colors.aka,
 };
 
+/** 画面左上の状態チップに出す文字 */
 const STATUS_LABEL: Record<string, string> = {
   idle: "カメラ待ち",
   loading: "モデル読み込み中…",
@@ -76,28 +80,38 @@ function mergeGauges(gauges: RuleSnapshot[]): { ruleId: string; label: string; v
   return [...map.values()];
 }
 
+/** 秒数を「01:05」の形にする(残り時間の表示用) */
 function formatSec(sec: number): string {
   return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
 }
 
+/** カメラ(または動画ファイル)で踊りを映し、リアルタイムに判定してから採点・保存する画面 */
 export default function CameraScreen() {
   const route = useRoute<CameraRoute>();
   const navigation = useNavigation<CameraNav>();
+  // 前の画面で選んだ踊りの型・重点部位と、基準のテンポ(BPM)
   const { danceType, scorePart, baseBpm } = route.params;
   const { uid } = useAuth();
+  // 画面の状態: undefined=カメラ確認中 / null=この端末は未対応 / それ以外=映像ソース
   const [source, setSource] = useState<LiveVideoSource | null | undefined>(undefined);
+  // 保存・採点などの処理中。二重押し防止にも使う
   const [busy, setBusy] = useState(false);
+  // 採点時間(秒)。判定を始める前にチップで選ぶ
   const [durationSec, setDurationSec] = useState<ScoringDurationSec>(SCORING_DURATIONS_SEC[0]);
 
+  // 姿勢推定・判定・録画・採点の処理はすべて useLiveAnalysis が担う。画面はその状態を表示して操作を渡すだけ
   const live = useLiveAnalysis({ uid, danceType, scorePart, baseBpm });
   const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize } = live;
 
+  // 映像ソースが使えるようになったら(または未対応と分かったら)覚えておく
   const onSource = useCallback((s: LiveVideoSource | null) => setSource(s), []);
 
+  // 映像ソースが決まったら、姿勢推定のモデルなどを準備する
   useEffect(() => {
     if (source) void prepare(source);
   }, [source, prepare]);
 
+  // 判定を終えて、動画の保存と採点を行い、結果画面へ進む(二重に押せないようにする)
   const onFinish = useCallback(async () => {
     if (busy) return;
     setBusy(true);
@@ -112,6 +126,7 @@ export default function CameraScreen() {
     }
   }, [busy, finish, navigation]);
 
+  // 判定を中止する(保存も採点もしない)
   const onCancel = useCallback(async () => {
     await cancel();
   }, [cancel]);
@@ -135,21 +150,24 @@ export default function CameraScreen() {
     if (snapshot.status === "timeUp") void onFinish();
   }, [snapshot.status, onFinish]);
 
+  // ゲージに出す値と、今の状態(採点中か・構え待ちか)
   const gauges = useMemo(() => mergeGauges(snapshot.gauges), [snapshot.gauges]);
   const analyzing = snapshot.status === "analyzing";
   const waitingStance = snapshot.status === "waitingStance";
 
-  // 採点中(analyzing)だけBGMをループ再生する。判定ロジックとは無関係なので
-  // useLiveAnalysisではなくこの画面側で扱う(docs/rules/coding.md: 画面は判定ロジックを持たない)。
-  // リアルタイム判定はWeb版のみなのでWeb標準のAudio要素で十分(ネイティブでは何もしない)。
-  // モバイルブラウザは「ユーザー操作と同期していない再生」をブロックするため
-  // (構えを待ってから始まるカメラのanalyzingはボタン押下から時間差があり、
-  // そのままだと再生がブロックされる)、「判定を開始」ボタン押下の中で
-  // 同期的に一度play()しておき(unlockBgm)、以降はそのAudioを使い回す。
-  // Audio要素はボタン押下時(unlockBgm)に初めて作る。採点しないなら音源を読み込まない。
+  // --- 採点中のBGM ---
+  // 採点中(analyzing)だけループ再生する。判定ロジックとは無関係なので
+  // useLiveAnalysis ではなくこの画面側で扱う(docs/rules/coding.md)。
+  // リアルタイム判定はWeb版のみなので、Web標準のAudio要素で足りる(ネイティブでは何もしない)。
+  //
+  // モバイルブラウザは「ユーザー操作と同期していない再生」をブロックする。
+  // 構え待ちを挟むと analyzing はボタン押下から時間差で始まるため、
+  // 「判定を開始」押下の中で一度 play() しておき(unlockBgm)、以降はそのAudioを使い回す。
+  // Audio要素は unlockBgm で初めて作る(採点しないなら音源を読み込まない)。
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   /** 今BGMを鳴らすべきか。unlockの非同期な後始末が本再生を止めないよう判定に使う */
   const bgmWantedRef = useRef(false);
+  // BGM用の Audio を作る(初回だけ)。Web以外では何もしない
   const getBgmAudio = useCallback((): HTMLAudioElement | null => {
     if (Platform.OS !== "web") return null;
     const AudioCtor = (globalThis as { Audio?: typeof window.Audio }).Audio;
@@ -162,6 +180,7 @@ export default function CameraScreen() {
     }
     return bgmRef.current;
   }, []);
+  // ボタンを押した直後に、音を出さずに一度だけ再生して「再生してよい」状態にしておく
   const unlockBgm = useCallback(() => {
     const audio = getBgmAudio();
     if (!audio || bgmWantedRef.current) return;
@@ -179,6 +198,7 @@ export default function CameraScreen() {
       });
   }, [getBgmAudio]);
 
+  // 採点中になったらBGMを最初から流し、それ以外になったら止める
   useEffect(() => {
     bgmWantedRef.current = analyzing;
     const audio = bgmRef.current;
@@ -199,8 +219,10 @@ export default function CameraScreen() {
       bgmRef.current = null;
     };
   }, []);
+
   /** 判定を始めてから保存に入るまで(構え待ち + 採点中) */
   const active = waitingStance || analyzing;
+  // 残り時間(秒)と、構えが続いたら採点が始まるまでのカウントダウン
   const remainingSec = Math.max(0, Math.ceil((snapshot.durationMs - snapshot.elapsedMs) / 1000));
   const stanceCountdown = Math.max(1, Math.ceil(((1 - snapshot.stanceProgress) * STANCE_HOLD_MS) / 1000));
 
@@ -224,6 +246,7 @@ export default function CameraScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.videoArea}>
+        {/* 採点中に映像が終わったら(動画ファイルの場合)自動)で保存・採点へ */}
         <PoseCameraView onSource={onSource} onEnded={analyzing ? onFinish : undefined} allowFile={!active && !busy} />
 
         {/* 構え待ち中、阿波踊りを知らない人でも真似しやすいよう構えのお手本を薄く重ねる */}
@@ -281,6 +304,7 @@ export default function CameraScreen() {
       {/* 下: 情報(スクロール) + 操作ボタン(常に見える位置に固定) */}
       <View style={styles.bottom}>
         <ScrollView style={styles.bottomScroll} contentContainerStyle={styles.bottomContent}>
+          {/* 選んだ踊りの型・重点部位・基準テンポと、使っているルールの版(開発中は接続先も) */}
           <View style={styles.infoRow}>
             <View style={styles.infoTag}>
               <Text style={styles.infoText}>{danceType === "male" ? "男踊り" : "女踊り"}</Text>
@@ -301,15 +325,18 @@ export default function CameraScreen() {
               <Text style={styles.infoMuted}>接続先: {USING_FIREBASE_EMULATOR ? "エミュレータ" : "本番"}</Text>
             )}
           </View>
+          {/* 採点などに失敗したときのエラー文 */}
           {snapshot.errorMessage && <Text style={styles.errorText}>{snapshot.errorMessage}</Text>}
           {/* 判定ゲージ・回数・リズム。映像に重ねず、ここにまとめて表示する */}
           {(analyzing || snapshot.status === "timeUp" || snapshot.status === "finalizing") && (
             <View style={styles.scoreDetail}>
+              {/* GREAT/GOOD/MISS の回数 */}
               <View style={styles.countsRow}>
                 <Text style={[styles.countText, { color: GRADE_COLORS.GREAT }]}>GREAT {snapshot.game.counts.GREAT}</Text>
                 <Text style={[styles.countText, { color: GRADE_COLORS.GOOD }]}>GOOD {snapshot.game.counts.GOOD}</Text>
                 <Text style={[styles.countText, { color: GRADE_COLORS.MISS }]}>MISS {snapshot.game.counts.MISS}</Text>
               </View>
+              {/* ルールごとの判定ゲージ。成立を保っている間は濃い金色にする */}
               {gauges.map((g) => (
                 <View key={g.ruleId} style={styles.gaugeRow}>
                   <Text style={styles.gaugeLabel}>{g.label}</Text>
@@ -318,6 +345,7 @@ export default function CameraScreen() {
                   </View>
                 </View>
               ))}
+              {/* 推定したリズム(BPM)と基準のテンポ */}
               <View style={styles.gaugeRow}>
                 <Text style={styles.gaugeLabel}>リズム</Text>
                 <Text style={styles.rhythmText}>
@@ -336,6 +364,7 @@ export default function CameraScreen() {
               {busy ? <ActivityIndicator color={colors.textOnGold} /> : <Text style={styles.primaryButtonText}>採点をやり直す</Text>}
             </TouchableOpacity>
           )}
+          {/* 採点時間の選択(判定を始める前だけ) */}
           {!active && (
             <View style={styles.durationRow}>
               <Text style={styles.durationLabel}>採点時間</Text>
@@ -351,6 +380,7 @@ export default function CameraScreen() {
               ))}
             </View>
           )}
+          {/* 操作ボタン: 構え待ち中は「中止」、開始前は「判定を開始」(準備ができるまで押せない)、採点中は「終了して採点」「中止」 */}
           <View style={styles.buttons}>
             {waitingStance ? (
               <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
@@ -396,25 +426,32 @@ export default function CameraScreen() {
 }
 
 const styles = StyleSheet.create({
+  // この端末では未対応のときの表示(中央に案内文と戻るボタン)
   unsupportedContainer: { flex: 1, backgroundColor: colors.indigoDeep, alignItems: "center", justifyContent: "center", padding: spacing.xl },
   unsupportedTitle: { ...typography.titleSerif, color: colors.textPrimary, marginBottom: spacing.md },
   unsupportedText: { ...typography.body, color: colors.textSecondary, textAlign: "center", lineHeight: 20 },
   unsupportedButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, paddingHorizontal: spacing.xxl, borderRadius: radius.sm, marginTop: spacing.xl },
   unsupportedButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
 
+  // 画面全体(黒背景)と、映像を表示する部分
   container: { flex: 1, backgroundColor: "#000" },
   videoArea: { flex: 1, position: "relative" },
+  // 構え待ち中のお手本シルエットを映像全面に重ねるレイヤー
   stanceGuideLayer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
+  // 映像の左上に重ねる、状態・残り時間・警告のチップを並べるエリア
   topBar: { position: "absolute", left: spacing.md, top: spacing.md, right: spacing.md, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, pointerEvents: "none" },
+  // 状態のチップ(採点中は朱色)・残り時間とfps・警告のチップ(朱色)
   statusChip: { backgroundColor: "rgba(11,19,43,0.75)", borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: colors.indigoLine },
   statusChipLive: { backgroundColor: colors.aka, borderColor: colors.aka },
   statusText: { ...typography.caption, color: colors.textPrimary, fontWeight: "700", letterSpacing: 1 },
   metaText: { ...typography.caption, color: colors.textPrimary, backgroundColor: "rgba(11,19,43,0.6)", paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.sm },
   warningChip: { backgroundColor: colors.aka, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4 },
   warningText: { ...typography.caption, color: colors.textOnAka, fontWeight: "700" },
+  // 映像の中央に重ねる部分: 判定の大きな文字と改善メッセージ
   centerOverlay: { position: "absolute", left: 0, right: 0, top: "30%", alignItems: "center", pointerEvents: "none" },
   gradeFlash: { ...typography.displaySerif, fontSize: 44, letterSpacing: 3, textShadowColor: "rgba(0,0,0,0.8)", textShadowRadius: 8 },
   adviceText: { marginTop: spacing.sm, color: colors.textPrimary, fontSize: 18, fontWeight: "700", backgroundColor: "rgba(11,19,43,0.7)", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.sm },
+  // 判定の詳細の枠: GREAT/GOOD/MISS の回数・判定ゲージ・リズム
   scoreDetail: { backgroundColor: colors.indigoRaised, borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, padding: spacing.md, marginBottom: spacing.sm },
   countsRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.sm, flexWrap: "wrap" },
   countText: { ...typography.caption, fontWeight: "700" },
@@ -424,32 +461,39 @@ const styles = StyleSheet.create({
   gaugeFill: { height: 8, backgroundColor: colors.goldBright, borderRadius: 4 },
   gaugeFillHolding: { backgroundColor: colors.gold },
   rhythmText: { ...typography.caption, color: colors.textPrimary },
+  // 「構えてください」の案内と、構えの継続時間を示すバーを表示するパネル
   stancePanel: { alignItems: "center", backgroundColor: "rgba(11,19,43,0.8)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, marginHorizontal: spacing.lg },
   stanceTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: "700", textAlign: "center" },
   stanceHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
   stanceCount: { ...typography.displaySerif, color: colors.gold, fontSize: 56, lineHeight: 64, marginTop: spacing.xs },
   stanceTrack: { alignSelf: "stretch", height: 8, backgroundColor: colors.indigoRaised, borderRadius: 4, overflow: "hidden", marginTop: spacing.md },
   stanceFill: { height: 8, backgroundColor: colors.gold, borderRadius: 4 },
+  // 採点時間の選択チップ(選んでいるものは金色)
   durationRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   durationLabel: { ...typography.caption, color: colors.textSecondary },
   durationChip: { borderWidth: 1, borderColor: colors.indigoLine, borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
   durationChipSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
   durationChipText: { ...typography.caption, color: colors.textPrimary, fontWeight: "700" },
   durationChipTextSelected: { color: colors.textOnGold },
+  // 映像の下にある、情報タグ・ゲージ詳細・操作ボタンをまとめた領域
   bottom: { backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine },
+  // 下の情報部分はスクロールでき、高さを抑える。操作ボタンの行は区切り線の下に固定する
   bottomScroll: { maxHeight: 200 },
   bottomContent: { padding: spacing.md, paddingBottom: spacing.sm },
   bottomActions: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md, borderTopWidth: 1, borderTopColor: colors.indigoLine, gap: spacing.sm },
+  // 踊りの型などの情報タグとエラー文
   infoRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, alignItems: "center", marginBottom: spacing.sm },
   infoTag: { backgroundColor: colors.indigoRaised, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   infoText: { ...typography.caption, color: colors.gold, fontWeight: "700" },
   infoMuted: { ...typography.caption, color: colors.textMuted },
   errorText: { color: colors.aka, marginBottom: spacing.sm },
+  // 操作ボタンの並び。主のボタンは金色、補助のボタンは枠線、押せないときは薄くする
   buttons: { flexDirection: "row", gap: spacing.sm, alignItems: "center", flexWrap: "wrap" },
   primaryButton: { backgroundColor: colors.gold, paddingVertical: spacing.md, paddingHorizontal: spacing.xl, borderRadius: radius.sm, minWidth: 140, alignItems: "center" },
   primaryButtonText: { ...typography.button, color: colors.textOnGold, fontSize: 15 },
   secondaryButton: { borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, borderRadius: radius.sm },
   secondaryButtonText: { ...typography.button, color: colors.textPrimary },
   buttonDisabled: { opacity: 0.5 },
+  // 「極め度は終了後にサーバで確定します」の注記
   footnote: { ...typography.caption, color: colors.textMuted, marginTop: spacing.md, lineHeight: 16 },
 });

@@ -16,6 +16,7 @@ import {resolve} from "node:path";
 import {getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 
+/** アプリに同梱している既定ルール(defaultRules.json)の場所 */
 const DEFAULTS_PATH = resolve(
   __dirname,
   "../../../Ren-kei_procon/src/features/rules/defaultRules.json",

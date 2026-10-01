@@ -13,6 +13,7 @@
 // 渡すために型を緩める必要があるため。
 
 const PROJECT_ID = "demo-renkei";
+/** エミュレータで使う Storage のバケット名 */
 const BUCKET = `${PROJECT_ID}.appspot.com`;
 
 process.env.GCLOUD_PROJECT = PROJECT_ID;

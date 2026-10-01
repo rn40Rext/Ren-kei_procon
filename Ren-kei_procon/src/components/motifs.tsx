@@ -457,6 +457,7 @@ export function AwaDivider({
   );
 }
 
+/** AwaDivider の線の中央に重ねる見出し文字のスタイル */
 const dividerLabel = {
   position: 'absolute' as const,
   fontSize: 10,

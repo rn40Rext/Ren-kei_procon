@@ -31,6 +31,7 @@ import {
   STYLE_SIMILARITY_VALIDATED,
 } from "../features/style/featureFlags";
 
+/** この画面で使う画面遷移と、前の画面から受け取る値(videoId)の型 */
 type Navigation = NativeStackNavigationProp<
   RootStackParamList,
   "StyleResult"
@@ -45,17 +46,21 @@ function errorCodeOf(error: unknown): string {
   return "ANALYSIS_FAILED";
 }
 
+/** 連スタイル類似度(AI機能②)の結果画面。FN-02を呼び、結果ドキュメントを購読して待つ */
 export default function StyleResultScreen() {
   const navigation = useNavigation<Navigation>();
   const route = useRoute<Route>();
+  // 診断する動画のID(前の画面から受け取る)
   const { videoId } = route.params;
   const { uid, loading: authLoading } = useAuth();
 
+  // 診断結果 / 失敗したときのエラーコード / 診断中か / 結果の購読を止めるための関数
   const [result, setResult] = useState<StyleAnalysisResult | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
+  /** スタイル診断をリクエストし、完了まで結果ドキュメントを購読する */
   const start = useCallback(async () => {
     if (!STYLE_SIMILARITY_UI_ENABLED || !uid) return;
     setRunning(true);
@@ -80,6 +85,7 @@ export default function StyleResultScreen() {
     }
   }, [uid, videoId]);
 
+  // ログイン状態が分かったら診断を始める。画面を閉じたら結果の購読を止める
   useEffect(() => {
     if (authLoading) return;
     void start();
@@ -89,6 +95,7 @@ export default function StyleResultScreen() {
     };
   }, [authLoading, start]);
 
+  /** 類似連の詳細へ。特定の連を開いた状態の遷移は未対応なので検索を案内する */
   const openRen = (item: StyleSimilarityItem) => {
     if (!REN_DETAIL_NAVIGATION_ENABLED) {
       Alert.alert(
@@ -108,6 +115,7 @@ export default function StyleResultScreen() {
     );
   };
 
+  // 機能を公開していない間は、「検証中のため非公開」の案内だけを出す
   if (!STYLE_SIMILARITY_UI_ENABLED) {
     return (
       <View style={styles.centered}>
@@ -129,6 +137,7 @@ export default function StyleResultScreen() {
     );
   }
 
+  // 似ている連の一覧(類似度の高い順)
   const items = result?.results ?? [];
 
   return (
@@ -136,11 +145,13 @@ export default function StyleResultScreen() {
       style={styles.container}
       contentContainerStyle={styles.content}
     >
+      {/* 見出しと、「上手い・下手の評価ではない」という説明 */}
       <Text style={styles.title}>動きの類似度</Text>
       <Text style={styles.lead}>
         どの連の踊り方に近いかを示します。
         上手い・下手の評価ではありません。
       </Text>
+      {/* 検証が済むまでは「参考値」である旨の注意書きを出す */}
       {!STYLE_SIMILARITY_VALIDATED && (
         <View style={styles.notice}>
           <Text style={styles.noticeText}>
@@ -150,6 +161,7 @@ export default function StyleResultScreen() {
         </View>
       )}
 
+      {/* 診断中の表示 */}
       {running && (
         <View style={styles.centeredBlock}>
           <ActivityIndicator size="large" color={colors.gold} />
@@ -157,6 +169,7 @@ export default function StyleResultScreen() {
         </View>
       )}
 
+      {/* 失敗したときのエラー文と再試行ボタン */}
       {errorCode !== null && (
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>{styleErrorMessage(errorCode)}</Text>
@@ -166,6 +179,7 @@ export default function StyleResultScreen() {
         </View>
       )}
 
+      {/* 結果: 見出し・僅差の注意・連ごとのカード・注意書き */}
       {!running && errorCode === null && items.length > 0 && (
         <View>
           <Text style={styles.headline}>{headlineFor(items)}</Text>
@@ -176,6 +190,7 @@ export default function StyleResultScreen() {
           )}
 
           {items.map((item, index) => (
+            // 連1件分: 順位・連名・類似度(参照データが少なければ注記)と、連の詳細へのリンク
             <View key={item.renId} style={styles.card}>
               <View style={styles.rankBadge}>
                 <Text style={styles.rankText}>{index + 1}</Text>
@@ -203,6 +218,7 @@ export default function StyleResultScreen() {
             </View>
           ))}
 
+          {/* 類似度の読み方についての注意書き */}
           <View style={styles.notice}>
             <Text style={styles.noticeText}>
               類似度は確率ではありません。
@@ -212,6 +228,7 @@ export default function StyleResultScreen() {
         </View>
       )}
 
+      {/* 前の画面に戻る */}
       <TouchableOpacity
         style={styles.secondaryButton}
         onPress={() => navigation.goBack()}
@@ -223,6 +240,7 @@ export default function StyleResultScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と余白。非公開時は中身を画面中央に置く
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   content: { padding: 20, paddingBottom: 48 },
   centered: {
@@ -233,6 +251,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   centeredBlock: { alignItems: "center", paddingVertical: 32 },
+  // 見出し・説明文・結果の見出し・補足の小さな文字
   title: {
     fontSize: 24,
     fontWeight: "bold",
@@ -247,6 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   muted: { fontSize: 13, color: colors.textMuted, marginTop: 8 },
+  // 似ている連1件分のカード。左に順位バッジ、右に連名・類似度を並べる
   card: {
     flexDirection: "row",
     backgroundColor: colors.indigo,
@@ -256,6 +276,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
   },
+  // 順位の数字を表示する丸いバッジ
   rankBadge: {
     width: 36,
     height: 36,
@@ -274,12 +295,14 @@ const styles = StyleSheet.create({
   },
   score: { fontSize: 15, color: colors.goldBright, marginTop: 4 },
   sampleNote: { fontSize: 12, color: colors.gold, marginTop: 6 },
+  // 連の詳細へのリンク(朱色の文字)
   linkButton: { marginTop: 10 },
   linkButtonText: {
     fontSize: 14,
     color: colors.aka,
     fontWeight: "600",
   },
+  // 「検証中の機能です」等の注意書きを目立たせる帯
   notice: {
     backgroundColor: colors.goldSoft,
     borderWidth: 1,
@@ -289,6 +312,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   noticeText: { fontSize: 13, color: colors.gold, lineHeight: 20 },
+  // 失敗時のエラー表示(朱色の枠)と再試行ボタン(金色)
   errorBox: {
     backgroundColor: colors.akaSoft,
     borderWidth: 1,
@@ -304,6 +328,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   retryButtonText: { color: colors.textOnGold, fontWeight: "bold" },
+  // 「戻る」ボタン(枠線のみの控えめなボタン)
   secondaryButton: {
     marginTop: 24,
     borderRadius: 8,

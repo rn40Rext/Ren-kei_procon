@@ -65,4 +65,5 @@ export const colors = {
   overlay: "rgba(0,0,0,0.55)",
 } as const;
 
+/** 色の一覧の型(テーマを受け取る部品で使う) */
 export type AppColors = typeof colors;

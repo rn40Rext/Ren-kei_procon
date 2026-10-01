@@ -38,6 +38,7 @@ import {
 } from '../data/invitations';
 import { formatAiScore } from '../features/analysis/format';
 
+/** 「気になる踊り手」を踊りの種類で絞り込むチップの選択肢 */
 const STYLE_FILTERS = [
   { key: 'all', label: 'すべて' },
   { key: 'male', label: '男踊り' },
@@ -45,22 +46,27 @@ const STYLE_FILTERS = [
 ] as const;
 type StyleFilter = (typeof STYLE_FILTERS)[number]['key'];
 
+/** 画面上部の3つのタブ(気になる踊り手/送ったお誘い/届いたお誘い) */
 type Tab = 'scout' | 'sent' | 'received';
 
+/** お誘いの状態ごとのバッジの色(返答待ち=枠線、承諾=金、辞退=朱) */
 const STATUS_TONE: Record<InviteStatus, 'gold' | 'aka' | 'outline'> = {
   返答待ち: 'outline',
   承諾: 'gold',
   辞退: 'aka',
 };
 
+/** Firestore に保存されている状態(英語)を画面表示用の日本語に変える */
 const REAL_STATUS_LABEL: Record<InvitationDoc['status'], InviteStatus> = {
   pending: '返答待ち',
   accepted: '承諾',
   declined: '辞退',
 };
 
+/** 踊りの種類の表示名 */
 const DANCE_LABEL: Record<'male' | 'female', string> = { male: '男踊り', female: '女踊り' };
 
+/** 送った時刻を「◯分前」「◯時間前」「◯日前」の形にする */
 function timeAgo(ms: number | null): string {
   if (ms == null) return 'たった今';
   const diff = Date.now() - ms;
@@ -70,26 +76,36 @@ function timeAgo(ms: number | null): string {
   return `${Math.floor(diff / 86_400_000)}日前`;
 }
 
+/** お誘いの送り先。実在ユーザー(real)・見本の踊り手(dummy)・チャレンジ画面から来た相手(challenge)の3通り */
 type InviteTarget =
   | { kind: 'real'; id: string; name: string; meta: string }
   | { kind: 'dummy'; dancer: FreeDancer }
   | { kind: 'challenge'; name: string; meta: string };
 
+/** お誘い先の表示名(サンプル/実データ/チャレンジ経由のいずれでも取れるようにする) */
 function targetDisplayName(t: InviteTarget | null): string {
   if (!t) return '';
   return t.kind === 'dummy' ? t.dancer.name : t.name;
 }
 
+/** お誘い先の補足情報(活動地域・種別など) */
 function targetDisplayMeta(t: InviteTarget | null): string {
   if (!t) return '';
   if (t.kind === 'dummy') return `${t.dancer.area}・${t.dancer.category}・${t.dancer.years}`;
   return t.meta || '踊り手';
 }
 
+/**
+ * リクエスト画面(U-07)。未所属の踊り手を見つけて連に招く「お誘い」機能。
+ * scout(見つける)/sent(送信済み)/received(受信)の3タブ構成。
+ * 実データ(users/invitations)とサンプル(mockRequests)が混在する(data/invitations.ts参照)。
+ */
 export default function RequestScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
   const route = useRoute<RouteProp<RootStackParamList, 'Request'>>();
   const navigation = useNavigation<any>();
+  // 表示中のタブ / お誘い文を書いている相手(null ならダイアログを閉じる) / お誘い文 / 送信中か
+  // 応答・取り消しの処理中のお誘いID(ボタンを二重に押せないようにする)
   const [tab, setTab] = useState<Tab>('scout');
   const [target, setTarget] = useState<InviteTarget | null>(null);
   const [message, setMessage] = useState('');
@@ -110,6 +126,7 @@ export default function RequestScreen() {
   const [sentReal, setSentReal] = useState<InvitationDoc[]>([]);
   const [receivedReal, setReceivedReal] = useState<InvitationDoc[]>([]);
 
+  // 画面を開いている間、他の踊り手・自分が送ったお誘い・自分に届いたお誘いをリアルタイム購読する
   useEffect(() => {
     const unsub1 = subscribeOtherDancers(
       (list) => {
@@ -140,6 +157,7 @@ export default function RequestScreen() {
     setMessage(`${name}さん、動画を拝見しました。うちの連の稽古に一度いらっしゃいませんか。`);
   }, [route.params?.inviteName, route.params?.inviteMeta]);
 
+  /** 実在ユーザーのカードから「お誘い」ダイアログを開き、定型文を入れておく */
   const openRealInvite = (d: OtherDancer) => {
     setTarget({ kind: 'real', id: d.id, name: d.name, meta: d.danceStyle ? DANCE_LABEL[d.danceStyle] : '' });
     setMessage(`${d.name}さん、いつも演舞を拝見しています。うちの連の稽古に一度いらっしゃいませんか。`);
@@ -154,11 +172,13 @@ export default function RequestScreen() {
     navigation.navigate('Chat', { chatId, recipientName: otherName });
   };
 
+  /** サンプルの踊り手カードから「お誘い」モーダルを開き、定型文を入れておく */
   const openDummyInvite = (d: FreeDancer) => {
     setTarget({ kind: 'dummy', dancer: d });
     setMessage(`${d.name}さん、演舞を拝見しました。うちの連の稽古に一度いらっしゃいませんか。`);
   };
 
+  /** お誘いを送信する。実在ユーザーならFirestoreへ、サンプル相手なら端末内だけに追加する */
   const submitInvite = async () => {
     if (!target || !message.trim() || sending) return;
 
@@ -196,6 +216,7 @@ export default function RequestScreen() {
     setTab('sent');
   };
 
+  /** 受信したお誘いに承諾/辞退で応答する */
   const respond = async (id: string, status: 'accepted' | 'declined') => {
     if (respondingId) return;
     setRespondingId(id);
@@ -208,6 +229,7 @@ export default function RequestScreen() {
     }
   };
 
+  /** 送ったお誘いを、確認ダイアログの後に取り消す */
   const cancel = (id: string) => {
     Alert.alert('お誘いを取り消しますか？', 'この操作は取り消せません。', [
       { text: 'やめる', style: 'cancel' },
@@ -228,14 +250,17 @@ export default function RequestScreen() {
     ]);
   };
 
+  // すでにお誘いを送った相手(「お誘い済み」表示に使う)と、まだ返事をしていない届いたお誘いの数
   const invitedDummyNames = new Set(sent.map((s) => s.dancerName));
   const invitedRealIds = new Set(sentReal.map((i) => i.toUserId));
   const pendingReceivedCount = receivedReal.filter((i) => i.status === 'pending').length;
 
+  // 検索キーワード(大文字・小文字を区別しない)
   const q = search.trim().toLowerCase();
   // プロフィールを書いている人ほど「声を掛けてほしい」意思が明確なので上に出す
   const profileCompleteness = (d: OtherDancer) =>
     (d.profile.trim() ? 1 : 0) + (d.danceStyle ? 1 : 0) + (d.icon ? 1 : 0);
+  // 実在ユーザーを、踊りの種類とキーワードで絞り込み、プロフィールが充実している順に並べる
   const filteredOtherDancers = useMemo(
     () =>
       otherDancers
@@ -247,6 +272,7 @@ export default function RequestScreen() {
         .sort((a, b) => profileCompleteness(b) - profileCompleteness(a)),
     [otherDancers, styleFilter, q],
   );
+  // 見本の踊り手も同じ条件で絞り込む
   const filteredFreeDancers = useMemo(
     () =>
       freeDancers.filter((d) => {
@@ -261,6 +287,7 @@ export default function RequestScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* 画面上部の笠の飾りと、戻るボタン・画面名・メニューのヘッダー */}
       <KasaGarland width={SCREEN_W} count={7} height={40} style={styles.garland} />
       <View style={styles.header}>
         <TouchableOpacity
@@ -278,6 +305,7 @@ export default function RequestScreen() {
         <AppMenu />
       </View>
 
+      {/* 連そのものを探したい人向けに、連検索画面への案内を出す */}
       <TouchableOpacity
         style={styles.renSearchLink}
         onPress={() => navigation.navigate('RenSearch')}
@@ -286,6 +314,7 @@ export default function RequestScreen() {
         <Text style={styles.renSearchLinkText}>連そのものに参加したい方はこちら　→　連を探す</Text>
       </TouchableOpacity>
 
+      {/* 3つのタブ。送った/届いたの件数も表示する */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabItem, tab === 'scout' && styles.tabItemActive]}
@@ -312,8 +341,10 @@ export default function RequestScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {/* 選んだタブに応じて中身を切り替える */}
         {tab === 'scout' ? (
           <>
+            {/* キーワード検索欄と、踊りの種類の絞り込みチップ */}
             <View style={styles.searchWrap}>
               <View style={styles.searchBar}>
                 <IconUchiwa size={15} color={colors.textMuted} />
@@ -342,6 +373,7 @@ export default function RequestScreen() {
               ))}
             </View>
 
+            {/* 実在ユーザーの一覧。読み込み中・検索結果なし・該当なし・登録者なしの場合はそれぞれ案内文を出す */}
             {!dancersLoaded ? (
               <View style={styles.loadingRow}>
                 <NarutoLoader size={22} color={colors.gold} />
@@ -356,6 +388,7 @@ export default function RequestScreen() {
                   const already = invitedRealIds.has(d.id);
                   const CatIcon = d.danceStyle ? categoryIcon(d.danceStyle === 'male' ? '男踊り' : '女踊り') : null;
                   return (
+                    // 実在ユーザー1人分のカード: アイコン・名前・踊りの種類・自己紹介と、「連に招く」「話す」ボタン
                     <View key={d.id} style={styles.realCard}>
                       <RenMon size={52} color={colors.gold}>
                         {d.icon ? (
@@ -411,6 +444,7 @@ export default function RequestScreen() {
               </View>
             )}
 
+            {/* ここから下は見本の踊り手。実在ユーザーと区別できるよう区切りの文を入れる */}
             {filteredFreeDancers.length > 0 && (
               <View style={styles.sampleDivider}>
                 <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
@@ -422,6 +456,7 @@ export default function RequestScreen() {
             {filteredFreeDancers.map((d) => {
               const already = invitedDummyNames.has(d.name);
               return (
+                // 見本の踊り手1人分のカード: 写真・名前・地域・踊り歴・演舞名と「連に招く」ボタン
                 <View key={d.id} style={styles.card}>
                   <ImageBackground
                     source={{ uri: d.image }}
@@ -466,6 +501,7 @@ export default function RequestScreen() {
           </>
         ) : tab === 'sent' ? (
           <>
+            {/* 「送った」タブ: 実際に送ったお誘い。返答待ちのものは取り消せる */}
             {sentReal.length > 0 ? (
               <>
                 {sentReal.map((inv) => (
@@ -510,6 +546,7 @@ export default function RequestScreen() {
               </>
             ) : null}
 
+            {/* 見本として端末内だけに積んだお誘い */}
             {sent.length > 0 ? (
               <View style={styles.sampleDivider}>
                 <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
@@ -535,6 +572,7 @@ export default function RequestScreen() {
           </>
         ) : (
           <>
+            {/* 「届いた」タブ: 自分に届いたお誘い。返答待ちなら承諾・辞退を選べる */}
             {receivedReal.length === 0 ? (
               <Text style={styles.lead}>まだお誘いは届いていません。プロフィールを整えておくと声が掛かりやすくなります。</Text>
             ) : (
@@ -645,8 +683,10 @@ export default function RequestScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景(濃い藍色)
   container: { flex: 1, backgroundColor: colors.indigoDeep },
 
+  // 上部の笠の飾りと、アイコン・画面名・説明文を並べるヘッダー
   garland: { backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
@@ -661,6 +701,7 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
   headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
+  // 「連を探す」への案内の帯(薄い金色の背景)
   renSearchLink: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -670,12 +711,14 @@ const styles = StyleSheet.create({
   },
   renSearchLinkText: { ...typography.caption, color: colors.gold, fontWeight: '700', textAlign: 'center' },
 
+  // 「見つける」「送信済み」「受信」の3タブ
   tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderColor: colors.indigoLine },
   tabItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
   tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.gold },
   tabLabel: { ...typography.bodyStrong, color: colors.textMuted, fontSize: 12 },
   tabLabelActive: { color: colors.gold },
 
+  // タブの中身の余白と、説明文・登録者がいないときの案内枠
   body: { padding: spacing.lg },
   lead: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.md, lineHeight: 17 },
   noRealNote: {
@@ -688,6 +731,7 @@ const styles = StyleSheet.create({
   },
   noRealNoteText: { ...typography.caption, color: colors.textMuted, lineHeight: 17 },
 
+  // キーワード検索欄と絞り込みチップの並び
   searchWrap: { marginBottom: spacing.sm },
   searchBar: {
     flexDirection: 'row',
@@ -702,12 +746,15 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: spacing.sm, color: colors.textPrimary, ...typography.body, fontSize: 13 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.md },
 
+  // 読み込み中の表示
   loadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl },
   loadingText: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
 
+  // 「ここから下は見本」の区切り
   sampleDivider: { alignItems: 'center', marginVertical: spacing.lg },
   sampleDividerText: { ...typography.caption, color: colors.textMuted },
 
+  // サンプルの踊り手カード
   card: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,
@@ -717,10 +764,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
+  // 写真のサムネイルと「連を探し中」のバッジ
   thumb: { width: 92, height: 92, backgroundColor: colors.indigoRaised },
   thumbBadge: { margin: 4 },
   cardBody: { flex: 1, marginLeft: spacing.md },
 
+  // 実在するユーザーのカード(サンプルのcardと見た目は同じだが別スタイルとして持つ)
   realCard: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,
@@ -730,10 +779,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
+  // 紋の中に入れるアイコン画像(画像がなければ名前の1文字目)
   realAvatarImg: { width: 42, height: 42, borderRadius: radius.pill },
   realAvatarChar: { ...typography.bodyStrong, color: colors.gold, fontSize: 18 },
   realCardBody: { flex: 1, marginLeft: spacing.md },
 
+  // カードの中の文字(名前・地域・踊りの種類・演舞名・自己紹介)
   dancerName: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 15 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
   metaText: { ...typography.caption, color: colors.textMuted },
@@ -741,6 +792,7 @@ const styles = StyleSheet.create({
   enbuTitle: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
   dancerNote: { ...typography.caption, color: colors.textMuted, marginTop: 4, lineHeight: 16 },
 
+  // カードのボタンの並び。「連に招く」は金色、送った後は灰色、「話す」は金色の枠線
   cardBtnRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   inviteBtnInRow: { marginTop: 0 },
   inviteBtn: {
@@ -769,6 +821,7 @@ const styles = StyleSheet.create({
   },
   chatBtnText: { ...typography.button, color: colors.gold, marginLeft: 6, fontSize: 12 },
 
+  // 送った/届いたお誘い1件分のカード(相手の名前・時刻・状態のバッジ・本文)
   sentCard: {
     backgroundColor: colors.indigo,
     borderWidth: 1,
@@ -782,6 +835,7 @@ const styles = StyleSheet.create({
   sentMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   sentMsg: { ...typography.body, color: colors.textSecondary },
 
+  // お誘いの取り消し(目立たない文字のボタン)、辞退(枠線)、承諾(金色)のボタン
   cancelBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -812,6 +866,7 @@ const styles = StyleSheet.create({
   },
   acceptBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 12, marginLeft: 4 },
 
+  // お誘い文を書くダイアログ。画面の下からせり上がるカードにする
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,19,43,0.7)' },
   modalCard: {
     backgroundColor: colors.indigoDeep,
@@ -825,6 +880,7 @@ const styles = StyleSheet.create({
   modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   modalNote: { ...typography.caption, color: colors.gold, marginTop: 4, marginBottom: spacing.md },
+  // お誘い文の入力欄(複数行)と送信ボタン。文が空か送信中は薄く表示する
   modalInput: {
     minHeight: 110,
     backgroundColor: colors.indigoRaised,

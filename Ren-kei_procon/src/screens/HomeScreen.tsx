@@ -71,6 +71,7 @@ import { formatAiScore } from '../features/analysis/format';
 /* ------------------------------------------------------------------ */
 const ANIM_NATIVE = Platform.OS !== 'web';
 
+/** 再生ボタンの周りに広がる波紋アニメーション */
 function PulsePlay({ children }: { children: React.ReactNode }) {
   const p = useRef(new Animated.Value(0)).current;
 
@@ -110,6 +111,7 @@ type SparkProps = {
   color: string;
 };
 
+/** 火の粉1粒ぶんのアニメーション(下から上へ漂いながらフェード) */
 function Spark({ x, size, dur, delay, drift, height, color }: SparkProps) {
   const v = useRef(new Animated.Value(0)).current;
 
@@ -164,6 +166,7 @@ function Spark({ x, size, dur, delay, drift, height, color }: SparkProps) {
   );
 }
 
+/** Sparkを複数ランダム配置して重ねる背景レイヤー */
 function SparkLayer({ count = 10 }: { count?: number }) {
   const { width, height } = useWindowDimensions();
 
@@ -190,6 +193,7 @@ function SparkLayer({ count = 10 }: { count?: number }) {
   );
 }
 
+/** ヒーロー画像の下端を背景色へグラデーションで馴染ませる */
 function HeroFade({ height = 84 }: { height?: number }) {
   return (
     <LinearGradient
@@ -200,6 +204,7 @@ function HeroFade({ height = 84 }: { height?: number }) {
   );
 }
 
+/** 斜めの光が時々スッと走る演出(再生ボタン周り) */
 function ShineSweep() {
   const x = useRef(new Animated.Value(-1)).current;
 
@@ -319,6 +324,11 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
 // ============================================================
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+/**
+ * ホーム画面(U-01)。交流広場を兼ねる(旧CommunityScreenはここに統合済み)。
+ * 自分の最新投稿(実データがあればそれ、無ければサンプル)をヒーローに、
+ * その下に交流フィード(実データ+サンプル)を出す。投稿モーダルもここで持つ。
+ */
 export default function HomeScreen({ navigation, route }: Props) {
   // 画面幅に合わせてヒーロー画像の高さを調整。
   // スマホの縦横比が変わってもレイアウトが崩れにくいようにする。
@@ -440,6 +450,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedRealPosts]);
 
+  /** フィード上の拍手(いいね)ボタン。楽観的にアイコンを切り替え、失敗したら戻す */
   const onFeedClap = async (postId: string) => {
     if (clapBusyId) return;
     const currentlyLiked = !!likedMap[postId];
@@ -534,6 +545,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     setExistingVideoId(null);
   };
 
+  /** 投稿モーダルの「ライブラリから選ぶ」。写真ライブラリから動画を選ぶ */
   const pickVideo = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -569,6 +581,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     }
   };
 
+  /** 投稿モーダルの送信。動画があれば実投稿、無ければローカルのサンプルフィードに足すだけ */
   const submitPost = async () => {
     if (!draftTitle.trim() || submitting) return;
 

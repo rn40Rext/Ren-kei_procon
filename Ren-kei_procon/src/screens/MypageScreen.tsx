@@ -33,6 +33,7 @@ const ROLE_LABEL: Record<Role, string> = {
   service_admin: '運営',
 };
 
+/** 稽古手帳(マイページ)。プロフィール編集・稽古実績の集計・各種管理画面への導線をまとめる */
 export default function MypageScreen() {
   const navigation = useNavigation<any>();
   const { uid } = useAuth();
@@ -67,6 +68,7 @@ export default function MypageScreen() {
   const [draftDanceStyle, setDraftDanceStyle] = useState<DanceStyle>(null);
   const [draftIcon, setDraftIcon] = useState('');
 
+  /** ログアウト確認ダイアログを出し、OKならサインアウトする */
   const handleLogout = () => {
     Alert.alert('ログアウト', 'ログアウトしてもよろしいですか？', [
       { text: 'キャンセル', style: 'cancel' },
@@ -74,6 +76,7 @@ export default function MypageScreen() {
     ]);
   };
 
+  /** プロフィール編集モードに入る。現在値を下書きへコピーする */
   const startEditing = () => {
     setDraftNickname(nickname);
     setDraftProfile(profile);
@@ -82,6 +85,7 @@ export default function MypageScreen() {
     setEditing(true);
   };
 
+  /** プロフィールアイコンを選んでStorageへアップロードし、下書きのURLを差し替える */
   const pickIcon = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -107,6 +111,7 @@ export default function MypageScreen() {
     }
   };
 
+  /** 下書きのプロフィールをusers/{uid}へ保存する */
   const handleSaveProfile = async () => {
     const user = auth.currentUser;
     if (!user) return;

@@ -20,6 +20,7 @@ export type GameScoreState = {
   counts: Record<Grade, number>;
 };
 
+/** GameScoreStateの初期値(0点・コンボ無し) */
 export function initialGameScore(): GameScoreState {
   return { score: 0, combo: 0, maxCombo: 0, counts: { GREAT: 0, GOOD: 0, MISS: 0 } };
 }

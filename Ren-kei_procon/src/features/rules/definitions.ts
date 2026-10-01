@@ -43,6 +43,7 @@ export function frameRules(set: RuleSet): RuleDefinition[] {
   return set.rules.filter((r) => r.ruleId !== RHYTHM_RULE_ID);
 }
 
+/** ルールIDから定義を1件探す */
 export function findRule(set: RuleSet, ruleId: string): RuleDefinition | undefined {
   return set.rules.find((r) => r.ruleId === ruleId);
 }

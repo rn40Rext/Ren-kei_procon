@@ -46,6 +46,7 @@ type VideoStats = {
   metricSamples: Record<string, number[]>;
 };
 
+/** `--key value`形式のCLI引数をオブジェクトに変換する(値省略時は"true") */
 function parseArgs(argv: string[]): Record<string, string> {
   const out: Record<string, string> = {};
   for (let i = 0; i < argv.length; i++) {
@@ -56,6 +57,7 @@ function parseArgs(argv: string[]): Record<string, string> {
   return out;
 }
 
+/** labels.csv(file,label,ruleId)を読み込む */
 function readLabels(path: string): LabeledVideo[] {
   const lines = readFileSync(path, "utf8").split(/\r?\n/).filter((l) => l.trim() && !l.startsWith("#"));
   const header = lines[0].split(",").map((s) => s.trim());
@@ -70,6 +72,7 @@ function readLabels(path: string): LabeledVideo[] {
   });
 }
 
+/** 姿勢系列JSON(配列 or {frames: [...]})を読み込む */
 function loadFrames(path: string): PoseFrame[] {
   const raw = JSON.parse(readFileSync(path, "utf8"));
   const frames = Array.isArray(raw) ? raw : raw.frames;
@@ -77,6 +80,7 @@ function loadFrames(path: string): PoseFrame[] {
   return frames as PoseFrame[];
 }
 
+/** 数値配列のパーセンタイル値(p: 0〜1)を返す */
 function percentile(xs: number[], p: number): number {
   if (xs.length === 0) return NaN;
   const s = xs.slice().sort((a, b) => a - b);
@@ -136,10 +140,12 @@ function bestThreshold(def: RuleDefinition, okVals: number[], ngVals: number[]):
   return Number.isFinite(best.threshold) ? best : null;
 }
 
+/** 表出力用の数値フォーマット(null/NaNはダッシュで埋める) */
 function fmt(v: number | null | undefined, digits = 3): string {
   return v === null || v === undefined || !Number.isFinite(v) ? "  -  " : v.toFixed(digits);
 }
 
+/** CLIエントリポイント。ラベル付き動画を集計し、閾値の候補を表示する */
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   if (!args.dir || !args.labels) {

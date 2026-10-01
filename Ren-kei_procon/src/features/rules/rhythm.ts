@@ -152,6 +152,7 @@ export function rhythmScore(userBpm: number, baseBpm: number, toleranceRatio: nu
   return Math.max(0, Math.min(100, 100 * (1 - err / toleranceRatio)));
 }
 
+/** 誤差率からGREAT/GOOD/MISSを判定する */
 export function rhythmGrade(errorRatio: number, goodMax = 0.15, greatMax = 0.07): Grade {
   if (errorRatio <= greatMax) return "GREAT";
   if (errorRatio <= goodMax) return "GOOD";
@@ -203,16 +204,19 @@ export class RhythmAnalyzer {
 
   constructor(private cfg: RhythmConfig, private readonly estimateIntervalMs = 1000) {}
 
+  /** 基準BPM等の設定を差し替える(ユーザーが基準BPMを選び直したときなど) */
   setConfig(cfg: RhythmConfig): void {
     this.cfg = cfg;
   }
 
+  /** 状態を初期化する(セッション開始時に呼ぶ) */
   reset(): void {
     this.samples = [];
     this.lastEstimateAt = -Infinity;
     this.last = null;
   }
 
+  /** 腰y座標を1点追加する。windowMsより古いサンプルは捨てる */
   push(timestampMs: number, hipY: number | null): void {
     if (hipY === null || !Number.isFinite(hipY)) return;
     this.samples.push({ t: timestampMs, y: hipY });

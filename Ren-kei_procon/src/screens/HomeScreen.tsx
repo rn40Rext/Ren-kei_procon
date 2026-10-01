@@ -57,6 +57,7 @@ import {
 } from '../data/mockEnbu';
 import { challenges } from '../data/mockChallenges';
 import { awaImage } from '../data/awaImages';
+import { formatAiScore } from '../features/analysis/format';
 
 
 /** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
@@ -114,7 +115,7 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
         <View style={styles.heroTopRow}>
           <Badge label={hero.category} tone="aka" />
           <Badge
-            label={typeof hero.kimeRate === 'number' ? `極め度 ${hero.kimeRate}点` : '未採点'}
+            label={formatAiScore(hero.kimeRate)}
             tone="dark"
             style={styles.badgeGap}
           />
@@ -694,7 +695,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                     </View>
                     <View style={styles.feedKime}>
                       <Text style={styles.feedKimeText}>
-                        {typeof p.score === 'number' ? `極め度 ${p.score}点` : '未採点'}
+                        {formatAiScore(p.score)}
                       </Text>
                     </View>
                   </View>
@@ -758,7 +759,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                     <CatIcon size={12} color={colors.goldBright} />
                   </View>
                   <View style={styles.feedKime}>
-                    <Text style={styles.feedKimeText}>極め度 {p.kimeRate}点</Text>
+                    <Text style={styles.feedKimeText}>{formatAiScore(p.kimeRate)}</Text>
                   </View>
                 </ImageBackground>
                 <View style={styles.feedBody}>

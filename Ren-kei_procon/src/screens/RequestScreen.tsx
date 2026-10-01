@@ -36,6 +36,7 @@ import {
   type OtherDancer,
   type InvitationDoc,
 } from '../data/invitations';
+import { formatAiScore } from '../features/analysis/format';
 
 const STYLE_FILTERS = [
   { key: 'all', label: 'すべて' },
@@ -441,7 +442,7 @@ export default function RequestScreen() {
                     <View style={styles.metaRow}>
                       {React.createElement(categoryIcon(d.category), { size: 12, color: colors.gold })}
                       <Text style={styles.dancerTags}>
-                        　{d.category}・{d.years}　極め度 {d.kimeRate}点
+                        　{d.category}・{d.years}　{formatAiScore(d.kimeRate)}
                       </Text>
                     </View>
                     <Text style={styles.enbuTitle} numberOfLines={1}>演舞「{d.enbuTitle}」</Text>

@@ -38,6 +38,7 @@ import {
   loadCachedComments,
 } from '../repositories/posts';
 import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firestore';
+import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
 
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
 
@@ -218,7 +219,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
             <Panel style={styles.metricsPanel}>
               <MetricRow
                 items={[
-                  { label: lexicon.aiScore, value: typeof post.score === 'number' ? `${post.score}` : '未採点' },
+                  { label: lexicon.aiScore, value: formatAiScoreShort(post.score) },
                   { label: '拍手', value: `${likeCount}` },
                   { label: '声', value: `${post.commentCount}` },
                 ]}
@@ -394,6 +395,8 @@ function SampleDetail({ navigation, route }: any) {
           {/* 演舞情報 */}
           <View style={styles.metaBlock}>
             <View style={styles.metaBadges}>
+              {/* 見本データの極め度は本物の採点と同じ表記なので、見本であることを必ず示す(AGENTS.md 5章) */}
+              <Badge label="見本(サンプル)" tone="dark" style={{ marginRight: spacing.sm }} />
               {enbu.isShihan ? <Badge label="阿波公認師範" tone="outline" /> : null}
               <Badge label={`${enbu.category}演舞`} tone="aka" style={{ marginLeft: spacing.sm }} />
             </View>
@@ -418,7 +421,7 @@ function SampleDetail({ navigation, route }: any) {
             <Panel style={styles.metricsPanel}>
               <MetricRow
                 items={[
-                  { label: lexicon.aiScore, value: `${enbu.kimeRate}` },
+                  { label: lexicon.aiScore, value: formatAiScoreShort(enbu.kimeRate) },
                   { label: '演舞尺', value: enbu.duration },
                   { label: '調子', value: `${enbu.bpm} BPM ${enbu.cho}` },
                 ]}
@@ -524,7 +527,7 @@ function SampleDetail({ navigation, route }: any) {
                   imageStyle={{ borderRadius: radius.sm }}
                 />
                 <Text style={styles.relatedTitle} numberOfLines={2}>{m.title}</Text>
-                <Text style={styles.relatedMeta}>{m.performer}／極め度 {m.kimeRate}点</Text>
+                <Text style={styles.relatedMeta}>{m.performer}／{formatAiScore(m.kimeRate)}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -610,7 +613,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.md,
   },
-  metaBadges: { flexDirection: 'row', marginBottom: spacing.md },
+  metaBadges: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.xs, marginBottom: spacing.md },
   enbuTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 22, lineHeight: 32 },
 
   performerRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },

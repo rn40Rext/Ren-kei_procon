@@ -19,6 +19,7 @@ import AppMenu from '../components/AppMenu';
 import { challengeById, DIFFICULTY_TONE } from '../data/mockChallenges';
 import { monkaEnbu } from '../data/mockEnbu';
 import { useMyRole, isRenLeaderClass } from '../data/role';
+import { formatAiScore } from '../features/analysis/format';
 
 export default function ChallengeDetailScreen({ navigation, route }: any) {
   const id: string | undefined = route?.params?.id;
@@ -141,7 +142,7 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
             >
               <ImageBackground source={{ uri: m.image }} style={styles.tryThumb} imageStyle={{ borderRadius: radius.sm }} />
               <Text style={styles.tryName}>{m.performer}</Text>
-              <Text style={styles.tryMeta}>極め度 {m.kimeRate}点</Text>
+              <Text style={styles.tryMeta}>{formatAiScore(m.kimeRate)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

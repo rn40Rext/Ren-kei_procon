@@ -9,7 +9,11 @@ export function formatAiScore(score: number | null | undefined): string {
   return `極め度 ${Math.round(score)}点`;
 }
 
+/**
+ * 短い形式(「92点」)。「極め度」の見出しが隣にある所(MetricRowのラベル等)や、
+ * 幅の狭いバッジで使う。
+ */
 export function formatAiScoreShort(score: number | null | undefined): string {
   if (typeof score !== "number" || !Number.isFinite(score)) return "未採点";
-  return `極め度 ${Math.round(score)}点`;
+  return `${Math.round(score)}点`;
 }

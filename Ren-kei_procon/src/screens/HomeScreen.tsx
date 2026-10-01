@@ -1293,6 +1293,7 @@ const styles = StyleSheet.create({
 
   container: { flex: 1, backgroundColor: colors.indigoDeep },
 
+  // 画面最上部のヘッダー。通知ベル・ロゴ・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1316,6 +1317,7 @@ const styles = StyleSheet.create({
   bellBadgeText: { fontSize: 9, fontWeight: '700', color: colors.textOnAka },
   headerCenter: { flex: 1, alignItems: 'center' },
   noren: { backgroundColor: colors.indigoDeep },
+  // 「演舞を披露する」の金色の帯ボタン
   postBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1358,6 +1360,7 @@ const styles = StyleSheet.create({
   dividerWrap: { marginTop: spacing.xxl, marginBottom: spacing.xs },
   sectionAfterDivider: { marginTop: spacing.md },
 
+  // 画面上部の大きな「ヒーロー」エリア(自分の最新投稿を大きく見せる)
   hero: { borderBottomWidth: 1, borderBottomColor: colors.indigoLine },
   heroImageWrap: { overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },

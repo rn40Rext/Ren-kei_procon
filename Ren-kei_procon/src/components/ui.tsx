@@ -206,6 +206,7 @@ const uiStyles = StyleSheet.create({
   sectionNote: textStyle({ ...typography.caption, color: colors.textMuted, marginTop: spacing.xs }),
   viewAll: textStyle({ ...typography.caption, color: colors.gold }),
 
+  // Badgeコンポーネントの土台。色(tone)ごとの差分はbadge_○○/badgeText_○○で上書きする
   badgeBase: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,

@@ -22,6 +22,9 @@ const ROTATE = '10deg';
 // カメラ画面に収まるよう少し小さくし、左寄りに置く(等身大だと画面からはみ出すため)
 const IMAGE_WIDTH = '78%';
 const IMAGE_HEIGHT = '82%';
+// 画像自体がやや濃いめの灰色(#4B4B4B)で書き出されているため、
+// 明るい場所(白飛びした映像)でも見分けやすい
+// (Image の tintColor は Expo Web では効かないため、アセット側で着色している)
 
 export function StancePoseGuide({
   scorePart,

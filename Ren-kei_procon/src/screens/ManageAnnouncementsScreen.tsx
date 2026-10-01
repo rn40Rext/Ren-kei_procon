@@ -12,6 +12,7 @@ import AppMenu from '../components/AppMenu';
 import { subscribeAnnouncements, createAnnouncement } from '../repositories/renAnnouncements';
 import type { Announcement } from '../types/firestore';
 
+/** Firestoreの日時を「2026/08/01 18:00」の形にする */
 function formatDateTime(value: any): string {
   const date = value?.toDate ? value.toDate() : null;
   if (!date) return '';
@@ -19,17 +20,21 @@ function formatDateTime(value: any): string {
   return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** 連の管理者が、メンバーへお知らせを配信し、配信履歴を確認する画面 */
 export default function ManageAnnouncementsScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  // どの連のお知らせを管理するか(前の画面から受け取る)
   const { renId } = route.params;
 
+  // 配信済みのお知らせ / 読み込み中か / 入力中のタイトルと本文 / 配信中か
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
 
+  // 連のお知らせをリアルタイム購読する
   useEffect(() => {
     return subscribeAnnouncements(
       renId,
@@ -66,6 +71,7 @@ export default function ManageAnnouncementsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
@@ -80,6 +86,7 @@ export default function ManageAnnouncementsScreen() {
       </View>
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        {/* 配信フォーム: タイトル・本文と「メンバーへ配信する」ボタン */}
         <View style={styles.formCard}>
           <Text style={styles.label}>タイトル（1〜100文字）</Text>
           <TextInput
@@ -114,6 +121,7 @@ export default function ManageAnnouncementsScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* 配信履歴。読み込み中・0件の場合は案内を出す */}
         <Text style={styles.sectionLabel}>配信履歴</Text>
         {loading ? (
           <NarutoLoader size={22} color={colors.gold} style={{ marginTop: spacing.lg, alignSelf: 'center' }} />
@@ -135,6 +143,7 @@ export default function ManageAnnouncementsScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、戻るボタン・画面名を並べるヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   header: {
     flexDirection: 'row',
@@ -147,9 +156,11 @@ const styles = StyleSheet.create({
   backBtn: { marginRight: spacing.sm },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 17 },
 
+  // スクロール部分の余白
   list: { flex: 1, padding: spacing.lg },
   // お知らせの新規作成フォームを囲むカード
   formCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.indigoLine, marginBottom: spacing.xl },
+  // 入力欄の見出し(金色)と、1行・複数行の入力欄
   label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   input: {
     backgroundColor: colors.indigoRaised,
@@ -175,6 +186,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...typography.body,
   },
+  // 配信ボタン(金色。配信中は薄くする)と、配信履歴の見出し・0件の案内
   sendBtn: { flexDirection: 'row', backgroundColor: colors.gold, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled: { opacity: 0.6 },
   sendBtnText: { ...typography.button, color: colors.textOnGold, marginLeft: spacing.sm },
@@ -182,6 +194,7 @@ const styles = StyleSheet.create({
   emptyText: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.lg },
   // 送信済みのお知らせ1件分のカード
   itemCard: { backgroundColor: colors.indigo, borderRadius: radius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.indigoLine },
+  // お知らせカードの中のタイトル・配信日時・本文
   itemTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   itemMeta: { ...typography.caption, color: colors.textMuted, marginTop: 4, fontSize: 10 },
   itemBody: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, lineHeight: 18 },

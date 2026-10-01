@@ -424,6 +424,7 @@ const styles = StyleSheet.create({
 
   container: { flex: 1, backgroundColor: "#000" },
   videoArea: { flex: 1, position: "relative" },
+  // 映像の左上に重ねる、状態・残り時間・警告のチップを並べるエリア
   topBar: { position: "absolute", left: spacing.md, top: spacing.md, right: spacing.md, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: spacing.sm, pointerEvents: "none" },
   statusChip: { backgroundColor: "rgba(11,19,43,0.75)", borderRadius: radius.sm, paddingHorizontal: spacing.md, paddingVertical: 4, borderWidth: 1, borderColor: colors.indigoLine },
   statusChipLive: { backgroundColor: colors.aka, borderColor: colors.aka },
@@ -449,6 +450,7 @@ const styles = StyleSheet.create({
   gaugeFill: { height: 8, backgroundColor: colors.goldBright, borderRadius: 4 },
   gaugeFillHolding: { backgroundColor: colors.gold },
   rhythmText: { ...typography.caption, color: colors.textPrimary },
+  // 「構えてください」の案内と、構えの継続時間を示すバーを表示するパネル
   stancePanel: { alignItems: "center", backgroundColor: "rgba(11,19,43,0.8)", borderRadius: radius.md, borderWidth: 1, borderColor: colors.indigoLine, paddingHorizontal: spacing.xl, paddingVertical: spacing.lg, marginHorizontal: spacing.lg },
   stanceTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: "700", textAlign: "center" },
   stanceHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
@@ -461,6 +463,7 @@ const styles = StyleSheet.create({
   durationChipSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
   durationChipText: { ...typography.caption, color: colors.textPrimary, fontWeight: "700" },
   durationChipTextSelected: { color: colors.textOnGold },
+  // 映像の下にある、情報タグ・ゲージ詳細・操作ボタンをまとめた領域
   bottom: { backgroundColor: colors.indigoDeep, borderTopWidth: 1, borderTopColor: colors.indigoLine },
   bottomScroll: { maxHeight: 200 },
   bottomContent: { padding: spacing.md, paddingBottom: spacing.sm },

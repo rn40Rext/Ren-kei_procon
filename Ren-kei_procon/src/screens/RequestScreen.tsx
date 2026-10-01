@@ -75,17 +75,24 @@ type InviteTarget =
   | { kind: 'dummy'; dancer: FreeDancer }
   | { kind: 'challenge'; name: string; meta: string };
 
+/** お誘い先の表示名(サンプル/実データ/チャレンジ経由のいずれでも取れるようにする) */
 function targetDisplayName(t: InviteTarget | null): string {
   if (!t) return '';
   return t.kind === 'dummy' ? t.dancer.name : t.name;
 }
 
+/** お誘い先の補足情報(活動地域・種別など) */
 function targetDisplayMeta(t: InviteTarget | null): string {
   if (!t) return '';
   if (t.kind === 'dummy') return `${t.dancer.area}・${t.dancer.category}・${t.dancer.years}`;
   return t.meta || '踊り手';
 }
 
+/**
+ * リクエスト画面(U-07)。未所属の踊り手を見つけて連に招く「お誘い」機能。
+ * scout(見つける)/sent(送信済み)/received(受信)の3タブ構成。
+ * 実データ(users/invitations)とサンプル(mockRequests)が混在する(data/invitations.ts参照)。
+ */
 export default function RequestScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
   const route = useRoute<RouteProp<RootStackParamList, 'Request'>>();
@@ -154,11 +161,13 @@ export default function RequestScreen() {
     navigation.navigate('Chat', { chatId, recipientName: otherName });
   };
 
+  /** サンプルの踊り手カードから「お誘い」モーダルを開き、定型文を入れておく */
   const openDummyInvite = (d: FreeDancer) => {
     setTarget({ kind: 'dummy', dancer: d });
     setMessage(`${d.name}さん、演舞を拝見しました。うちの連の稽古に一度いらっしゃいませんか。`);
   };
 
+  /** お誘いを送信する。実在ユーザーならFirestoreへ、サンプル相手なら端末内だけに追加する */
   const submitInvite = async () => {
     if (!target || !message.trim() || sending) return;
 
@@ -196,6 +205,7 @@ export default function RequestScreen() {
     setTab('sent');
   };
 
+  /** 受信したお誘いに承諾/辞退で応答する */
   const respond = async (id: string, status: 'accepted' | 'declined') => {
     if (respondingId) return;
     setRespondingId(id);

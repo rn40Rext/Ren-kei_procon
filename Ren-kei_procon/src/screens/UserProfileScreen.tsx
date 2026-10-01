@@ -5,11 +5,13 @@ import { auth } from '../config/firebaseConfig';
 import { colors, spacing, radius, typography } from '../theme';
 import { RenMon } from '../components/motifs';
 
+/** 他の踊り手のプロフィール画面。メッセージ送信・連へのお誘いの起点になる */
 export default function UserProfileScreen({ route, navigation }: any) {
   const { userId, userName } = route.params;
   const currentUser = auth.currentUser;
   const isSelf = currentUser?.uid === userId;
 
+  /** 1対1チャットを開く(chatIdはuidを辞書順に結合して両者で同じIDになるようにする) */
   const startChat = (isScout: boolean) => {
     // チャットID（小さいUID _ 大きいUID）
     const chatId = [currentUser?.uid, userId].sort().join('_');

@@ -6,6 +6,7 @@ import AppMenu from '../components/AppMenu';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { colors, spacing, typography } from '../theme';
 
+/** アプリ設定画面(未実装・プレースホルダー) */
 export default function SettingScreen() {
   const navigation = useNavigation<any>();
   return (

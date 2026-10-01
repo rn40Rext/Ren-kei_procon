@@ -42,6 +42,7 @@ import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
 
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
 
+/** 投稿詳細画面。postIdがあれば実データ、無ければサンプル演舞を表示する */
 export default function VideoDetailScreen({ navigation, route }: any) {
   const postId: string | undefined = route?.params?.postId;
   // 実データ（交流広場の投稿）ならこちら
@@ -52,6 +53,7 @@ export default function VideoDetailScreen({ navigation, route }: any) {
 /* ================================================================== */
 /* 実データ：交流広場の投稿（posts/{postId}）                            */
 /* ================================================================== */
+/** 実データ(posts/{postId})の投稿詳細。コメント・拍手はFirestoreへ反映する */
 function RealPostDetail({ postId, navigation }: { postId: string; navigation: any }) {
   const { width: SCREEN_W } = useWindowDimensions();
   const [post, setPost] = useState<PostDoc | null>(null);
@@ -130,6 +132,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
     }
   };
 
+  /** コメント(門下生の声/師匠の教え)を送信する */
   const onSend = async () => {
     if (!draft.trim() || sending) return;
     setSending(true);
@@ -330,6 +333,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
 /* ================================================================== */
 /* サンプル（ダミーデータ）表示 — 従来どおり                             */
 /* ================================================================== */
+/** サンプル(ダミーデータ)の演舞詳細。見本であることを明示して表示する */
 function SampleDetail({ navigation, route }: any) {
   const { width: SCREEN_W } = useWindowDimensions();
   const enbuId: string | undefined = route?.params?.id;

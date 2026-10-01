@@ -45,6 +45,7 @@ function errorCodeOf(error: unknown): string {
   return "ANALYSIS_FAILED";
 }
 
+/** 連スタイル類似度(AI機能②)の結果画面。FN-02を呼び、結果ドキュメントを購読して待つ */
 export default function StyleResultScreen() {
   const navigation = useNavigation<Navigation>();
   const route = useRoute<Route>();
@@ -56,6 +57,7 @@ export default function StyleResultScreen() {
   const [running, setRunning] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
+  /** スタイル診断をリクエストし、完了まで結果ドキュメントを購読する */
   const start = useCallback(async () => {
     if (!STYLE_SIMILARITY_UI_ENABLED || !uid) return;
     setRunning(true);
@@ -89,6 +91,7 @@ export default function StyleResultScreen() {
     };
   }, [authLoading, start]);
 
+  /** 類似連の詳細へ。特定の連を開いた状態の遷移は未対応なので検索を案内する */
   const openRen = (item: StyleSimilarityItem) => {
     if (!REN_DETAIL_NAVIGATION_ENABLED) {
       Alert.alert(

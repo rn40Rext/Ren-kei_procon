@@ -26,6 +26,7 @@ const PART_OPTIONS: { key: ScorePart; label: string; note: string; Icon: typeof 
   { key: 'whole', label: '全体の調和', note: '上体のぶれ・二拍子との一致', Icon: User },
 ];
 
+/** U-02の前段。踊りの型(男踊り/女踊り)と重点部位を選び、CameraScreenへ渡す */
 export default function AnalysisScreen() {
   const [danceType, setDanceType] = useState<DanceType | null>(null);
   const [scorePart, setScorePart] = useState<ScorePart | null>(null);

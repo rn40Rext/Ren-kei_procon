@@ -63,6 +63,7 @@ function delegateFromQuery(): "CPU" | "GPU" | null {
   return v === "CPU" || v === "GPU" ? v : null;
 }
 
+/** MediaPipe Tasks VisionのPoseLandmarkerをPoseDetectorインタフェースに合わせたラッパー */
 class WebPoseDetector implements PoseDetector {
   private landmarker: PoseLandmarkerType | null = null;
   private lastTs = -1;
@@ -109,8 +110,10 @@ class WebPoseDetector implements PoseDetector {
   }
 }
 
+/** Web向け姿勢推定器を生成する(PoseDetector.tsのネイティブ版と同じシグネチャ) */
 export function createPoseDetector(options: PoseDetectorOptions = {}): PoseDetector {
   return new WebPoseDetector(options);
 }
 
+/** Web版ではリアルタイム姿勢推定に対応している */
 export const POSE_SUPPORTED = true;

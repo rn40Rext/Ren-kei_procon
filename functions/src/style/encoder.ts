@@ -113,6 +113,7 @@ export type StyleEncodeResult = {
   tempoHz: number | null;
 };
 
+/** 姿勢系列から Embedding を作る仕組み1つ分(版・次元数・変換処理) */
 export type StyleEncoder = {
   version: string;
   dim: number;
@@ -265,12 +266,14 @@ export function encodeStyleEmbedding(
   };
 }
 
+/** 現在使っている基本の変換方式 */
 const baselineEncoder: StyleEncoder = {
   version: STYLE_EMBEDDING_VERSION,
   dim: STYLE_EMBEDDING_DIM,
   encode: encodeStyleEmbedding,
 };
 
+/** 版ごとの変換方式の一覧。版を指定して取り出す */
 const ENCODERS: Record<string, StyleEncoder> = {
   [STYLE_EMBEDDING_VERSION]: baselineEncoder,
 };

@@ -1,3 +1,9 @@
+/**
+ * ログイン / 新規アカウント作成画面。メール+パスワードの Firebase Auth を使い、
+ * isRegisterMode でログインと登録を同じフォームで切り替える。
+ * 成功後の画面遷移はここでは行わない(認証状態の変化を拾う側で切り替わる前提)。
+ */
+
 import React, { useState } from "react";
 import {
   StyleSheet, Text, TextInput, TouchableOpacity, View,
@@ -14,13 +20,16 @@ import { IconOdoriko, IconOnnaOdori } from "../components/awaIcons";
 import { colors, spacing, radius, typography } from "../theme";
 import { useWindowDimensions } from "react-native";
 
+/** ログインと新規登録を1つのフォームで切り替えて行う画面 */
 export default function LoginScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
+  // 新規登録モードか(false ならログイン) / 入力中のメールアドレスとパスワード / 処理中か
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 入力チェック → ログイン or 新規登録。登録時は Firebase Auth のあとに users ドキュメントも作る
   const handleSubmit = async () => {
     if (!email || !password) return Alert.alert("エラー", "メールとパスワードを入力してください");
     if (isRegisterMode && password.length < 6) {
@@ -42,6 +51,7 @@ export default function LoginScreen() {
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (error: any) {
+      // 失敗の種類(Firebase のエラーコード)ごとに、分かりやすい日本語の文に置き換える
       let message = isRegisterMode ? "登録に失敗しました。" : "ログインに失敗しました。";
       if (error.code === "auth/email-already-in-use") message = "このメールは既に登録されています。";
       if (error.code === "auth/invalid-email") message = "メールの形式が正しくありません。";
@@ -59,8 +69,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.container}
     >
+      {/* 画面上部に吊るす提灯の飾り */}
       <ChochinGarland width={SCREEN_W} count={7} height={44} style={styles.garland} />
       <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false}>
+        {/* ロゴ・波の飾り・踊り手のアイコン・画面名(ログイン/新規アカウント作成)・説明 */}
         <View style={styles.logoContainer}>
           <RenKeiWordmark size={40} style={{ marginBottom: 12 }} />
           <SeigaihaBand width={140} height={12} color={colors.gold} opacity={0.5} />
@@ -72,6 +84,7 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>阿波踊り 練習支援プラットフォーム</Text>
         </View>
 
+        {/* 入力フォーム: メールアドレス・パスワードと送信ボタン */}
         <View style={styles.form}>
           <Text style={styles.label}>メールアドレス</Text>
           <TextInput
@@ -102,6 +115,7 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
+          {/* ログインと新規登録を切り替えるリンク */}
           <TouchableOpacity onPress={() => setIsRegisterMode(!isRegisterMode)} style={styles.switchBtn}>
             <Text style={styles.switchText}>
               {isRegisterMode ? "すでにアカウントをお持ちの方はこちら" : "まだアカウントをお持ちでない方はこちら"}
@@ -114,15 +128,21 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 画面全体の背景と、上端に重ねる提灯の飾り
   container: { flex: 1, backgroundColor: colors.indigoDeep },
   garland: { position: "absolute", top: 0, left: 0, right: 0 },
+  // フォームを画面の縦中央に置くスクロール部分
   inner: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
+  // ロゴ・キャッチコピーをまとめて画面上部中央に表示するエリア
   logoContainer: { alignItems: "center", marginBottom: spacing.xxl },
+  // 踊り手のアイコンの並び・画面名・説明文
   danceRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.md },
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.lg },
   subtitle: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  // 入力フォーム(横幅いっぱい)と入力欄の見出し(金色)
   form: { width: "100%" },
   label: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
+  // メールアドレス・パスワードの入力欄
   input: {
     height: 52,
     backgroundColor: colors.indigoRaised,
@@ -135,6 +155,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     fontSize: 15,
   },
+  // 送信ボタン(金色)と、ログイン/新規登録の切り替えリンク
   submitBtn: {
     height: 52,
     backgroundColor: colors.gold,

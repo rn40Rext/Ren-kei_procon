@@ -2,12 +2,14 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {requireAuth, requireRenAdmin} from "../lib/guards";
 
+/** お知らせ作成で送られるリクエストの中身 */
 interface CreateAnnouncementRequest {
   renId: string;
   title: string;
   content: string;
 }
 
+/** 1回のバッチ書き込みで作る通知の上限(Firestore の制限) */
 const NOTIFICATION_BATCH_SIZE = 500;
 
 /**

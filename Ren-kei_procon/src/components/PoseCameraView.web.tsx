@@ -15,8 +15,10 @@ import { MIN_VISIBILITY } from "../features/pose/normalize";
 import { colors } from "../theme";
 import type { PoseCameraViewProps } from "./PoseCameraView";
 
+/** この端末でリアルタイム判定ができるか(Web版は true) */
 export const POSE_CAMERA_SUPPORTED = true;
 
+/** 映像の入力元。camera=カメラ、file=保存済みの動画ファイル */
 type Mode = "camera" | "file";
 
 /** play() の拒否・中断(AbortError / NotAllowedError)を例外にしない。 */
@@ -28,6 +30,7 @@ async function playQuietly(video: HTMLVideoElement): Promise<void> {
   }
 }
 
+/** MediaRecorderで使える動画MIMEタイプをブラウザ対応状況から選ぶ(非対応ならrecordingなし) */
 function pickMimeType(): string {
   const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
   const MR = (globalThis as { MediaRecorder?: typeof MediaRecorder }).MediaRecorder;
@@ -35,6 +38,7 @@ function pickMimeType(): string {
   return candidates.find((c) => MR.isTypeSupported(c)) ?? "";
 }
 
+/** カメラ映像(またはファイル再生)を<video>に出し、骨格を<canvas>に重ねるWeb実装の本体 */
 export default function PoseCameraView({ onSource, onEnded, showSkeleton = true, allowFile = true, style }: PoseCameraViewProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -47,6 +51,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [mirror, setMirror] = useState(true);
 
+  /** 骨格オーバーレイをcanvasへ描く。主人物以外は薄く描く */
   const draw = useCallback(
     (primary: Landmark[] | null, allPoses: Landmark[][]) => {
       const canvas = canvasRef.current;
@@ -72,6 +77,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
     [showSkeleton]
   );
 
+  /** 今のmode(camera/file)に応じたLiveVideoSourceを組み立てる */
   const buildSource = useCallback((): LiveVideoSource | null => {
     const video = videoRef.current;
     if (!video) return null;
@@ -203,8 +209,10 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
     };
   }, [mode, buildSource, onSource]);
 
+  /** 「動画ファイルで試す」ボタン。隠しinput[type=file]のダイアログを開く */
   const openFile = useCallback(() => fileInputRef.current?.click(), []);
 
+  /** ファイルが選ばれたら保存済み動画モードへ切り替える */
   const onFileChosen = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -250,6 +258,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
     [buildSource]
   );
 
+  /** 動画ファイルモードからカメラモードへ戻す */
   const backToCamera = useCallback(() => {
     const video = videoRef.current;
     if (video) {
@@ -302,6 +311,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
   );
 }
 
+/** <video>と<canvas>を同じ位置・大きさで重ねるための共通スタイル */
 const domFill: React.CSSProperties = {
   position: "absolute",
   left: 0,
@@ -310,6 +320,7 @@ const domFill: React.CSSProperties = {
   height: "100%",
 };
 
+/** 1人分の骨格(線・関節点)をcanvasに描く。可視性の低いランドマークは描かない */
 function drawPose(ctx: CanvasRenderingContext2D, pose: Landmark[], w: number, h: number, line: string, dot: string) {
   ctx.lineWidth = 3;
   ctx.strokeStyle = line;
@@ -335,7 +346,9 @@ function drawPose(ctx: CanvasRenderingContext2D, pose: Landmark[], w: number, h:
 }
 
 const styles = StyleSheet.create({
+  // 黒背景で画面いっぱいに映像を出す。はみ出した部分は隠す
   container: { flex: 1, backgroundColor: "#000", overflow: "hidden" },
+  // カメラを開けなかったときに画面上部に出す朱色の枠のエラー表示
   errorBox: {
     position: "absolute",
     left: 12,
@@ -348,6 +361,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   errorText: { color: colors.textPrimary, fontSize: 13, lineHeight: 19 },
+  // 左下の「動画ファイルで試す/カメラに戻す」ボタン(半透明の黒)
   fileRow: { position: "absolute", left: 12, bottom: 12, flexDirection: "row" },
   fileButton: {
     backgroundColor: "rgba(0,0,0,0.55)",

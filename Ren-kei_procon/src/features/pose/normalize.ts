@@ -21,12 +21,14 @@ export function center(a: Landmark, b: Landmark): Landmark {
   };
 }
 
+/** 指定indexのランドマークを取る。座標が不正(NaN等)ならnull */
 function lm(f: PoseFrame, idx: number): Landmark | null {
   const p = f.landmarks[idx];
   if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return null;
   return p;
 }
 
+/** 渡した点がすべて非null・MIN_VISIBILITY以上か */
 function visible(...points: (Landmark | null)[]): boolean {
   return points.every((p) => p !== null && p.visibility >= MIN_VISIBILITY);
 }

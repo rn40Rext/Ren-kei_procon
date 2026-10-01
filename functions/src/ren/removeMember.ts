@@ -4,6 +4,7 @@ import {requireAuth, requireRenAdmin} from "../lib/guards";
 import {ErrorCode, httpsErrorFor} from "../lib/errors";
 import {notifyUser} from "../lib/notifications";
 
+/** メンバーの除名で送られるリクエストの中身 */
 interface RemoveMemberRequest {
   renId: string;
   uid: string;

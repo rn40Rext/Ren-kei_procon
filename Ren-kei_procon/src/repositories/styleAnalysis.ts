@@ -22,6 +22,7 @@ import type {
   StyleSimilarityItem,
 } from "../types/style";
 
+/** スタイル診断の結果を保存するコレクション名 */
 const COLLECTION = "styleAnalysisResults";
 
 /** Firestore のドキュメントをアプリ側の型へ変換する */

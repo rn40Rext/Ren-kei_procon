@@ -5,9 +5,13 @@
  * (仕様書 7.9 のフィールド + 複合条件・左右・男女差の拡張)。
  */
 
+/** ルール1つの判定の状態(準備できていない→待機→成立を保持中→成功/失敗) */
 export type RuleState = "NOT_READY" | "READY" | "HOLDING" | "SUCCESS" | "MISS";
+/** 判定の評価(よくできた/できた/できなかった) */
 export type Grade = "GREAT" | "GOOD" | "MISS";
+/** 体の左右 */
 export type Side = "left" | "right";
+/** 踊りの種類(男踊り/女踊り) */
 export type DanceType = "male" | "female";
 /** 採点する部位(U-02 前段で選ぶ)。どのルールを評価するかを決める */
 export type ScorePart = "feet" | "hands" | "whole";
@@ -44,6 +48,7 @@ export type RuleCondition = {
   idealMaxValue?: number;
 };
 
+/** 判定ルール1件分。閾値・保持時間・対象の部位や左右・表示するメッセージを持つ */
 export type RuleDefinition = RuleCondition & {
   /** 例: 'HAND_ABOVE_HEAD' */
   ruleId: string;
@@ -83,6 +88,7 @@ export type RuleDefinition = RuleCondition & {
   version: string;
 };
 
+/** ルールが判定を出した瞬間の記録(GREAT/GOOD/MISS とその時の値) */
 export type RuleEvent = {
   ruleId: string;
   grade: Grade;

@@ -29,8 +29,10 @@ export const ErrorCode = {
   INVALID_ARGUMENT: "INVALID_ARGUMENT",
 } as const;
 
+/** エラーコードの型(上の一覧のどれか) */
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
+/** エラーコードごとに、Callable Functions の標準エラー種別へ対応づける */
 const HTTPS_ERROR_CODE: Record<ErrorCode, FunctionsErrorCode> = {
   UNAUTHORIZED: "unauthenticated",
   FORBIDDEN: "permission-denied",

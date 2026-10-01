@@ -68,8 +68,10 @@ import { formatAiScore } from '../features/analysis/format';
 /* ------------------------------------------------------------------ */
 /* 華やか演出：再生ボタンの波紋 / 動く火の粉 / ヒーローの光 / 押下演出 */
 /* ------------------------------------------------------------------ */
+/** アニメーションをネイティブ側で動かせるか(Webでは使えないので false) */
 const ANIM_NATIVE = Platform.OS !== 'web';
 
+/** 再生ボタンの周りに広がる波紋アニメーション */
 function PulsePlay({ children }: { children: React.ReactNode }) {
   const p = useRef(new Animated.Value(0)).current;
 
@@ -83,11 +85,6 @@ function PulsePlay({ children }: { children: React.ReactNode }) {
       }),
     );
     loop.start();
-    // ============================================================
-    // Home画面のUI
-    // 上から「ヘッダー → 投稿 → カウントダウン → フィード → モーダル」
-    // の順に構成している。
-    // ============================================================
     return () => loop.stop();
   }, [p]);
 
@@ -104,6 +101,7 @@ function PulsePlay({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** 火の粉1粒の設定(横位置・大きさ・動く時間・開始の遅れ・横への流れ・動く高さ・色) */
 type SparkProps = {
   x: number;
   size: number;
@@ -114,6 +112,7 @@ type SparkProps = {
   color: string;
 };
 
+/** 火の粉1粒ぶんのアニメーション(下から上へ漂いながらフェード) */
 function Spark({ x, size, dur, delay, drift, height, color }: SparkProps) {
   const v = useRef(new Animated.Value(0)).current;
 
@@ -168,6 +167,7 @@ function Spark({ x, size, dur, delay, drift, height, color }: SparkProps) {
   );
 }
 
+/** Sparkを複数ランダム配置して重ねる背景レイヤー */
 function SparkLayer({ count = 10 }: { count?: number }) {
   const { width, height } = useWindowDimensions();
 
@@ -194,6 +194,7 @@ function SparkLayer({ count = 10 }: { count?: number }) {
   );
 }
 
+/** ヒーロー画像の下端を背景色へグラデーションで馴染ませる */
 function HeroFade({ height = 84 }: { height?: number }) {
   return (
     <LinearGradient
@@ -204,6 +205,7 @@ function HeroFade({ height = 84 }: { height?: number }) {
   );
 }
 
+/** 斜めの光が時々スッと走る演出(再生ボタン周り) */
 function ShineSweep() {
   const x = useRef(new Animated.Value(-1)).current;
 
@@ -270,7 +272,6 @@ type HeroLike = {
   title: string;
 };
 
-/** ヒーロー画像／動画に重ねる帯（見出し・カウントダウン・再生マーク・題）。 */
 /**
  * 動画の上には再生ボタンだけを重ねる(文字を動画に重ねないでほしいという
  * フィードバックを受け、見出し・タグ・題名などは動画の下(renderHeroInfo)に
@@ -284,6 +285,7 @@ function renderHeroVideoOverlay() {
   );
 }
 
+/** 動画の下に出す情報: 見出し(あなたの直近の投稿/見本)・本番までの日数・種類と極め度と投稿時期のバッジ・所属・題名 */
 function renderHeroInfo(hero: HeroLike, festivalDays: number) {
   return (
     <>
@@ -318,9 +320,18 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
 
 // ============================================================
 // Home画面
+// 上から「ヘッダー → 投稿バー → ヒーロー(直近の投稿＋本番カウントダウン)
+// → 先輩からのチャレンジ → 連の広場(交流フィード)」の順に並べ、
+// 最後に投稿モーダルを置いている。
 // ============================================================
+/** この画面が受け取る値(画面遷移と、稽古手帳から渡される動画IDなど)の型 */
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+/**
+ * ホーム画面(U-01)。交流広場を兼ねる(旧CommunityScreenはここに統合済み)。
+ * 自分の最新投稿(実データがあればそれ、無ければサンプル)をヒーローに、
+ * その下に交流フィード(実データ+サンプル)を出す。投稿モーダルもここで持つ。
+ */
 export default function HomeScreen({ navigation, route }: Props) {
   // 画面幅に合わせてヒーロー画像の高さを調整。
   // スマホの縦横比が変わってもレイアウトが崩れにくいようにする。
@@ -330,7 +341,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   const [feedTag, setFeedTag] = useState(feedTags[0]);
   const [search, setSearch] = useState('');
 
-  // スクロール量を使って、ヘッダーなどの演出を制御するための値
+  // スクロール量を使って、ヘッダーなどの演出を制御するための値、演出には今は使っていない
   const scrollY = useRef(new Animated.Value(0)).current;
   // 阿波おどり本番までの日数。初回表示時に一度だけ計算する。
   const festivalDays = useMemo(() => daysToFestival(), []);
@@ -402,16 +413,18 @@ export default function HomeScreen({ navigation, route }: Props) {
 
   const uid = auth.currentUser?.uid;
 
+  // 未読通知の数をリアルタイム購読する(ヘッダーのベルに数字を出す)
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
     if (!uid) return;
     return subscribeUnreadNotificationCount(uid, setUnreadCount, () => undefined);
   }, [uid]);
 
+  // 見本の演舞・実際の投稿の詳細画面を開く
   const openEnbu = (id: string) => navigation.navigate('VideoDetail', { id });
   const openPost = (postId: string) => navigation.navigate('VideoDetail', { postId });
 
-  // 自分が投稿した演舞（新しい順）。実データの投稿があればそれを最優先で主役に据える。
+  // 自分が投稿した演舞（main=ture）。実データの投稿があればそれを最優先で主役に据える。
   const mine = useMemo(() => feed.filter((p) => p.mine), [feed]);
   const myRealPosts = useMemo(
     () => realPosts.filter((p) => p.userId && p.userId === uid),
@@ -445,6 +458,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedRealPosts]);
 
+  /** フィード上の拍手(いいね)ボタン。楽観的にアイコンを切り替え、失敗したら戻す */
   const onFeedClap = async (postId: string) => {
     if (clapBusyId) return;
     const currentlyLiked = !!likedMap[postId];
@@ -489,6 +503,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     [myRealPosts, realHero, otherMine],
   );
 
+  // ヒーローに出す内容。自分の実際の投稿があればそれ、なければ見本の投稿、どちらもなければ null
   const hero = realHero
     ? {
       kind: 'real' as const,
@@ -521,6 +536,7 @@ export default function HomeScreen({ navigation, route }: Props) {
       }
       : null;
 
+  // 見本のフィードを、選んだタグと検索キーワード(題名・踊り手・連)で絞り込む
   const visibleFeed = useMemo(() => {
     return feed.filter((p) => {
       const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
@@ -542,6 +558,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     });
   }, [feedRealPosts, feedTag, search]);
 
+  /** 投稿フォームの入力内容を空に戻す */
   const resetDraft = () => {
     setDraftTitle('');
     setDraftDesc('');
@@ -550,6 +567,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     setExistingVideoId(null);
   };
 
+  /** 投稿モーダルの「ライブラリから選ぶ」。写真ライブラリから動画を選ぶ */
   const pickVideo = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -597,6 +615,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     setRecording(false);
   };
 
+  /** 投稿モーダルの送信。動画があれば実投稿、無ければローカルのサンプルフィードに足すだけ */
   const submitPost = async () => {
     if (!draftTitle.trim() || submitting) return;
 
@@ -661,11 +680,13 @@ export default function HomeScreen({ navigation, route }: Props) {
     setFeedTag(feedTags[0]);
   };
 
+  /** 投稿フォームのタグを付け外しする */
   const toggleDraftTag = (t: string) =>
     setDraftTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* 画面全体に漂う火の粉と、上部に吊るす提灯の飾り */}
       <View style={styles.globalAtmosphere} pointerEvents="none">
         <SparkLayer count={14} />
       </View>
@@ -675,6 +696,7 @@ export default function HomeScreen({ navigation, route }: Props) {
 
       {/* ヘッダー：藍染めの暖簾風。アプリ銘を中央に */}
       <View style={styles.header}>
+        {/* 通知ベル。未読があれば右上に件数を出す。タップで通知一覧へ */}
         <TouchableOpacity
           style={styles.headerSide}
           onPress={() => navigation.navigate('Notifications')}
@@ -688,6 +710,7 @@ export default function HomeScreen({ navigation, route }: Props) {
             </View>
           ) : null}
         </TouchableOpacity>
+        {/* 中央のロゴと副題 */}
         <View style={styles.headerCenter}>
           <RenKeiWordmark size={21} />
           <Text style={styles.logoSub}>稽古と交流の広場</Text>
@@ -744,6 +767,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               )}
             </TouchableOpacity>
 
+            {/* ヒーローの下側: 投稿の情報・説明・演舞尺/拍手/声の数 */}
             <View style={styles.heroBody}>
               {renderHeroInfo(hero, festivalDays)}
               {hero.description ? (
@@ -757,6 +781,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   { label: '門下生の声', value: `${hero.comments}` },
                 ]}
               />
+              {/* 「手本と並べて撮り直す」ボタン(自主稽古の画面へ) */}
               <TouchableOpacity
                 style={styles.syncBtn}
                 onPress={() => navigation.navigate('Scoring')}
@@ -766,6 +791,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <Text style={styles.syncBtnText}>　手本と並べて撮り直す</Text>
               </TouchableOpacity>
 
+              {/* ヒーロー以外の自分の投稿を横スクロールで並べる */}
               {otherMineItems.length > 0 ? (
                 <>
                   <Text style={styles.otherMineLabel}>ほかのあなたの投稿</Text>
@@ -802,6 +828,7 @@ export default function HomeScreen({ navigation, route }: Props) {
             </View>
           </View>
         ) : (
+          // まだ投稿がないときは、投稿をうながすカードを出す(タップで投稿フォームを開く)
           <TouchableOpacity style={styles.emptyHero} activeOpacity={0.9} onPress={() => setPosting(true)}>
             <View style={styles.heroEyebrowRow}>
               <KumihimoRule width={18} />
@@ -851,10 +878,12 @@ export default function HomeScreen({ navigation, route }: Props) {
                     </View>
                   </View>
                 </ImageBackground>
+                {/* 写真の下端に添える飾り(点と線) */}
                 <View style={styles.masterAccent} pointerEvents="none">
                   <View style={styles.masterAccentDot} />
                   <View style={styles.masterAccentLine} />
                 </View>
+                {/* お題の題名・出題者・「コツを見る・挑戦する」 */}
                 <View style={styles.masterBody}>
                   <Text style={styles.masterName} numberOfLines={2}>{c.title}</Text>
                   <View style={styles.chPoster}>
@@ -873,6 +902,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           })}
         </ScrollView>
 
+        {/* チャレンジとフィードの間の区切り(提灯と飾り罫) */}
         <View style={styles.dividerWrap}>
           <ChochinGarland width={SCREEN_W} count={5} height={40} sag={10} />
           <AwaDivider width={SCREEN_W} style={{ marginTop: spacing.sm }} />
@@ -880,11 +910,13 @@ export default function HomeScreen({ navigation, route }: Props) {
 
         {/* 交流フィード（旧コミュニティを統合）— 青海波を敷く */}
         <SeigaihaBand width={SCREEN_W} height={16} color={colors.gold} opacity={0.28} style={styles.feedWave} />
+        {/* 舞台の幕のような飾り線 */}
         <View style={styles.feedStageTop} pointerEvents="none">
           <Text style={styles.stageSparkLeft}>✦</Text>
           <View style={styles.stageRule} />
           <Text style={styles.stageSparkRight}>✦</Text>
         </View>
+        {/* フィードの見出し */}
         <View style={styles.feedHead}>
           <View style={styles.feedCategoryRow}>
             <IconWagasa size={13} color={colors.gold} />
@@ -893,6 +925,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           <Text style={styles.feedTitle}>みんなの演舞と門下生の声</Text>
         </View>
 
+        {/* フィードの検索欄 */}
         <View style={styles.searchWrap}>
           <View style={styles.searchBar}>
             <IconUchiwa size={16} color={colors.textMuted} />
@@ -906,6 +939,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           </View>
         </View>
 
+        {/* フィードのタグの絞り込みチップ(横スクロール) */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -928,6 +962,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   activeOpacity={0.85}
                   onPress={() => openPost(p.id)}
                 >
+                  {/* 左: 動画のサムネイルと、種類のアイコン・極め度の小さな表示 */}
                   <View style={styles.feedThumb}>
                     {p.videoUrl ? (
                       <RenkeiVideo uri={p.videoUrl} style={styles.feedThumbVideo} contentFit="cover" muted />
@@ -941,6 +976,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                       </Text>
                     </View >
                   </View >
+                  {/* 右: 題名・投稿者(自分なら「あなた」)・タグ・拍手とコメントの数 */}
                   <View style={styles.feedBody}>
                     <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
                     <View style={styles.feedAuthorRow}>
@@ -954,6 +990,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                     {p.tags.length > 0 ? (
                       <Text style={styles.feedTags} numberOfLines={1}>{p.tags.join('  ')}</Text>
                     ) : null}
+                    {/* 拍手ボタン(押すと朱色になり、金色の星が弾ける)とコメントの数 */}
                     <View style={styles.feedStats}>
                       <TouchableOpacity
                         style={styles.feedClapBtn}
@@ -983,12 +1020,14 @@ export default function HomeScreen({ navigation, route }: Props) {
             </>
           ) : null}
 
+          {/* ここから下は見本であることを示す区切り */}
           <View style={styles.sampleDivider}>
             <KumihimoRule width={16} />
             <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
           </View>
 
           {
+            // 見本のフィード。条件に合うものがなければ案内文を出す
             visibleFeed.length === 0 ? (
               <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>
             ) : (
@@ -1058,6 +1097,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <X size={20} color={colors.gold} />
               </TouchableOpacity>
             </View>
+            {/* 動画を選んでいればその動画(タップで選び直す)、なければ「今すぐ撮る」「ライブラリから選ぶ」 */}
             {videoUri ? (
               <TouchableOpacity
                 style={styles.modalPicker}
@@ -1092,6 +1132,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 </TouchableOpacity>
               </View>
             )}
+            {/* 動画を選ばない場合は見本として保存される旨の案内と、撮り直すリンク */}
             <Text style={styles.modalPickerHint}>
               初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。選ばない場合は見本として保存されます。
             </Text>
@@ -1100,6 +1141,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <Text style={styles.reRecordText}>撮り直す</Text>
               </TouchableOpacity>
             ) : null}
+            {/* 題名(必須)・概要・タグの入力 */}
             <Text style={styles.modalLabel}>演舞の題</Text>
             <TextInput
               style={styles.modalInput}
@@ -1118,6 +1160,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               multiline
             />
             <Text style={styles.modalLabel}>調子・型のしるし</Text>
+            {/* タグのチップ(押すたびに付け外し) */}
             <View style={styles.modalTagWrap}>
               {POST_TAG_OPTIONS.map((t) => (
                 <Chip
@@ -1129,6 +1172,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 />
               ))}
             </View>
+            {/* 送信ボタン。動画があれば広場へ公開、なければ見本として保存。題名が空か送信中は押せない */}
             <TouchableOpacity
               style={[styles.modalSubmit, (!draftTitle.trim() || submitting) && styles.modalSubmitDisabled]}
               onPress={submitPost}
@@ -1163,6 +1207,7 @@ export default function HomeScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
 
   /* --- 華やか演出 --- */
+  // 画面全体に重ねる火の粉のレイヤー(操作の邪魔をしないよう一番下で、少し薄くする)
   globalAtmosphere: {
     ...{
       position: 'absolute',
@@ -1174,9 +1219,11 @@ const styles = StyleSheet.create({
     zIndex: 0,
     opacity: 0.75,
   },
+  // 上部の提灯の飾りを、火の粉より手前に出す
   garlandMotion: {
     zIndex: 2,
   },
+  // 再生ボタン(金色の丸)と、そのまわりに広がる波紋の輪
   playWrap: {
     width: 58,
     height: 58,
@@ -1199,6 +1246,7 @@ const styles = StyleSheet.create({
     borderColor: colors.goldBright,
     backgroundColor: 'transparent',
   },
+  // ヒーロー画像の上に重ねる光の演出のレイヤー(はみ出した光は隠す)
   heroLightLayer: {
     ...{
       position: 'absolute',
@@ -1209,6 +1257,7 @@ const styles = StyleSheet.create({
     },
     overflow: 'hidden',
   },
+  // 斜めに走る光の帯
   shine: {
     position: 'absolute',
     top: -100,
@@ -1216,6 +1265,7 @@ const styles = StyleSheet.create({
     width: 70,
     backgroundColor: 'rgba(255,239,170,0.10)',
   },
+  // チャレンジカードの写真下端に添える飾り(点と線)
   masterAccent: {
     position: 'absolute',
     top: 112,
@@ -1238,6 +1288,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gold,
     opacity: 0.55,
   },
+  // フィード見出しの上の飾り線(左右に星)
   feedStageTop: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1261,6 +1312,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginLeft: spacing.sm,
   },
+  // 拍手したときに弾ける金色の星(3つを少しずつずらして飛ばす)
   clapBurst: {
     position: 'absolute',
     left: 6,
@@ -1289,6 +1341,7 @@ const styles = StyleSheet.create({
 
   container: { flex: 1, backgroundColor: colors.indigoDeep },
 
+  // 画面最上部のヘッダー。通知ベル・ロゴ・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1296,6 +1349,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  // ヘッダー左のベルの置き場と、未読数のバッジ(朱色の丸)
   headerSide: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   bellBadge: {
     position: 'absolute',
@@ -1310,8 +1364,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bellBadgeText: { fontSize: 9, fontWeight: '700', color: colors.textOnAka },
+  // ヘッダー中央のロゴと、その下の暖簾の飾り
   headerCenter: { flex: 1, alignItems: 'center' },
   noren: { backgroundColor: colors.indigoDeep },
+  // 「演舞を披露する」の金色の帯ボタン
   postBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1322,6 +1378,7 @@ const styles = StyleSheet.create({
   postBarText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
   logoSub: { ...typography.caption, color: colors.textMuted, fontSize: 9, marginTop: 3 },
 
+  // 「阿波おどり本番まで あと◯日」のチップ
   countdownChip: {
     backgroundColor: colors.akaDeep,
     paddingHorizontal: spacing.sm,
@@ -1331,14 +1388,18 @@ const styles = StyleSheet.create({
   countdownText: { ...typography.metric, color: colors.kinari, fontSize: 10 },
   feedWave: { marginTop: spacing.xs },
 
+  // 上部の提灯の飾りの背景
   topGarland: { backgroundColor: colors.indigoDeep },
 
+  // スクロール部分の下の余白と、区切りの上下の余白
   scrollContent: { paddingBottom: spacing.xl },
   divider: { marginTop: spacing.xxl, marginBottom: spacing.xs },
   dividerWrap: { marginTop: spacing.xxl, marginBottom: spacing.xs },
   sectionAfterDivider: { marginTop: spacing.md },
 
+  // 画面上部の大きな「ヒーロー」エリア(自分の最新投稿を大きく見せる)
   hero: { borderBottomWidth: 1, borderBottomColor: colors.indigoLine },
+  // ヒーローの動画・画像の枠と、その上の再生ボタンの置き場
   heroImageWrap: { overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },
   heroVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.indigo },
@@ -1346,6 +1407,7 @@ const styles = StyleSheet.create({
   // 動画に重ねず、下のheroBody(renderHeroInfo)に表示する。
   heroImgGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   heroGarland: { position: 'absolute', top: 0, left: 0, right: 0 },
+  // ヒーローの情報: 見出しの行・本番までの日数の行・バッジの行・所属・題名
   heroTopEyebrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1366,9 +1428,11 @@ const styles = StyleSheet.create({
   heroName: { ...typography.titleSerif, color: colors.textPrimary, fontSize: 20 },
   heroRole: { ...typography.body, color: colors.goldBright },
 
+  // ヒーローの下側の余白と、説明文・数字の枠
   heroBody: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.lg },
   heroDesc: { ...typography.body, color: colors.textSecondary },
   heroMetrics: { marginTop: spacing.md },
+  // 「手本と並べて撮り直す」ボタン(枠線)
   syncBtn: {
     height: 44,
     flexDirection: 'row',
@@ -1382,6 +1446,7 @@ const styles = StyleSheet.create({
   },
   syncBtnText: { ...typography.button, color: colors.textPrimary, fontWeight: '400' },
 
+  // 「ほかのあなたの投稿」の見出しと、横に並べる小さなカード(サムネイル・題名・情報)
   otherMineLabel: { ...typography.sectionLabel, color: colors.gold, marginTop: spacing.xl, marginBottom: spacing.sm },
   otherMineRow: { paddingRight: spacing.lg },
   otherMineCard: { width: 128, marginRight: spacing.md },
@@ -1390,6 +1455,7 @@ const styles = StyleSheet.create({
   otherMineTitle: { ...typography.caption, color: colors.textPrimary, fontWeight: '700', marginTop: spacing.sm },
   otherMineMeta: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 2 },
 
+  // まだ投稿がないときのカード(中央に案内文と金色のボタン)
   emptyHero: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.lg,
@@ -1413,6 +1479,7 @@ const styles = StyleSheet.create({
   },
   emptyHeroBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 13 },
 
+  // 「先輩からのチャレンジ」の横スクロールと、1件分のカード
   masterScroll: { paddingLeft: spacing.lg, paddingRight: spacing.sm, paddingBottom: spacing.xs },
   masterCard: {
     width: 236,
@@ -1425,6 +1492,7 @@ const styles = StyleSheet.create({
   },
   masterThumb: { width: '100%', height: 128, justifyContent: 'flex-start' },
   masterThumbScrim: { padding: spacing.sm },
+  // 写真に重ねる難易度のチップと「チャレンジ」のバッジ(朱色)
   catChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1446,13 +1514,16 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   chBadgeText: { ...typography.caption, color: colors.textOnAka, fontSize: 9, fontWeight: '700', letterSpacing: 1 },
+  // 出題者の行(頭文字の紋・名前と役職)
   chPoster: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm, minHeight: 22 },
   chPosterInitial: { ...typography.caption, color: colors.gold, fontSize: 8, fontWeight: '700' },
   chPosterText: { ...typography.caption, color: colors.textMuted, flex: 1 },
+  // カード下側の題名など
   masterBody: { padding: spacing.md },
   masterName: { ...typography.bodyStrong, color: colors.textPrimary, minHeight: 36 },
   masterRen: { ...typography.caption, color: colors.gold, marginTop: 2 },
   masterDesc: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm, minHeight: 32 },
+  // 「コツを見る・挑戦する」の小さなボタン
   playSmallBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1466,11 +1537,13 @@ const styles = StyleSheet.create({
   playSmallText: { ...typography.caption, color: colors.gold, marginLeft: 6 },
 
   /* --- 交流フィード --- */
+  // フィードの見出し(「連の広場」と題)
   feedHead: { paddingHorizontal: spacing.lg, marginTop: spacing.md, marginBottom: spacing.md },
   feedCategoryRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
   feedCategory: { ...typography.sectionLabel, color: colors.gold },
   feedTitle: { ...typography.headingSerif, color: colors.textPrimary },
 
+  // フィードの検索欄
   searchWrap: { paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   searchBar: {
     flexDirection: 'row',
@@ -1484,10 +1557,13 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, marginLeft: spacing.sm, color: colors.textPrimary, ...typography.body },
 
+  // タグの絞り込みチップの並び
   feedTagRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
 
+  // フィードの一覧と、0件のときの案内文
   feedList: { paddingHorizontal: spacing.lg },
   emptyText: { ...typography.caption, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl },
+  // フィード1件分のカード(左にサムネイル、右に情報)
   feedCard: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,
@@ -1497,10 +1573,12 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
+  // サムネイルの枠と動画、「ここから下は見本」の区切り
   feedThumb: { width: 92, height: 92, backgroundColor: colors.indigoRaised, justifyContent: 'flex-end', borderRadius: radius.sm, overflow: 'hidden' },
   feedThumbVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   sampleDivider: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: spacing.md },
   sampleDividerText: { ...typography.caption, color: colors.textMuted },
+  // サムネイルに重ねる種類のアイコン(左上)と極め度(左下)
   feedCatMark: {
     position: 'absolute',
     top: 4,
@@ -1520,6 +1598,7 @@ const styles = StyleSheet.create({
     margin: 4,
   },
   feedKimeText: { ...typography.caption, color: colors.goldBright, fontSize: 9, fontWeight: '700' },
+  // カード右側: 題名・投稿者の行・タグ・拍手とコメントの数(拍手済みは朱色)
   feedBody: { flex: 1, marginLeft: spacing.md },
   feedCardTitle: { ...typography.bodyStrong, color: colors.textPrimary },
   feedAuthorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
@@ -1532,7 +1611,7 @@ const styles = StyleSheet.create({
   feedStatTextActive: { color: colors.aka, fontWeight: '700' },
   feedTime: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
 
-  /* --- 投稿モーダル --- */
+  /* --- 投稿モーダル ：動画があれば Firestore/Storage へ公開、無ければ見本としてローカルに保存　--- */
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,19,43,0.7)' },
   modalCard: {
     backgroundColor: colors.indigoDeep,
@@ -1545,6 +1624,7 @@ const styles = StyleSheet.create({
   },
   modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
+  // 選んだ動画の表示枠と「動画を選び直す」の表示、選ばないときの案内文
   modalPicker: {
     height: 120,
     borderRadius: radius.sm,
@@ -1569,6 +1649,7 @@ const styles = StyleSheet.create({
   },
   modalPickerText: { ...typography.caption, color: colors.gold, marginTop: spacing.sm },
   modalPickerHint: { ...typography.caption, color: colors.textMuted, fontSize: 10, lineHeight: 15, marginBottom: spacing.md },
+  // 「今すぐ撮る」「ライブラリから選ぶ」のボタン(金色の枠)と「撮り直す」のリンク
   pickRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   pickBtn: {
     flex: 1,
@@ -1583,6 +1664,7 @@ const styles = StyleSheet.create({
   },
   pickBtnText: { ...typography.caption, color: colors.gold, marginTop: spacing.xs, fontSize: 12 },
   reRecordText: { ...typography.caption, color: colors.gold, textAlign: 'center', marginBottom: spacing.sm, textDecorationLine: 'underline' },
+  // 入力欄(概要は複数行)と見出し(金色)
   modalTextarea: { minHeight: 64, textAlignVertical: 'top' },
   modalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, marginTop: spacing.sm },
   modalInput: {
@@ -1594,6 +1676,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     ...typography.body,
   },
+  // タグのチップの並びと、送信ボタン(金色。押せないときは薄くする)
   modalTagWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   modalSubmit: {
     backgroundColor: colors.gold,

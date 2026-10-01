@@ -4,6 +4,7 @@ import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {getStorage} from "firebase-admin/storage";
 import {requireAuth, requireRenAdmin} from "../lib/guards";
 
+/** 連アイコンの更新で送られるリクエストの中身 */
 interface UpdateRenIconRequest {
   renId: string;
   tempPath: string;

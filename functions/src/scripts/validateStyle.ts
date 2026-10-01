@@ -32,6 +32,7 @@ import {
 } from "../style/pose";
 import {cosineSimilarity, meanEmbedding} from "../style/vector";
 
+/** コマンドライン引数(--名前=値)を名前→値で持つ */
 type Args = Record<string, string>;
 
 /**
@@ -78,6 +79,7 @@ function load(path: string): PoseSeries {
   return parsePoseSeries(JSON.parse(readFileSync(path, "utf8")));
 }
 
+/** 左右反転したときに入れ替える体の点の組(左肩⇔右肩など) */
 const LR_PAIRS: [number, number][] = [
   [LM.L_SHOULDER, LM.R_SHOULDER],
   [LM.L_ELBOW, LM.R_ELBOW],
@@ -157,6 +159,7 @@ function rank(
   return {renId: sims[0][0], sims};
 }
 
+// 割合をパーセント表記の文字列にする
 const pct = (n: number, d: number): string =>
   d === 0 ? "-" : `${((100 * n) / d).toFixed(0)}% (${n}/${d})`;
 

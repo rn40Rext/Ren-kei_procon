@@ -5,6 +5,7 @@ import {ErrorCode, httpsErrorFor} from "../lib/errors";
 import {notifyUser} from "../lib/notifications";
 import {resolveDisplayName} from "../lib/users";
 
+/** 参加申請の承認・却下で送られるリクエストの中身 */
 interface UpdateJoinRequestStatusRequest {
   requestId: string;
   action: "approve" | "reject";
@@ -41,6 +42,7 @@ function assertValidRequest(
  */
 const NOTIFICATION_BATCH_SIZE = 500;
 
+/** 参加申請を承認または却下する。連の管理者だけが呼べる */
 export const updateJoinRequestStatus = onCall(async (request) => {
   const uid = requireAuth(request);
   assertValidRequest(request.data);

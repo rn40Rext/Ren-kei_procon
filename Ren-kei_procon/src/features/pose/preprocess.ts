@@ -18,6 +18,7 @@ export type SmoothingOptions = {
   minVisibility?: number;
 };
 
+/** 姿勢フレームを指数移動平均(EMA)で時間方向に平滑化する */
 export class PoseSmoother {
   private prev: Landmark[] | null = null;
   private prevTs = 0;
@@ -29,6 +30,7 @@ export class PoseSmoother {
     this.minVis = options.minVisibility ?? MIN_VISIBILITY;
   }
 
+  /** 平滑化状態を初期化する(セッション開始時に呼ぶ) */
   reset(): void {
     this.prev = null;
     this.prevTs = 0;

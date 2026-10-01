@@ -14,6 +14,7 @@ export type AuthState = {
   loading: boolean;
 };
 
+/** 現在のログインユーザーとその確定待ち状態を購読する */
 export function useAuth(): AuthState {
   const [user, setUser] = useState<User | null>(auth.currentUser);
   const [loading, setLoading] = useState(auth.currentUser === null);

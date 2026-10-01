@@ -42,6 +42,7 @@ export const MAX_EVENTS = 5000;
 
 type HoldTracker = { inRange: number; total: number; sum: number; n: number };
 
+/** 判定イベント・保持率・リズムを集計し、FN-01へ送るpayloadを組み立てる */
 export class SessionAggregator {
   private events: RuleEvent[] = [];
   private hold = new Map<string, HoldTracker>();
@@ -52,6 +53,7 @@ export class SessionAggregator {
 
   constructor(private readonly analysisVersion: string) {}
 
+  /** 集計状態を初期化する */
   reset(): void {
     this.events = [];
     this.hold.clear();
@@ -61,6 +63,7 @@ export class SessionAggregator {
     this.rhythmSamples = [];
   }
 
+  /** 判定イベント(GREAT/GOOD/MISS)を1件記録する */
   addEvent(e: RuleEvent): void {
     this.events.push(e);
   }
@@ -89,6 +92,7 @@ export class SessionAggregator {
     this.lastMs = timestampMs;
   }
 
+  /** リズム推定結果を1件記録する(中央値を最終BPMとして使う) */
   addRhythm(est: RhythmEstimate): void {
     this.lastRhythm = est;
     if (est.userBpm !== null && est.score !== null) {

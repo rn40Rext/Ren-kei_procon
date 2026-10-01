@@ -2,6 +2,7 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {requireAuth} from "../lib/guards";
 
+/** 連の作成で送られるリクエストの中身 */
 interface CreateRenRequest {
   name: string;
   description?: string;

@@ -5,6 +5,7 @@
  * 仕様書 9.3、サーバ側の型は functions/src/lib/types.ts と対応する。
  */
 
+/** 連1つ分の類似度の結果 */
 export type StyleSimilarityItem = {
   renId: string;
   renName: string;
@@ -14,8 +15,10 @@ export type StyleSimilarityItem = {
   sampleCount: number;
 };
 
+/** スタイル診断の進み具合(処理中/完了/失敗) */
 export type StyleAnalysisStatus = "processing" | "completed" | "failed";
 
+/** スタイル診断の結果1件分(styleAnalysisResults のドキュメント) */
 export type StyleAnalysisResult = {
   styleAnalysisId: string;
   userId: string;
@@ -27,6 +30,7 @@ export type StyleAnalysisResult = {
   errorCode: string | null;
 };
 
+/** スタイル診断を呼び出したときにサーバから返る値 */
 export type AnalyzeStyleResponse = {
   status: "completed";
   styleAnalysisId: string;

@@ -5,6 +5,7 @@ import {ErrorCode, httpsErrorFor} from "../lib/errors";
 import {notifyUser} from "../lib/notifications";
 import {resolveDisplayName} from "../lib/users";
 
+/** 連への参加申請で送られるリクエストの中身 */
 interface SubmitJoinRequestRequest {
   renId: string;
   message?: string;

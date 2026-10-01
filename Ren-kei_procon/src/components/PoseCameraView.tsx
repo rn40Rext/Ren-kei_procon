@@ -23,6 +23,7 @@ export type PoseCameraViewProps = {
   style?: object;
 };
 
+/** カメラのプレビューと「Web版で使えます」の案内だけを出す。判定用の映像は渡さない */
 export default function PoseCameraView({ onSource, style }: PoseCameraViewProps) {
   useEffect(() => {
     onSource(null);
@@ -40,11 +41,14 @@ export default function PoseCameraView({ onSource, style }: PoseCameraViewProps)
   );
 }
 
+/** この端末でリアルタイム判定ができるか(ネイティブ版は常に false) */
 export const POSE_CAMERA_SUPPORTED = false;
 
 const styles = StyleSheet.create({
+  // 黒背景で画面いっぱいにカメラを出す
   container: { flex: 1, backgroundColor: "#000" },
   camera: { flex: 1 },
+  // 画面下に重ねる金色の枠の案内文
   notice: {
     position: "absolute",
     left: 12,

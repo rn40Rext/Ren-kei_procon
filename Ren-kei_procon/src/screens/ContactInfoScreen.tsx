@@ -1,3 +1,8 @@
+/**
+ * お問い合わせ画面(仮)。
+ * 運営への連絡先や、連の世話役への相談窓口を載せる予定だが、今は案内文だけのプレースホルダー。
+ */
+
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -6,10 +11,12 @@ import AppMenu from '../components/AppMenu';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { colors, spacing, typography } from '../theme';
 
+/** お問い合わせ画面(準備中の案内だけを出す) */
 export default function ConatctInfoScreen() {
   const navigation = useNavigation<any>();
   return (
     <SafeAreaView style={styles.container}>
+      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <ChevronLeft size={22} color={colors.gold} />
@@ -19,6 +26,7 @@ export default function ConatctInfoScreen() {
         <AppMenu />
       </View>
       <HeaderSeam />
+      {/* 仮表示：連絡先一覧ができるまでの案内文。実装したらここを差し替える */}
       <View style={styles.body}>
         <KumihimoRule width={36} />
         <Text style={styles.placeholder}>連絡先一覧</Text>
@@ -30,6 +38,7 @@ export default function ConatctInfoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
+  // 画面上部のヘッダー。「戻る」・タイトル・メニューを横一列に並べる
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -42,6 +51,7 @@ const styles = StyleSheet.create({
   backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
   backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
   headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
+  // 「準備中」の案内を画面の中央にまとめて表示するエリア
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   placeholder: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
   sub: { ...typography.caption, color: colors.textMuted, marginTop: spacing.sm, textAlign: 'center', maxWidth: 260 },

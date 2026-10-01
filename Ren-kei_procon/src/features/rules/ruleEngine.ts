@@ -32,6 +32,7 @@ export function metricKey(metric: string, side?: Side): string {
   return side && SIDED_METRICS.has(metric) ? `${metric}:${side}` : metric;
 }
 
+/** ルール本体の条件(metric/minValue等)と、追加のconditions配列を1つにまとめる */
 function allConditions(def: RuleDefinition): RuleCondition[] {
   const own: RuleCondition = {
     metric: def.metric,
@@ -43,6 +44,7 @@ function allConditions(def: RuleDefinition): RuleCondition[] {
   return [own, ...(def.conditions ?? [])];
 }
 
+/** 値が条件の範囲内か。marginを渡すとその分だけ範囲を広げて判定する(ヒステリシス用) */
 function inRange(c: RuleCondition, value: number, margin: number): boolean {
   // min 側は margin 分だけ低く、max 側は margin 分だけ高く取って解除を渋らせる
   const min = c.minValue !== undefined ? c.minValue - Math.abs(c.minValue) * margin : -Infinity;
@@ -50,6 +52,7 @@ function inRange(c: RuleCondition, value: number, margin: number): boolean {
   return value >= min && value <= max;
 }
 
+/** 値が理想範囲(GREAT判定)に入っているか */
 function inIdeal(c: RuleCondition, value: number): boolean {
   if (c.idealMinValue === undefined && c.idealMaxValue === undefined) {
     // 理想範囲の指定が無い条件は GREAT 判定に影響させない
@@ -71,6 +74,7 @@ function closenessOf(c: RuleCondition, value: number): number {
   return 1;
 }
 
+/** 1ルール(1部位)分の状態機械。毎フレームevaluate()を呼んで判定イベントを得る */
 export class RuleEvaluator {
   private state: RuleState = "NOT_READY";
   private holdStartMs: number | null = null;
@@ -102,6 +106,7 @@ export class RuleEvaluator {
     return this.state;
   }
 
+  /** 状態機械を初期状態に戻す(セッション開始時に呼ぶ) */
   reset(): void {
     this.state = "NOT_READY";
     this.holdStartMs = null;
@@ -215,6 +220,7 @@ export class RuleEvaluator {
     return Math.max(0, Math.min(1, (timestampMs - this.holdStartMs) / need));
   }
 
+  /** UIのゲージ表示用スナップショットを作る */
   snapshot(timestampMs: number): RuleSnapshot {
     let closeness = 0;
     if (this.lastValue !== null) {

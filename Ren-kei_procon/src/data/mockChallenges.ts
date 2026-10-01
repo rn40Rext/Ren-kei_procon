@@ -6,12 +6,14 @@
 import type { DanceCategory } from './mockEnbu';
 import { awaImage } from './awaImages';
 
+/** お題に添えるコツ1件(見出しと説明) */
 export interface ChallengeAdvice {
   id: string;
   point: string; // 見出し（一言のコツ）
   detail: string; // 具体的な説明
 }
 
+/** チャレンジ(お題)1件分。出題者・難易度・見てほしい点・コツの一覧を持つ */
 export interface Challenge {
   id: string;
   title: string; // お題のタイトル
@@ -27,6 +29,7 @@ export interface Challenge {
   advice: ChallengeAdvice[];
 }
 
+/** 画面に並べるダミーのお題一覧 */
 export const challenges: Challenge[] = [
   {
     id: 'ch1',
@@ -115,10 +118,12 @@ export const challenges: Challenge[] = [
   },
 ];
 
+/** IDでお題を探す。見つからなければ先頭のお題を返す(ダミーなので画面が空にならないようにする) */
 export function challengeById(id?: string): Challenge {
   return challenges.find((c) => c.id === id) ?? challenges[0];
 }
 
+/** 難易度ごとのバッジの色(初級=枠線、中級=金、上級=朱) */
 export const DIFFICULTY_TONE: Record<Challenge['difficulty'], 'gold' | 'outline' | 'aka'> = {
   初級: 'outline',
   中級: 'gold',

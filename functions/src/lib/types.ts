@@ -76,6 +76,7 @@ export type StyleAnalysisResult = {
   completedAt: Timestamp | null;
 };
 
+/** Functions から読み書きするコレクション名の一覧 */
 export const COLLECTIONS = {
   videos: "videos",
   ren: "ren",

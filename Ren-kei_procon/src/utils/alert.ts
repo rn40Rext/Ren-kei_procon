@@ -17,6 +17,7 @@ function alert(title: string, message?: string, buttons?: AlertButton[]): void {
     return;
   }
   const text = message ? `${title}\n\n${message}` : title;
+  // ボタンが2つ以上ある確認ダイアログ: OKならキャンセル以外のボタン、キャンセルならキャンセルボタンの処理を呼ぶ
   if (buttons && buttons.length > 1) {
     const confirmed = window.confirm(text);
     const chosen = confirmed
@@ -25,8 +26,10 @@ function alert(title: string, message?: string, buttons?: AlertButton[]): void {
     chosen?.onPress?.();
     return;
   }
+  // ボタンが1つ以下のお知らせ: 閉じたあとにそのボタンの処理を呼ぶ
   window.alert(text);
   buttons?.[0]?.onPress?.();
 }
 
+/** React Nativeの Alert と同じ書き方(Alert.alert(...))で使えるようにまとめたもの */
 export const Alert = { alert };

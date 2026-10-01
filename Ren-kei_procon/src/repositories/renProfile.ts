@@ -16,6 +16,7 @@ import { Ren } from '../types/firestore';
 
 /** 連本体(ren/{renId})へのアクセスを集約する(docs/design/data-model.md 3.8章)。 */
 
+/** 連の一覧(名前順)をリアルタイム購読する(連を探す画面など) */
 export function subscribeRens(
   onData: (rens: Ren[]) => void,
   onError: (error: FirestoreError) => void
@@ -28,6 +29,7 @@ export function subscribeRens(
   );
 }
 
+/** 連1件の基本情報をリアルタイム購読する */
 export function subscribeRen(
   renId: string,
   onData: (ren: Ren | null) => void,

@@ -12,6 +12,7 @@ import { Announcement } from '../types/firestore';
 
 /** お知らせ(ren/{renId}/announcements、R-07)へのアクセスを集約する(docs/design/data-model.md 3.15章)。 */
 
+/** 連のお知らせ一覧を新しい順にリアルタイム購読する */
 export function subscribeAnnouncements(
   renId: string,
   onData: (announcements: Announcement[]) => void,

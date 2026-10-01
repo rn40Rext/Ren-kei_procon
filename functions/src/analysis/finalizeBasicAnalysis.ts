@@ -19,6 +19,7 @@ import {
 
 /** events の件数上限(docs/design/api-functions.md) */
 const MAX_EVENTS = 5000;
+/** 受け付ける評価・踊りの種類・採点部位の値 */
 const GRADES: ReadonlySet<string> = new Set<Grade>(["GREAT", "GOOD", "MISS"]);
 const DANCE_TYPES = new Set(["male", "female"]);
 const SCORE_PARTS = new Set(["feet", "hands", "whole"]);
@@ -28,6 +29,7 @@ const SCORE_PARTS = new Set(["feet", "hands", "whole"]);
  */
 const TIMESTAMP_GRACE_MS = 3000;
 
+/** クライアントから送られる判定イベント1件分 */
 export type EventInput = {
   ruleId: string;
   grade: Grade;
@@ -35,6 +37,7 @@ export type EventInput = {
   value: number;
 };
 
+/** FN-01 に送られるリクエストの中身 */
 interface FinalizeRequest {
   videoId: string;
   clientRequestId: string;
@@ -61,6 +64,7 @@ function invalid(name: string): HttpsError {
   );
 }
 
+// 有限の数値か(NaN・Infinity・数値以外を弾く)
 const isFiniteNumber = (v: unknown): v is number =>
   typeof v === "number" && Number.isFinite(v);
 
@@ -241,6 +245,7 @@ function parseRequest(data: unknown): FinalizeRequest {
   };
 }
 
+/** FN-01 本体。リクエストを検証し、サーバ側で点数を計算して analysisResults に保存する */
 export const finalizeBasicAnalysis = onCall(async (request) => {
   const uid = requireAuth(request);
   const req = parseRequest(request.data);

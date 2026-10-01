@@ -20,6 +20,7 @@ export default function NotificationBadge({ count, dotOnly = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // アイコンの右上に重ねる朱色の丸いバッジ。件数が2桁以上でも横に伸びるよう最小幅で指定
   badge: {
     position: 'absolute',
     top: -4,
@@ -37,6 +38,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
   },
+  // 件数を出さない小さな朱色の点。背景色の縁取りでアイコンと重なっても見分けられるようにする
   dot: {
     position: 'absolute',
     top: -2,

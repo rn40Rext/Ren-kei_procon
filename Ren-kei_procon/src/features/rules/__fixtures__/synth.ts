@@ -46,6 +46,7 @@ export const STANDING: Pose = { handHeight: -0.4, hipHeight: 0.6, kneeAngle: 178
 export const BASIC_FORM: Pose = { handHeight: 0.15, handOffset: 0.1, hipHeight: 0.46, kneeAngle: 140, torsoTilt: 5 };
 export const HANDS_UP_ONLY: Pose = { handHeight: 0.15, handOffset: 0.1, hipHeight: 0.6, kneeAngle: 178, torsoTilt: 0 };
 
+/** シード固定の決定的な擬似乱数生成器(-0.5〜0.5)を作る */
 function makeRandom(seed: number): () => number {
   let s = seed >>> 0 || 1;
   return () => {

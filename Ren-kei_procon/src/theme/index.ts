@@ -58,6 +58,7 @@ export const spacing = {
   screenH: 16, // 画面左右の標準余白
 } as const;
 
+/** 角の丸みの段階 */
 export const radius = {
   /** 和の意匠は角を立てる。基本はごく浅い面取り。 */
   none: 0,
@@ -67,6 +68,7 @@ export const radius = {
   pill: 999,
 } as const;
 
+/** 区切り線などに使う細い線の太さと色 */
 export const hairline = {
   width: 1,
   color: colors.indigoLine,
@@ -93,11 +95,13 @@ export const fontFamily = {
   }) as string,
 } as const;
 
+/** 文字スタイル1つ分に指定できる項目(書体・大きさ・行の高さ・太さ・字間) */
 type TypePreset = Pick<
   TextStyle,
   'fontFamily' | 'fontSize' | 'lineHeight' | 'fontWeight' | 'letterSpacing'
 >;
 
+/** 用途ごとの文字スタイル(見出しは明朝、本文・数値はゴシック) */
 export const typography: Record<
   | 'displaySerif'
   | 'titleSerif'
@@ -153,5 +157,6 @@ export const lexicon = {
   masterTeaching: '師匠の教え',
 } as const;
 
+/** 色・余白・角丸・線・書体・文字スタイル・言い回しをまとめたテーマ全体 */
 export const theme = { colors, spacing, radius, hairline, fontFamily, typography, lexicon };
 export default theme;

@@ -9,6 +9,7 @@
  */
 import { PoseFrame, PoseSeries, POSE_SERIES_FORMAT_VERSION } from "./types";
 
+/** セッション中の姿勢フレームを間引きながら溜め、保存用JSONへ変換する */
 export class PoseSeriesRecorder {
   private frames: PoseFrame[] = [];
   private lastKeptMs = -Infinity;
@@ -18,11 +19,13 @@ export class PoseSeriesRecorder {
    */
   constructor(private readonly maxFps = 15) {}
 
+  /** 記録済みフレームを空にする(セッション開始時に呼ぶ) */
   reset(): void {
     this.frames = [];
     this.lastKeptMs = -Infinity;
   }
 
+  /** 1フレーム追加する。maxFpsより密なフレームは間引いて捨てる */
   push(frame: PoseFrame): void {
     const minInterval = 1000 / this.maxFps;
     if (frame.timestampMs - this.lastKeptMs < minInterval) return;
@@ -42,6 +45,7 @@ export class PoseSeriesRecorder {
     return this.frames.length;
   }
 
+  /** 記録済みフレームを保存用の形式(pose-series-v1)に変換する */
   toSeries(): PoseSeries {
     return { formatVersion: POSE_SERIES_FORMAT_VERSION, frames: this.frames };
   }
@@ -51,6 +55,7 @@ export class PoseSeriesRecorder {
   }
 }
 
+/** 座標を4桁に丸める(ファイルサイズを抑える) */
 function round4(v: number): number {
   return Math.round(v * 10000) / 10000;
 }

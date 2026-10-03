@@ -36,6 +36,7 @@ import {
 } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
+import VideoThumbnail from '../components/VideoThumbnail';
 import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
 import { RenKeiWordmark } from '../components/Brand';
 import { auth } from '../config/firebaseConfig';
@@ -822,7 +823,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                       >
                         {item.kind === 'real' ? (
                           <View style={styles.otherMineThumb}>
-                            <RenkeiVideo uri={item.videoUrl} style={styles.otherMineThumbVideo} contentFit="cover" muted />
+                            <VideoThumbnail uri={item.videoUrl} style={styles.otherMineThumbVideo} />
                           </View>
                         ) : (
                           <ImageBackground
@@ -978,7 +979,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   {/* 左: 動画のサムネイルと、種類のアイコン・極め度の小さな表示 */}
                   <View style={styles.feedThumb}>
                     {p.videoUrl ? (
-                      <RenkeiVideo uri={p.videoUrl} style={styles.feedThumbVideo} contentFit="cover" muted />
+                      <VideoThumbnail uri={p.videoUrl} style={styles.feedThumbVideo} />
                     ) : null}
                     <View style={styles.feedCatMark}>
                       <IconEnbuPlay size={12} color={colors.goldBright} />

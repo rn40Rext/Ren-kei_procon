@@ -14,9 +14,8 @@ import { Alert } from "../utils/alert";
 import { auth } from "../config/firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import { createUserDocument } from "../repositories/users";
-import { RenKeiWordmark } from "../components/Brand";
+import { RenKeiMark, RenKeiWordmark } from "../components/Brand";
 import { ChochinGarland, SeigaihaBand } from "../components/motifs";
-import { IconOdoriko, IconOnnaOdori } from "../components/awaIcons";
 import { colors, spacing, radius, typography } from "../theme";
 import { useWindowDimensions } from "react-native";
 
@@ -72,14 +71,11 @@ export default function LoginScreen() {
       {/* 画面上部に吊るす提灯の飾り */}
       <ChochinGarland width={SCREEN_W} count={7} height={44} style={styles.garland} />
       <ScrollView contentContainerStyle={styles.inner} showsVerticalScrollIndicator={false}>
-        {/* ロゴ・波の飾り・踊り手のアイコン・画面名(ログイン/新規アカウント作成)・説明 */}
+        {/* ロゴ・波の飾り・エンブレム・画面名(ログイン/新規アカウント作成)・説明 */}
         <View style={styles.logoContainer}>
           <RenKeiWordmark size={40} style={{ marginBottom: 12 }} />
           <SeigaihaBand width={140} height={12} color={colors.gold} opacity={0.5} />
-          <View style={styles.danceRow}>
-            <IconOnnaOdori size={20} color={colors.goldBright} />
-            <IconOdoriko size={20} color={colors.goldBright} />
-          </View>
+          <RenKeiMark size={110} style={styles.mark} />
           <Text style={styles.title}>{isRegisterMode ? "新規アカウント作成" : "ログイン"}</Text>
           <Text style={styles.subtitle}>阿波踊り 練習支援プラットフォーム</Text>
         </View>
@@ -135,8 +131,8 @@ const styles = StyleSheet.create({
   inner: { flexGrow: 1, justifyContent: "center", padding: spacing.xl },
   // ロゴ・キャッチコピーをまとめて画面上部中央に表示するエリア
   logoContainer: { alignItems: "center", marginBottom: spacing.xxl },
-  // 踊り手のアイコンの並び・画面名・説明文
-  danceRow: { flexDirection: "row", gap: spacing.md, marginTop: spacing.md },
+  // エンブレム・画面名・説明文
+  mark: { marginTop: spacing.md },
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.lg },
   subtitle: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
   // 入力フォーム(横幅いっぱい)と入力欄の見出し(金色)

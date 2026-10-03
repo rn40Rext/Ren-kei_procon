@@ -58,11 +58,24 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
 }
 
 /**
+ * users/{uid} がまだ無ければ、新規登録時と同じ内容(role:'user')で作成する。
+ * #39 より前に登録したアカウントや、登録時に作成だけ失敗したアカウントには
+ * ドキュメントが無いことがあるため、プロフィール保存の前に呼ぶ。
+ */
+export async function ensureUserDocument(uid: string, email: string | null): Promise<void> {
+  const snap = await getDoc(doc(db, 'users', uid));
+  if (!snap.exists()) await createUserDocument(uid, email);
+}
+
+/**
  * プロフィールを更新する。
  * role/uid/createdAtは送らない(firestore.rulesでも保護されているが、
  * 意図せず差分に含めないようにする)。
+ * ドキュメントが無いまま merge で書くと「新規作成」扱いになり、role が無いため
+ * firestore.rules に拒否される。そのため先に ensureUserDocument で作っておく。
  */
 export async function saveUserProfile(uid: string, input: UserProfileInput): Promise<void> {
+  await ensureUserDocument(uid, auth.currentUser?.email ?? null);
   await setDoc(
     doc(db, 'users', uid),
     {

@@ -15,7 +15,8 @@ import { ChevronRight, Settings, Mail, LogOut, ShieldCheck, Camera, TrendingUp }
 import { IconWagasa, IconEnbuPlay } from '../components/awaIcons';
 import { signOut } from 'firebase/auth';
 import { auth, db, storage } from '../config/firebaseConfig';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { saveUserProfile } from '../repositories/users';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import AppMenu from '../components/AppMenu';
@@ -122,18 +123,13 @@ export default function MypageScreen() {
 
     setSaving(true);
     try {
-      // role/uid/createdAt は送らない（firestore.rules でも保護されている）
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          nickname: draftNickname.trim(),
-          profile: draftProfile.trim(),
-          danceStyle: draftDanceStyle,
-          icon: draftIcon,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-      );
+      // users/{uid} が無いアカウントでも保存できるよう、repositories 側で先に作成してから書く
+      await saveUserProfile(user.uid, {
+        nickname: draftNickname.trim(),
+        profile: draftProfile.trim(),
+        danceStyle: draftDanceStyle,
+        icon: draftIcon,
+      });
 
       setNickname(draftNickname.trim());
       setProfile(draftProfile.trim());

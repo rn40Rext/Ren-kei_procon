@@ -357,6 +357,19 @@ export default function HomeScreen({ navigation, route }: Props) {
   const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  // アプリ内録画のblob:URLは、差し替え・投稿後・画面離脱時に解放する(動画Blobが残り続けるのを防ぐ)
+  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = blobUrlRef.current;
+    if (prev && prev !== videoUri) URL.revokeObjectURL(prev);
+    blobUrlRef.current = videoUri && videoUri.startsWith('blob:') ? videoUri : null;
+  }, [videoUri]);
+  useEffect(
+    () => () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    },
+    [],
+  );
   // 稽古手帳(VideoList)の「交流広場へ投稿」から来た、既にStorageにある練習動画のID。
   // 設定されている間はsubmitPostが再アップロードせずpublishExistingVideoを使う
   const [existingVideoId, setExistingVideoId] = useState<string | null>(null);

@@ -265,7 +265,7 @@ export default function MypageScreen() {
               </View>
               {profile ? <Text style={styles.profileText}>{profile}</Text> : null}
               <Text style={styles.editText}>
-                {danceStyle === 'male' ? '男踊り' : danceStyle === 'female' ? '女踊り' : '傘連・阿波徳島　新進'}　▸ タップして改める
+                {danceStyle === 'male' ? '男踊り' : danceStyle === 'female' ? '女踊り' : '踊りの種類は未設定'}　▸ タップして改める
               </Text>
             </TouchableOpacity>
           )}

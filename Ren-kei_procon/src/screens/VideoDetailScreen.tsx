@@ -97,16 +97,23 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
       if (alive && !gotComments && cc.length) setComments(cc);
     });
 
-    fetchPost(postId).then((p) => {
-      if (!alive) return;
-      gotPost = true;
-      if (p) {
-        setPost(p);
-        setLikeCount(p.likeCount);
-      }
-      setLoading(false);
-    });
-    isLiked(postId).then((v) => alive && setLiked(v));
+    fetchPost(postId)
+      .then((p) => {
+        if (!alive) return;
+        gotPost = true;
+        if (p) {
+          setPost(p);
+          setLikeCount(p.likeCount);
+        }
+      })
+      // 通信失敗・権限エラーでも「開いています…」のまま止まらないようにする(キャッシュがあればそれを表示)
+      .catch((e) => console.warn('投稿の取得に失敗しました', e))
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    isLiked(postId)
+      .then((v) => alive && setLiked(v))
+      .catch(() => undefined);
     const unsub = subscribeComments(
       postId,
       (c) => {

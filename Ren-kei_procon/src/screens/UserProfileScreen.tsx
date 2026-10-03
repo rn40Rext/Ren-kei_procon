@@ -47,7 +47,6 @@ export default function UserProfileScreen({ route, navigation }: any) {
           <Text style={styles.avatarChar}>{(userName || '阿').slice(0, 1)}</Text>
         </RenMon>
         <Text style={styles.name}>{userName}</Text>
-        <Text style={styles.team}>所属：徳島連</Text>
 
         {isSelf ? (
           // 自分自身のプロフィールを見ているときは、ボタンの代わりに案内文だけを出す
@@ -90,7 +89,6 @@ const styles = StyleSheet.create({
   avatarChar: { color: colors.gold, fontSize: 30, fontFamily: typography.titleSerif.fontFamily, fontWeight: '700' },
   // 名前(明朝体)と所属連(金色の小さな文字)
   name: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
-  team: { ...typography.caption, color: colors.gold, marginTop: spacing.xs },
   // ボタン(または案内文)を置くエリア。カードの横幅いっぱいに広げる
   actions: { marginTop: spacing.xl, width: '100%' },
   // 自分自身のプロフィールを見ているときに出す案内文

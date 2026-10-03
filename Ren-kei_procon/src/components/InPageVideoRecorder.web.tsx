@@ -62,14 +62,27 @@ export default function InPageVideoRecorder({
     }
   }, []);
 
+  // getUserMediaの待機中に閉じられた/撮り直された場合に、古い呼び出しの結果を捨てるための世代番号
+  const openTokenRef = useRef(0);
+
   const openCamera = useCallback(async () => {
+    const token = ++openTokenRef.current;
     setStage("preparing");
     setErrorText("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErrorText("この環境ではカメラを使えません。HTTPS(https://...)で開いているか確認してください。");
+      setStage("error");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 }, facingMode: "user" },
         audio: true,
       });
+      if (token !== openTokenRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
       const video = videoRef.current;
       if (video) {
@@ -78,6 +91,7 @@ export default function InPageVideoRecorder({
       }
       setStage("ready");
     } catch (e) {
+      if (token !== openTokenRef.current) return;
       const name = (e as { name?: string }).name;
       setErrorText(
         name === "NotAllowedError" || name === "SecurityError"
@@ -93,8 +107,14 @@ export default function InPageVideoRecorder({
     if (!visible) return;
     void openCamera();
     return () => {
+      openTokenRef.current++;
       clearTimer();
       stopStream();
+      // 録画中に閉じられたら、onstopでレビュー画面へ進まないよう止める
+      if (recorderRef.current) {
+        recorderRef.current.onstop = null;
+        if (recorderRef.current.state !== "inactive") recorderRef.current.stop();
+      }
       if (reviewUrlRef.current) {
         URL.revokeObjectURL(reviewUrlRef.current);
         reviewUrlRef.current = null;
@@ -108,6 +128,13 @@ export default function InPageVideoRecorder({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  const stopRecording = useCallback(() => {
+    const rec = recorderRef.current;
+    if (!rec || rec.state === "inactive") return;
+    clearTimer();
+    rec.stop();
+  }, [clearTimer]);
+
   const startRecording = useCallback(() => {
     const stream = streamRef.current;
     const MR = (globalThis as { MediaRecorder?: typeof MediaRecorder }).MediaRecorder;
@@ -118,32 +145,13 @@ export default function InPageVideoRecorder({
     rec.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
     };
-    rec.start(1000);
-    recorderRef.current = rec;
-    setElapsedSec(0);
-    setStage("recording");
-    timerRef.current = setInterval(() => {
-      setElapsedSec((s) => {
-        const next = s + 1;
-        if (next >= MAX_DURATION_SEC) {
-          // 最大時間に達したら自動で停止する(stopRecordingは参照が不安定なので直接呼ぶ)
-          clearTimer();
-          recorderRef.current?.stop();
-        }
-        return next;
-      });
-    }, 1000);
-  }, [clearTimer]);
-
-  const stopRecording = useCallback(() => {
-    const rec = recorderRef.current;
-    if (!rec || rec.state === "inactive") return;
-    clearTimer();
+    // 停止ボタンでも最大時間での自動停止でも、必ずここを通ってレビュー画面へ進む
     rec.onstop = () => {
       const type = rec.mimeType || "video/webm";
       const blob = new Blob(chunksRef.current, { type });
       chunksRef.current = [];
       recorderRef.current = null;
+      clearTimer();
       stopStream();
       if (blob.size === 0) {
         setErrorText("録画データが空でした。もう一度お試しください。");
@@ -164,8 +172,17 @@ export default function InPageVideoRecorder({
       }
       setStage("review");
     };
-    rec.stop();
-  }, [clearTimer, stopStream]);
+    rec.start(1000);
+    recorderRef.current = rec;
+    setElapsedSec(0);
+    setStage("recording");
+    const startedAt = Date.now();
+    timerRef.current = setInterval(() => {
+      const sec = Math.floor((Date.now() - startedAt) / 1000);
+      setElapsedSec(sec);
+      if (sec >= MAX_DURATION_SEC) stopRecording();
+    }, 500);
+  }, [clearTimer, stopStream, stopRecording]);
 
   const retake = useCallback(() => {
     if (reviewUrlRef.current) {

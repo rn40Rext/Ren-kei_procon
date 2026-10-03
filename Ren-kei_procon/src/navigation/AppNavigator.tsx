@@ -72,7 +72,7 @@ export type RootStackParamList = {
   // 連スタイル類似度の結果（AI機能②）。表示可否は
   // src/features/style/featureFlags.ts で制御する
   StyleResult: { videoId: string };
-  Chat: { chatId: string; recipientName: string };   // 💡 追加
+  Chat: { chatId: string; recipientName: string; initialMessage?: string };   // 💡 追加
   AdminHome: undefined;
   ManageJoinRequests: { renId: string };
   MemberManagement: { renId: string };

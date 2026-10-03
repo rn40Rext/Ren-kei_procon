@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DEFAULT_RULE_SET } from "./definitions";
-import { RhythmAnalyzer, Sample, analyzeRhythm, pickBpmCandidate, rhythmScore } from "./rhythm";
+import { MIN_RHYTHM_STRENGTH, RhythmAnalyzer, Sample, analyzeRhythm, estimateFrequency, pickBpmCandidate, rhythmScore } from "./rhythm";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { hipCenterY } from "../pose/normalize";
 import { loadFixture } from "./__fixtures__/load";
 
@@ -60,4 +62,78 @@ test("RhythmAnalyzer: フィクスチャ(112 BPM の上下動)を流すと基準
   assert.ok(last !== null, "no estimate");
   assert.ok(Math.abs(last!.userBpm! - 112) <= 3, `got ${last!.userBpm}`);
   assert.equal(last!.grade, "GREAT");
+});
+
+// ---- 回帰テスト: 「BPM が常に 129 に固定される」「静止していても採点される」 ----
+
+/** 再現性のある乱数(線形合同法)。 */
+function lcg(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+/** 静止中の検出ジッタ相当: 白色ノイズを PoseSmoother と同じ時定数(80ms)の EMA で平滑した腰 y。 */
+function stillJitter(seed: number, amp = 0.004, fps = 22, seconds = 8): Sample[] {
+  const rnd = lcg(seed);
+  const alpha = 1 - Math.exp(-1000 / fps / 80);
+  let y = 0.69;
+  const out: Sample[] = [];
+  for (let i = 0; i < seconds * fps; i++) {
+    y += (0.69 + (rnd() - 0.5) * 2 * amp - y) * alpha;
+    out.push({ t: (i * 1000) / fps, y });
+  }
+  return out;
+}
+
+test("探索範囲の端(最小ラグ)は周期のピークとして採用しない: 単調に減衰する自己相関では推定しない", () => {
+  const n = 240;
+  const step = 1000 / 30;
+  const ramp = Array.from({ length: n }, (_, i) => 0.5 + 0.0002 * i); // 一方向にドリフト
+  const expo = Array.from({ length: n }, (_, i) => 0.5 + 0.05 * Math.exp(-i / 60));
+  for (const values of [ramp, expo]) {
+    const { frequencyHz } = estimateFrequency(values, step, 0.5, 4);
+    assert.equal(frequencyHz, null);
+  }
+});
+
+test("ドリフト・ランダムウォークでは BPM を出さない(以前は常に約 129 になっていた)", () => {
+  const drift: Sample[] = Array.from({ length: 22 * 8 }, (_, i) => ({ t: (i * 1000) / 22, y: 0.68 + 0.00003 * i }));
+  assert.equal(analyzeRhythm(drift, cfg).userBpm, null);
+  for (let seed = 1; seed <= 10; seed++) {
+    const rnd = lcg(seed);
+    let y = 0.69;
+    const walk: Sample[] = Array.from({ length: 22 * 8 }, (_, i) => ({ t: (i * 1000) / 22, y: (y += (rnd() - 0.5) * 0.002) }));
+    assert.equal(analyzeRhythm(walk, cfg).userBpm, null, `random walk seed=${seed}`);
+  }
+});
+
+test("静止中のジッタでは採点しない(周期性が弱いので userBpm=null、GREAT/GOOD も付かない)", () => {
+  for (let seed = 1; seed <= 30; seed++) {
+    const est = analyzeRhythm(stillJitter(seed), cfg);
+    assert.equal(est.userBpm, null, `seed=${seed} strength=${est.strength.toFixed(2)}`);
+    assert.equal(est.grade, null);
+  }
+});
+
+test("実機で完全に静止して撮った腰 y(固定フィクスチャ)では採点しない", () => {
+  const raw = JSON.parse(readFileSync(join(__dirname, "__fixtures__", "standing_real_hipy.json"), "utf-8")) as {
+    samples: [number, number][];
+  };
+  const samples: Sample[] = raw.samples.map(([t, y]) => ({ t, y }));
+  const est = analyzeRhythm(samples, cfg);
+  assert.equal(est.userBpm, null);
+  assert.equal(est.grade, null);
+});
+
+test("本物の周期的な上下動は、強さのゲートを十分に超えて推定される", () => {
+  for (const bpm of [90, 112, 130]) {
+    const est = analyzeRhythm(bobSamples(bpm, 8, 22, 0.002), { ...cfg, baseBpm: bpm });
+    assert.ok(est.userBpm !== null, `bpm=${bpm}`);
+    assert.ok(est.strength > MIN_RHYTHM_STRENGTH + 0.2, `strength ${est.strength}`);
+  }
+});
+
+test("cfg.minStrength でゲートを上書きできる(1 にすると周期的な入力でも推定しない)", () => {
+  assert.equal(analyzeRhythm(bobSamples(112, 8), { ...cfg, minStrength: 1.01 }).userBpm, null);
+  assert.ok(analyzeRhythm(bobSamples(112, 8), { ...cfg, minStrength: 0.1 }).userBpm !== null);
 });

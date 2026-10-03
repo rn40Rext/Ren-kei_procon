@@ -10,6 +10,7 @@ import { colors, spacing, radius, typography } from '../theme';
 import { NarutoLoader } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
+import VideoThumbnail from '../components/VideoThumbnail';
 import { formatAiScore } from '../features/analysis/format';
 import { subscribePosts, hasInstructorAdvice } from '../repositories/posts';
 import type { Post as PostDoc } from '../types/firestore';
@@ -166,7 +167,7 @@ export default function ManagePostsScreen() {
               // 投稿1件分のカード: 動画のサムネイル・題名・投稿者・極め度・いいね数・コメント数と、未アドバイスの印。タップで詳細を開く
               <TouchableOpacity key={p.id} style={styles.card} onPress={() => setSelectedPost(p)} activeOpacity={0.85}>
                 <View style={styles.thumbWrapper}>
-                  <RenkeiVideo uri={p.videoUrl} style={StyleSheet.absoluteFill} contentFit="cover" muted />
+                  <VideoThumbnail uri={p.videoUrl} style={StyleSheet.absoluteFill} />
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle} numberOfLines={1}>

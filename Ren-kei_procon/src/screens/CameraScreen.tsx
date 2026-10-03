@@ -101,7 +101,7 @@ export default function CameraScreen() {
 
   // 姿勢推定・判定・録画・採点の処理はすべて useLiveAnalysis が担う。画面はその状態を表示して操作を渡すだけ
   const live = useLiveAnalysis({ uid, danceType, scorePart, baseBpm });
-  const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize } = live;
+  const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize, recover } = live;
 
   // 映像ソースが使えるようになったら(または未対応と分かったら)覚えておく
   const onSource = useCallback((s: LiveVideoSource | null) => setSource(s), []);
@@ -112,8 +112,10 @@ export default function CameraScreen() {
   }, [source, prepare]);
 
   // 判定を終えて、動画の保存と採点を行い、結果画面へ進む(二重に押せないようにする)
+  const finishingRef = useRef(false);
   const onFinish = useCallback(async () => {
-    if (busy) return;
+    if (busy || finishingRef.current) return;
+    finishingRef.current = true;
     setBusy(true);
     try {
       const result = await finish();
@@ -122,6 +124,7 @@ export default function CameraScreen() {
       const msg = e instanceof Error ? e.message : String(e);
       Alert.alert("保存に失敗しました", msg);
     } finally {
+      finishingRef.current = false;
       setBusy(false);
     }
   }, [busy, finish, navigation]);
@@ -382,7 +385,11 @@ export default function CameraScreen() {
           )}
           {/* 操作ボタン: 構え待ち中は「中止」、開始前は「判定を開始」(準備ができるまで押せない)、採点中は「終了して採点」「中止」 */}
           <View style={styles.buttons}>
-            {waitingStance ? (
+            {snapshot.status === "error" && !canRetryFinalize ? (
+              <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={() => void recover()}>
+                <Text style={styles.primaryButtonText}>やり直す</Text>
+              </TouchableOpacity>
+            ) : waitingStance ? (
               <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
                 <Text style={styles.secondaryButtonText}>中止</Text>
               </TouchableOpacity>

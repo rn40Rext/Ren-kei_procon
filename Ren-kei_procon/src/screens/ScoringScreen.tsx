@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Footprints, Hand, User } from 'lucide-react-native';
 import AppMenu from '../components/AppMenu';
-import { RenKeiMark } from '../components/Brand';
+import { IconOdoriko } from '../components/awaIcons';
 import { HeaderSeam, KumihimoRule } from '../components/motifs';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 
@@ -44,7 +44,7 @@ export default function AnalysisScreen() {
     <SafeAreaView style={styles.container}>
       {/* ヘッダー: アイコン・画面名・説明とメニュー */}
       <View style={styles.header}>
-        <RenKeiMark size={36} style={styles.headerIcon} />
+        <IconOdoriko size={22} color={colors.gold} style={styles.headerIcon} />
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>自主稽古・演舞解析</Text>
           <Text style={styles.headerSub}>踊りを撮って、{lexicon.aiAdvice}を受ける</Text>

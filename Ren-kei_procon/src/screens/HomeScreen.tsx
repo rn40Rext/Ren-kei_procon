@@ -66,7 +66,7 @@ import { formatAiScore } from '../features/analysis/format';
 
 
 /* ------------------------------------------------------------------ */
-/* 華やか演出：再生ボタンの波紋 / 動く火の粉 / ヒーローの光 / 押下演出 */
+/* 華やか演出：再生ボタンの波紋 / 動く火の粉 / 押下演出 */
 /* ------------------------------------------------------------------ */
 /** アニメーションをネイティブ側で動かせるか(Webでは使えないので false) */
 const ANIM_NATIVE = Platform.OS !== 'web';
@@ -205,47 +205,6 @@ function HeroFade({ height = 84 }: { height?: number }) {
   );
 }
 
-/** 斜めの光が時々スッと走る演出(再生ボタン周り) */
-function ShineSweep() {
-  const x = useRef(new Animated.Value(-1)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(1800),
-        Animated.timing(x, {
-          toValue: 1,
-          duration: 1800,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: ANIM_NATIVE,
-        }),
-        Animated.delay(2600),
-        Animated.timing(x, {
-          toValue: -1,
-          duration: 0,
-          useNativeDriver: ANIM_NATIVE,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [x]);
-
-  const translateX = x.interpolate({
-    inputRange: [-1, 1],
-    outputRange: [-260, 260],
-  });
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[
-        styles.shine,
-        { transform: [{ translateX }, { rotate: '18deg' }] },
-      ]}
-    />
-  );
-}
 
 /** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
 function daysToFestival(): number {
@@ -750,7 +709,6 @@ export default function HomeScreen({ navigation, route }: Props) {
                   <RenkeiVideo uri={hero.videoUrl} style={styles.heroVideo} contentFit="cover" muted autoPlay loop />
                   <View style={styles.heroLightLayer} pointerEvents="none">
                     <SparkLayer count={6} />
-                    <ShineSweep />
                   </View>
                   <HeroFade height={88} />
                   <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
@@ -759,7 +717,6 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <ImageBackground source={{ uri: hero.image }} style={styles.heroImage}>
                   <View style={styles.heroLightLayer} pointerEvents="none">
                     <SparkLayer count={6} />
-                    <ShineSweep />
                   </View>
                   <HeroFade height={88} />
                   <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>

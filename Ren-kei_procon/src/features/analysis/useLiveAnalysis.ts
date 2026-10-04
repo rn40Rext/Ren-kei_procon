@@ -28,7 +28,14 @@ import { finalizeBasicAnalysis, FinalizeResponse } from "../../repositories/anal
 import { createPracticeVideo, uploadPoseSeries, uploadPracticeVideo } from "../../repositories/videos";
 import { LIVE_WARNING_MESSAGES, LiveSnapshot, LiveStatus, LiveVideoSource, LiveWarning, framingMessage } from "./liveTypes";
 import { finalizeErrorMessage } from "./errorMessages";
-import { ScoringDurationSec, StanceGate, isStance } from "./stance";
+import {
+  DEFAULT_START_DELAY_SEC,
+  ScoringDurationSec,
+  StanceGate,
+  clampStartDelaySec,
+  isStance,
+  startDelayElapsed,
+} from "./stance";
 
 /** 検出信頼度を見る landmark。脚のルールを評価しないときは脚を数えない */
 const UPPER_LANDMARKS = [LM.NOSE, LM.L_SHOULDER, LM.R_SHOULDER, LM.L_WRIST, LM.R_WRIST, LM.L_HIP, LM.R_HIP];
@@ -130,6 +137,10 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   /** 構えの継続を数える。構えが STANCE_HOLD_MS 続いたら採点を始める */
   const stanceGateRef = useRef(new StanceGate());
   const stanceProgressRef = useRef(0);
+  /** 構えの 3→2→1 が終わった時刻。ここから待ち時間が過ぎたら録画・採点を始める */
+  const stanceDoneAtRef = useRef<number | null>(null);
+  /** 開始までの待ち時間[秒](0.5〜2)。start() で受け取る */
+  const startDelaySecRef = useRef(DEFAULT_START_DELAY_SEC);
   /** 採点時間。経過したら自動で止まる */
   const durationMsRef = useRef(0);
 
@@ -190,6 +201,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
         statusRef.current === "loading" ||
         statusRef.current === "ready" ||
         statusRef.current === "waitingStance" ||
+        statusRef.current === "startDelay" ||
         statusRef.current === "analyzing"
       )
         return;
@@ -322,6 +334,22 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       const ok = framed && isStance(values, optionsRef.current.scorePart);
       stanceProgressRef.current = stanceGateRef.current.update(ok, t);
       if (stanceProgressRef.current >= 1) {
+        // 3→2→1 が終わった。すぐには始めず、合図を出して待ち時間に入る
+        stanceDoneAtRef.current = t;
+        statusRef.current = "startDelay";
+        publish();
+      } else if (nowMs - lastUiMsRef.current >= UI_UPDATE_INTERVAL_MS) {
+        lastUiMsRef.current = nowMs;
+        publish();
+      }
+      return;
+    }
+
+    // 開始の合図を出している間: 録画・採点はまだしない。待ち時間が過ぎたら始める。
+    // 合図の後に構えを崩して踊り出しても、そのまま開始する(構えはもう決まっている)
+    if (statusRef.current === "startDelay") {
+      const doneAt = stanceDoneAtRef.current ?? t;
+      if (startDelayElapsed(doneAt, t, startDelaySecRef.current)) {
         beginScoring();
       } else if (nowMs - lastUiMsRef.current >= UI_UPDATE_INTERVAL_MS) {
         lastUiMsRef.current = nowMs;
@@ -401,11 +429,12 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   }, [processFrame, setStatus]);
 
   /**
-   * 判定を開始する。まず構え待ちになり、構えが続いたら採点が始まる(beginScoring)。
+   * 判定を開始する。まず構え待ちになり、構えが続いたら開始の合図を出して
+   * startDelaySec 秒(0.5〜2)待ってから採点・録画が始まる(beginScoring)。
    * 採点は durationSec 秒で自動的に止まる(status が timeUp になる)。
    */
   const start = useCallback(
-    (durationSec: ScoringDurationSec) => {
+    (durationSec: ScoringDurationSec, startDelaySec: number = DEFAULT_START_DELAY_SEC) => {
       const ruleSet = ruleSetRef.current;
       const source = sourceRef.current;
       if (!ruleSet || !source || statusRef.current !== "ready") return;
@@ -428,6 +457,8 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
       rhythmEstRef.current = null;
       stanceGateRef.current.reset();
       stanceProgressRef.current = 0;
+      stanceDoneAtRef.current = null;
+      startDelaySecRef.current = clampStartDelaySec(startDelaySec);
       smootherRef.current.reset();
       trackerRef.current.reset();
       startMsRef.current = null;

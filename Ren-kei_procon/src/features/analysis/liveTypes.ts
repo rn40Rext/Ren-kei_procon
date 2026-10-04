@@ -35,6 +35,7 @@ export type LiveStatus =
   | "loading" // モデル読み込み中
   | "ready" // 開始できる
   | "waitingStance" // 構えを待っている(まだ採点しない)
+  | "startDelay" // 構えが決まり、開始の合図を出して待っている(まだ録画・採点しない)
   | "analyzing" // 判定中
   | "timeUp" // 採点時間が終わった(保存・採点の直前)
   | "finalizing" // 保存・スコア確定中

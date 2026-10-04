@@ -19,7 +19,15 @@ import PoseCameraView, { POSE_CAMERA_SUPPORTED } from "../components/PoseCameraV
 import { useAuth } from "../hooks/useAuth";
 import { useLiveAnalysis } from "../features/analysis/useLiveAnalysis";
 import { LiveVideoSource } from "../features/analysis/liveTypes";
-import { SCORING_DURATIONS_SEC, STANCE_HOLD_MS, ScoringDurationSec, stanceGuide } from "../features/analysis/stance";
+import {
+  DEFAULT_START_DELAY_SEC,
+  SCORING_DURATIONS_SEC,
+  STANCE_HOLD_MS,
+  START_DELAY_OPTIONS_SEC,
+  ScoringDurationSec,
+  stanceGuide,
+} from "../features/analysis/stance";
+import { loadStartDelaySec, saveStartDelaySec } from "../features/analysis/startDelaySetting";
 import { RuleSnapshot } from "../features/rules/types";
 import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
@@ -60,6 +68,7 @@ const STATUS_LABEL: Record<string, string> = {
   loading: "モデル読み込み中…",
   ready: "READY",
   waitingStance: "構え待ち",
+  startDelay: "まもなく開始",
   analyzing: "ANALYZING",
   timeUp: "時間終了",
   finalizing: "保存・採点中…",
@@ -98,6 +107,22 @@ export default function CameraScreen() {
   const [busy, setBusy] = useState(false);
   // 採点時間(秒)。判定を始める前にチップで選ぶ
   const [durationSec, setDurationSec] = useState<ScoringDurationSec>(SCORING_DURATIONS_SEC[0]);
+  // 構えの 3→2→1 の後、録画・採点を始めるまでの待ち時間(秒)。当日でも選び直せるよう、
+  // 判定を始める前にチップで選び、選んだ値は端末に覚えておく
+  const [startDelaySec, setStartDelaySec] = useState<number>(DEFAULT_START_DELAY_SEC);
+  useEffect(() => {
+    let alive = true;
+    void loadStartDelaySec().then((sec) => {
+      if (alive) setStartDelaySec(sec);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const chooseStartDelay = useCallback((sec: number) => {
+    setStartDelaySec(sec);
+    void saveStartDelaySec(sec);
+  }, []);
 
   // 姿勢推定・判定・録画・採点の処理はすべて useLiveAnalysis が担う。画面はその状態を表示して操作を渡すだけ
   const live = useLiveAnalysis({ uid, danceType, scorePart, baseBpm });
@@ -154,6 +179,7 @@ export default function CameraScreen() {
   const gauges = useMemo(() => mergeGauges(snapshot.gauges), [snapshot.gauges]);
   const analyzing = snapshot.status === "analyzing";
   const waitingStance = snapshot.status === "waitingStance";
+  const startDelay = snapshot.status === "startDelay";
 
   // --- 採点中のBGM ---
   // 採点中(analyzing)だけループ再生する。判定ロジックとは無関係なので
@@ -220,8 +246,8 @@ export default function CameraScreen() {
     };
   }, []);
 
-  /** 判定を始めてから保存に入るまで(構え待ち + 採点中) */
-  const active = waitingStance || analyzing;
+  /** 判定を始めてから保存に入るまで(構え待ち + 開始の合図 + 採点中) */
+  const active = waitingStance || startDelay || analyzing;
   // 残り時間(秒)と、構えが続いたら採点が始まるまでのカウントダウン
   const remainingSec = Math.max(0, Math.ceil((snapshot.durationMs - snapshot.elapsedMs) / 1000));
   const stanceCountdown = Math.max(1, Math.ceil(((1 - snapshot.stanceProgress) * STANCE_HOLD_MS) / 1000));
@@ -286,11 +312,20 @@ export default function CameraScreen() {
               {snapshot.stanceProgress > 0 ? (
                 <Text style={styles.stanceCount}>{stanceCountdown}</Text>
               ) : (
-                <Text style={styles.stanceHint}>構えを {STANCE_HOLD_MS / 1000} 秒続けると採点が始まります</Text>
+                <Text style={styles.stanceHint}>
+                  構えを {STANCE_HOLD_MS / 1000} 秒続けると、合図の {startDelaySec} 秒後に採点が始まります
+                </Text>
               )}
               <View style={styles.stanceTrack}>
                 <View style={[styles.stanceFill, { width: `${Math.round(snapshot.stanceProgress * 100)}%` }]} />
               </View>
+            </View>
+          )}
+          {/* 3→2→1 の後の合図。この間はまだ録画・採点していない */}
+          {startDelay && (
+            <View style={styles.stancePanel}>
+              <Text style={styles.stanceCount}>はじめ！</Text>
+              <Text style={styles.stanceHint}>踊り始めてください</Text>
             </View>
           )}
           {snapshot.lastEvent && (
@@ -380,9 +415,25 @@ export default function CameraScreen() {
               ))}
             </View>
           )}
-          {/* 操作ボタン: 構え待ち中は「中止」、開始前は「判定を開始」(準備ができるまで押せない)、採点中は「終了して採点」「中止」 */}
+          {/* 開始までの待ち時間の選択(判定を始める前だけ)。選んだ値は端末に覚えておく */}
+          {!active && (
+            <View style={styles.durationRow}>
+              <Text style={styles.durationLabel}>開始の待ち</Text>
+              {START_DELAY_OPTIONS_SEC.map((sec) => (
+                <TouchableOpacity
+                  key={sec}
+                  style={[styles.durationChip, startDelaySec === sec && styles.durationChipSelected]}
+                  disabled={busy}
+                  onPress={() => chooseStartDelay(sec)}
+                >
+                  <Text style={[styles.durationChipText, startDelaySec === sec && styles.durationChipTextSelected]}>{sec}秒</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {/* 操作ボタン: 構え待ち・開始の合図の間は「中止」、開始前は「判定を開始」(準備ができるまで押せない)、採点中は「終了して採点」「中止」 */}
           <View style={styles.buttons}>
-            {waitingStance ? (
+            {waitingStance || startDelay ? (
               <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
                 <Text style={styles.secondaryButtonText}>中止</Text>
               </TouchableOpacity>
@@ -394,7 +445,7 @@ export default function CameraScreen() {
                   // モバイルブラウザの自動再生制限を回避するため、ボタン押下(ユーザー操作)の
                   // 中で同期的にBGMを一度再生しておく。実際の採点開始とBGM再生はこの後始まる
                   unlockBgm();
-                  start(durationSec);
+                  start(durationSec, startDelaySec);
                 }}
               >
                 {snapshot.status === "loading" ? (

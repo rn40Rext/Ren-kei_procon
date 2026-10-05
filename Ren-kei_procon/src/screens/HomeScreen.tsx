@@ -51,15 +51,8 @@ import {
 } from '../repositories/posts';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
-import {
-  feedTags,
-  feedPosts as seedFeed,
-  myPosts as seedMine,
-  ME,
-  FeedPost,
-} from '../data/mockEnbu';
+import { feedTags } from '../data/mockEnbu';
 import { challenges } from '../data/mockChallenges';
-import { awaImage } from '../data/awaImages';
 import { formatAiScore } from '../features/analysis/format';
 
 
@@ -219,11 +212,9 @@ function daysToFestival(): number {
 
 // ============================================================
 // ヒーロー表示用のデータ型
-// 画面上部に表示する「あなたの最新投稿」または「見本投稿」を
-// 共通の形式で扱うための型。
+// 画面上部に表示する「あなたの最新投稿」を扱うための型。
 // ============================================================
 type HeroLike = {
-  kind: 'real' | 'dummy';
   category: string;
   kimeRate: number | undefined;
   timeAgo: string;
@@ -244,7 +235,7 @@ function renderHeroVideoOverlay() {
   );
 }
 
-/** 動画の下に出す情報: 見出し(あなたの直近の投稿/見本)・本番までの日数・種類と極め度と投稿時期のバッジ・所属・題名 */
+/** 動画の下に出す情報: 見出し(あなたの直近の投稿)・本番までの日数・種類と極め度と投稿時期のバッジ・所属・題名 */
 function renderHeroInfo(hero: HeroLike, festivalDays: number) {
   return (
     <>
@@ -252,7 +243,7 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
         <View style={styles.heroTopEyebrowRow}>
           <KumihimoRule width={18} />
           <Text style={styles.heroEyebrowText}>
-            {hero.kind === 'dummy' ? '見本(サンプル)' : 'あなたの直近の投稿'}
+            あなたの直近の投稿
           </Text>
         </View>
         <View style={styles.countdownChip}>
@@ -288,8 +279,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 /**
  * ホーム画面(U-01)。交流広場を兼ねる(旧CommunityScreenはここに統合済み)。
- * 自分の最新投稿(実データがあればそれ、無ければサンプル)をヒーローに、
- * その下に交流フィード(実データ+サンプル)を出す。投稿モーダルもここで持つ。
+ * 自分の最新投稿をヒーローに、その下に交流フィード(実際の投稿)を出す。
+ * 投稿モーダルもここで持つ。
  */
 export default function HomeScreen({ navigation, route }: Props) {
   // 画面幅に合わせてヒーロー画像の高さを調整。
@@ -305,8 +296,6 @@ export default function HomeScreen({ navigation, route }: Props) {
   // 阿波おどり本番までの日数。初回表示時に一度だけ計算する。
   const festivalDays = useMemo(() => daysToFestival(), []);
 
-  // ダミー：投稿はローカル state で保持（自分の投稿 + 交流フィード）
-  const [feed, setFeed] = useState<FeedPost[]>([...seedMine, ...seedFeed]);
   const [posting, setPosting] = useState(false);
   // Web版の「今すぐ撮る」はOSのカメラアプリに丸投げせず、採点画面と同じ
   // getUserMedia+MediaRecorderでアプリ内完結させる(launchCameraAsyncはWebでは
@@ -379,19 +368,15 @@ export default function HomeScreen({ navigation, route }: Props) {
     return subscribeUnreadNotificationCount(uid, setUnreadCount, () => undefined);
   }, [uid]);
 
-  // 見本の演舞・実際の投稿の詳細画面を開く
-  const openEnbu = (id: string) => navigation.navigate('VideoDetail', { id });
+  // 実際の投稿の詳細画面を開く
   const openPost = (postId: string) => navigation.navigate('VideoDetail', { postId });
 
-  // 自分が投稿した演舞（main=ture）。実データの投稿があればそれを最優先で主役に据える。
-  const mine = useMemo(() => feed.filter((p) => p.mine), [feed]);
+  // 自分が投稿した演舞。最新の1件をヒーローに据える。
   const myRealPosts = useMemo(
     () => realPosts.filter((p) => p.userId && p.userId === uid),
     [realPosts, uid],
   );
   const realHero = myRealPosts[0] ?? null;
-  const dummyHero = mine[0] ?? null;
-  const otherMine = realHero ? mine : mine.slice(1);
   // フィード一覧・「ほかのあなたの投稿」はヒーローに出している最新投稿を除いて表示
   const feedRealPosts = useMemo(
     () => realPosts.filter((p) => p.id !== realHero?.id),
@@ -437,10 +422,10 @@ export default function HomeScreen({ navigation, route }: Props) {
     }
   };
 
-  // ヒーローの下の横並び：自分の実投稿（ヒーロー以外）＋サンプルの自分の投稿
+  // ヒーローの下の横並び：自分の投稿（ヒーローに出している最新の1件以外）
   const otherMineItems = useMemo(
-    () => [
-      ...myRealPosts
+    () =>
+      myRealPosts
         .filter((p) => p.id !== realHero?.id)
         .map((p) => ({
           key: p.id,
@@ -450,22 +435,12 @@ export default function HomeScreen({ navigation, route }: Props) {
           meta: `あなたの投稿・拍手 ${p.likeCount}`,
           onPress: () => openPost(p.id),
         })),
-      ...otherMine.map((p) => ({
-        key: p.id,
-        kind: 'dummy' as const,
-        image: p.image,
-        title: p.title,
-        meta: `${p.timeAgo}・拍手 ${p.claps}`,
-        onPress: () => openEnbu(p.id),
-      })),
-    ],
-    [myRealPosts, realHero, otherMine],
+    [myRealPosts, realHero],
   );
 
-  // ヒーローに出す内容。自分の実際の投稿があればそれ、なければ見本の投稿、どちらもなければ null
+  // ヒーローに出す内容。自分の投稿がなければ null(投稿をうながすカードを出す)
   const hero = realHero
     ? {
-      kind: 'real' as const,
       title: realHero.title,
       authorRen: '交流広場に投稿',
       category: realHero.tags[0] ?? '演舞',
@@ -478,36 +453,9 @@ export default function HomeScreen({ navigation, route }: Props) {
       duration: undefined as string | undefined,
       onPress: () => openPost(realHero.id),
     }
-    : dummyHero
-      ? {
-        kind: 'dummy' as const,
-        title: dummyHero.title,
-        authorRen: dummyHero.authorRen,
-        category: dummyHero.category,
-        kimeRate: dummyHero.kimeRate,
-        timeAgo: dummyHero.timeAgo,
-        description: dummyHero.description,
-        image: dummyHero.image,
-        claps: dummyHero.claps,
-        comments: dummyHero.comments,
-        duration: dummyHero.duration,
-        onPress: () => openEnbu(dummyHero.id),
-      }
-      : null;
+    : null;
 
-  // 見本のフィードを、選んだタグと検索キーワード(題名・踊り手・連)で絞り込む
-  const visibleFeed = useMemo(() => {
-    return feed.filter((p) => {
-      const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
-      const q = search.trim();
-      const searchOk =
-        !q || p.title.includes(q) || p.author.includes(q) || p.authorRen.includes(q);
-      return tagOk && searchOk;
-    });
-  }, [feed, feedTag, search]);
-
-  // 実データの投稿も、見本と同じ検索・タグ絞り込みを適用する
-  // (以前はここが抜けていて、検索欄・タグが実際の投稿に効かなかった)
+  // 交流フィードの投稿を、選んだタグと検索キーワード(題名・投稿者)で絞り込む
   const visibleRealPosts = useMemo(() => {
     return feedRealPosts.filter((p) => {
       const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
@@ -574,69 +522,41 @@ export default function HomeScreen({ navigation, route }: Props) {
     setRecording(false);
   };
 
-  /** 投稿モーダルの送信。動画があれば実投稿、無ければローカルのサンプルフィードに足すだけ */
+  /** 投稿モーダルの送信。選んだ動画を交流広場へ公開する(動画が無いと送れない) */
   const submitPost = async () => {
-    if (!draftTitle.trim() || submitting) return;
+    if (!draftTitle.trim() || !videoUri || submitting) return;
 
-    // 動画が選ばれていれば実データとして投稿（Firestore/Storage バックエンド）
-    if (videoUri) {
-      if (!auth.currentUser) {
-        Alert.alert('ログインが必要です', '投稿するにはログインしてください。');
-        return;
-      }
-      setSubmitting(true);
-      try {
-        // 稽古手帳から来た練習動画は既にStorageにあるため再アップロードしない
-        if (existingVideoId) {
-          await publishExistingVideo({
-            videoUrl: videoUri,
-            title: draftTitle,
-            description: draftDesc,
-            tags: draftTags,
-            videoId: existingVideoId,
-          });
-        } else {
-          await uploadVideoAndPublish({
-            uri: videoUri,
-            title: draftTitle,
-            description: draftDesc,
-            tags: draftTags,
-          });
-        }
-        setPosting(false);
-        resetDraft();
-        setFeedTag(feedTags[0]);
-      } catch (e: any) {
-        Alert.alert('投稿に失敗しました', e?.message ?? '時間をおいて再度お試しください。');
-      } finally {
-        setSubmitting(false);
-      }
+    if (!auth.currentUser) {
+      Alert.alert('ログインが必要です', '投稿するにはログインしてください。');
       return;
     }
-
-    // 動画なし：従来どおりサンプル（ローカル）に追加
-    setFeed((prev) => [
-      {
-        id: `me-${Date.now()}`,
-        title: draftTitle.trim(),
-        author: ME.name,
-        authorRen: ME.ren,
-        category: '男踊り',
-        tags: draftTags,
-        kimeRate: 80,
-        claps: 0,
-        comments: 0,
-        timeAgo: 'たった今',
-        duration: '00:00',
-        description: draftDesc.trim() || '投稿したばかりの演舞です。',
-        image: awaImage('男踊り', Math.floor(Math.random() * 7)),
-        mine: true,
-      },
-      ...prev,
-    ]);
-    setPosting(false);
-    resetDraft();
-    setFeedTag(feedTags[0]);
+    setSubmitting(true);
+    try {
+      // 稽古手帳から来た練習動画は既にStorageにあるため再アップロードしない
+      if (existingVideoId) {
+        await publishExistingVideo({
+          videoUrl: videoUri,
+          title: draftTitle,
+          description: draftDesc,
+          tags: draftTags,
+          videoId: existingVideoId,
+        });
+      } else {
+        await uploadVideoAndPublish({
+          uri: videoUri,
+          title: draftTitle,
+          description: draftDesc,
+          tags: draftTags,
+        });
+      }
+      setPosting(false);
+      resetDraft();
+      setFeedTag(feedTags[0]);
+    } catch (e: any) {
+      Alert.alert('投稿に失敗しました', e?.message ?? '時間をおいて再度お試しください。');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /** 投稿フォームのタグを付け外しする */
@@ -696,7 +616,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           useNativeDriver: true,
         })}
       >
-        {/* 自分が投稿した演舞（実データがあれば動画、無ければサンプル画像） */}
+        {/* 自分が投稿した演舞(最新の1件を動画で大きく見せる) */}
         {hero ? (
           <View style={styles.hero}>
             <TouchableOpacity
@@ -704,8 +624,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               activeOpacity={0.92}
               onPress={hero.onPress}
             >
-              {hero.kind === 'real' ? (
-                <View style={styles.heroImage}>
+              <View style={styles.heroImage}>
                   <RenkeiVideo uri={hero.videoUrl} style={styles.heroVideo} contentFit="cover" muted autoPlay loop />
                   <View style={styles.heroLightLayer} pointerEvents="none">
                     <SparkLayer count={6} />
@@ -713,15 +632,6 @@ export default function HomeScreen({ navigation, route }: Props) {
                   <HeroFade height={88} />
                   <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
                 </View>
-              ) : (
-                <ImageBackground source={{ uri: hero.image }} style={styles.heroImage}>
-                  <View style={styles.heroLightLayer} pointerEvents="none">
-                    <SparkLayer count={6} />
-                  </View>
-                  <HeroFade height={88} />
-                  <View style={styles.heroImgGrad}>{renderHeroVideoOverlay()}</View>
-                </ImageBackground>
-              )}
             </TouchableOpacity>
 
             {/* ヒーローの下側: 投稿の情報・説明・演舞尺/拍手/声の数 */}
@@ -764,17 +674,9 @@ export default function HomeScreen({ navigation, route }: Props) {
                         activeOpacity={0.9}
                         onPress={item.onPress}
                       >
-                        {item.kind === 'real' ? (
-                          <View style={styles.otherMineThumb}>
+                        <View style={styles.otherMineThumb}>
                             <RenkeiVideo uri={item.videoUrl} style={styles.otherMineThumbVideo} contentFit="cover" muted />
                           </View>
-                        ) : (
-                          <ImageBackground
-                            source={{ uri: item.image }}
-                            style={styles.otherMineThumb}
-                            imageStyle={{ borderRadius: radius.sm }}
-                          />
-                        )}
                         <Text style={styles.otherMineTitle} numberOfLines={2}>{item.title}</Text>
                         <Text style={styles.otherMineMeta}>{item.meta}</Text>
                       </TouchableOpacity>
@@ -908,8 +810,8 @@ export default function HomeScreen({ navigation, route }: Props) {
         </ScrollView>
 
         <View style={styles.feedList}>
-          {/* 実データ：交流広場に投稿された演舞（新着順。ヒーローに出している自分の最新分は除く。
-              検索・タグの絞り込みも見本と同じように適用する） */}
+          {/* 交流広場に投稿された演舞(新着順。ヒーローに出している自分の最新分は除く)。
+              該当する投稿がなければ案内文を出す */}
           {visibleRealPosts.length > 0 ? (
             <>
               {visibleRealPosts.map((p) => (
@@ -975,73 +877,15 @@ export default function HomeScreen({ navigation, route }: Props) {
               ))
               }
             </>
-          ) : null}
-
-          {/* ここから下は見本であることを示す区切り */}
-          <View style={styles.sampleDivider}>
-            <KumihimoRule width={16} />
-            <Text style={styles.sampleDividerText}>　ここから下は見本（サンプル）</Text>
-          </View>
-
-          {
-            // 見本のフィード。条件に合うものがなければ案内文を出す
-            visibleFeed.length === 0 ? (
-              <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>
-            ) : (
-              visibleFeed.map((p) => {
-                const CatIcon = categoryIcon(p.category);
-                return (
-                  <TouchableOpacity
-                    key={p.id}
-                    style={styles.feedCard}
-                    activeOpacity={0.85}
-                    onPress={() => openEnbu(p.id)}
-                  >
-                    <ImageBackground
-                      source={{ uri: p.image }}
-                      style={styles.feedThumb}
-                      imageStyle={{ borderRadius: radius.sm }}
-                    >
-                      <View style={styles.feedCatMark}>
-                        <CatIcon size={12} color={colors.goldBright} />
-                      </View>
-                      <View style={styles.feedKime}>
-                        <Text style={styles.feedKimeText}>
-                          {formatAiScore(p.kimeRate)}
-                        </Text>
-                      </View>
-                    </ImageBackground >
-                    <View style={styles.feedBody}>
-                      <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
-                      <View style={styles.feedAuthorRow}>
-                        <RenMon size={18} color={colors.gold}>
-                          <Text style={styles.feedAvatarChar}>{p.author.slice(0, 1)}</Text>
-                        </RenMon>
-                        <Text style={styles.feedMeta} numberOfLines={1}>　{p.author}／{p.authorRen}</Text>
-                      </View>
-                      {p.tags.length > 0 ? (
-                        <Text style={styles.feedTags} numberOfLines={1}>{p.tags.join('  ')}</Text>
-                      ) : null}
-                      <View style={styles.feedStats}>
-                        <IconNaruko size={13} color={colors.gold} />
-                        <Text style={styles.feedStatText}>{p.claps}</Text>
-                        <View style={{ marginLeft: spacing.md, flexDirection: 'row', alignItems: 'center' }}>
-                          <IconMakimono size={13} color={colors.textMuted} />
-                          <Text style={styles.feedStatText}>{p.comments}</Text>
-                        </View>
-                        <Text style={styles.feedTime}>・{p.timeAgo}</Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity >
-                );
-              })
-            )}
+          ) : (
+            <Text style={styles.emptyText}>この条件の演舞はまだありません。</Text>
+          )}
         </View >
 
         <View style={{ height: 32 }} />
       </Animated.ScrollView >
 
-      {/* 演舞を披露する（ダミー投稿） */}
+      {/* 演舞を披露する(交流広場への投稿) */}
       < Modal visible={posting} transparent animationType="slide" onRequestClose={() => setPosting(false)}>
         <KeyboardAvoidingView
           style={styles.modalWrap}
@@ -1089,9 +933,9 @@ export default function HomeScreen({ navigation, route }: Props) {
                 </TouchableOpacity>
               </View>
             )}
-            {/* 動画を選ばない場合は見本として保存される旨の案内と、撮り直すリンク */}
+            {/* 撮影・選択の案内と、撮り直すリンク */}
             <Text style={styles.modalPickerHint}>
-              初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。選ばない場合は見本として保存されます。
+              初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。
             </Text>
             {videoUri ? (
               <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
@@ -1129,18 +973,18 @@ export default function HomeScreen({ navigation, route }: Props) {
                 />
               ))}
             </View>
-            {/* 送信ボタン。動画があれば広場へ公開、なければ見本として保存。題名が空か送信中は押せない */}
+            {/* 送信ボタン。動画を選び、題名を入れるまで押せない。送信中も押せない */}
             <TouchableOpacity
-              style={[styles.modalSubmit, (!draftTitle.trim() || submitting) && styles.modalSubmitDisabled]}
+              style={[styles.modalSubmit, (!draftTitle.trim() || !videoUri || submitting) && styles.modalSubmitDisabled]}
               onPress={submitPost}
-              disabled={!draftTitle.trim() || submitting}
+              disabled={!draftTitle.trim() || !videoUri || submitting}
               activeOpacity={0.85}
             >
               {submitting ? (
                 <ActivityIndicator color={colors.textOnGold} />
               ) : (
                 <Text style={styles.modalSubmitText}>
-                  {videoUri ? '広場へ披露する' : '見本として保存する'}
+                  {videoUri ? '広場へ披露する' : '動画を選んでください'}
                 </Text>
               )}
             </TouchableOpacity>
@@ -1530,11 +1374,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  // サムネイルの枠と動画、「ここから下は見本」の区切り
+  // サムネイルの枠と動画
   feedThumb: { width: 92, height: 92, backgroundColor: colors.indigoRaised, justifyContent: 'flex-end', borderRadius: radius.sm, overflow: 'hidden' },
   feedThumbVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  sampleDivider: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: spacing.md },
-  sampleDividerText: { ...typography.caption, color: colors.textMuted },
   // サムネイルに重ねる種類のアイコン(左上)と極め度(左下)
   feedCatMark: {
     position: 'absolute',
@@ -1566,9 +1408,8 @@ const styles = StyleSheet.create({
   feedStatText: { ...typography.caption, color: colors.textSecondary, marginLeft: 4 },
   feedClapBtn: { flexDirection: 'row', alignItems: 'center' },
   feedStatTextActive: { color: colors.aka, fontWeight: '700' },
-  feedTime: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
 
-  /* --- 投稿モーダル ：動画があれば Firestore/Storage へ公開、無ければ見本としてローカルに保存　--- */
+  /* --- 投稿モーダル ：選んだ動画を Firestore/Storage へ公開する --- */
   modalWrap: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(11,19,43,0.7)' },
   modalCard: {
     backgroundColor: colors.indigoDeep,

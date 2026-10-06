@@ -68,7 +68,7 @@ export type RootStackParamList = {
   Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
   Result: { analysisId: string; videoId: string };
-  Request: { inviteName?: string; inviteMeta?: string } | undefined;
+  Request: undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   // 連スタイル類似度の結果（AI機能②）。表示可否は
   // src/features/style/featureFlags.ts で制御する

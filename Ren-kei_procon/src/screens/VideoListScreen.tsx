@@ -17,7 +17,7 @@ import { formatAiScore } from '../features/analysis/format';
 import { colors, spacing, radius, typography } from '../theme';
 import { HeaderSeam } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
-import RenkeiVideo from '../components/RenkeiVideo';
+import VideoThumbnail from '../components/VideoThumbnail';
 
 /** この画面で使う画面遷移の型 */
 type Nav = NativeStackNavigationProp<RootStackParamList, 'VideoList'>;
@@ -247,7 +247,7 @@ export default function VideoListScreen() {
                 <TouchableOpacity style={styles.cardMain} onPress={() => onPressVideo(v)} activeOpacity={0.85}>
                   <View style={styles.thumbWrapper}>
                     {thumbUrls[v.id] ? (
-                      <RenkeiVideo uri={thumbUrls[v.id]} style={StyleSheet.absoluteFill} contentFit="cover" muted />
+                      <VideoThumbnail uri={thumbUrls[v.id]} style={StyleSheet.absoluteFill} />
                     ) : (
                       <Film size={24} color={colors.textMuted} />
                     )}

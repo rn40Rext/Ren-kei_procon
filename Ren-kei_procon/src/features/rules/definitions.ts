@@ -20,6 +20,8 @@ export type RhythmConfig = {
   minWindowMs: number;
   bpmMin: number;
   bpmMax: number;
+  /** 周期性の強さ(自己相関ピークの高さ 0〜1)がこれ未満なら「リズムを検出できない」として採点しない。省略時は rhythm.ts の MIN_RHYTHM_STRENGTH */
+  minStrength?: number;
 };
 
 export type RuleSet = {

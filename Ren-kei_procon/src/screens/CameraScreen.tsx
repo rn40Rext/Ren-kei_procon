@@ -33,6 +33,7 @@ import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
 import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
+import { SCORING_BGM_URL } from "../features/analysis/bgm";
 
 /** この画面で使う画面遷移と、前の画面から受け取る値(踊りの型・重点部位・基準のテンポ)の型 */
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
@@ -43,7 +44,7 @@ type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
 // (expo-av等)には依存せず、Web標準のAudio要素だけで再生する。
 // (expo-avは静的importするだけでネイティブモジュール'ExponentAV'が
 // 見つからずクラッシュするため、ここでは使わない)
-const BGM_URL: string = require("../../assets/audio/bgm-awaodori.mp3");
+const BGM_URL = SCORING_BGM_URL;
 
 /** 判定ゲージに出すルールと、その表示名(ここにないルールはゲージに出さない) */
 const GAUGE_LABELS: Record<string, string> = {
@@ -126,7 +127,7 @@ export default function CameraScreen() {
 
   // 姿勢推定・判定・録画・採点の処理はすべて useLiveAnalysis が担う。画面はその状態を表示して操作を渡すだけ
   const live = useLiveAnalysis({ uid, danceType, scorePart, baseBpm });
-  const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize } = live;
+  const { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize, recover } = live;
 
   // 映像ソースが使えるようになったら(または未対応と分かったら)覚えておく
   const onSource = useCallback((s: LiveVideoSource | null) => setSource(s), []);
@@ -137,8 +138,10 @@ export default function CameraScreen() {
   }, [source, prepare]);
 
   // 判定を終えて、動画の保存と採点を行い、結果画面へ進む(二重に押せないようにする)
+  const finishingRef = useRef(false);
   const onFinish = useCallback(async () => {
-    if (busy) return;
+    if (busy || finishingRef.current) return;
+    finishingRef.current = true;
     setBusy(true);
     try {
       const result = await finish();
@@ -147,6 +150,7 @@ export default function CameraScreen() {
       const msg = e instanceof Error ? e.message : String(e);
       Alert.alert("保存に失敗しました", msg);
     } finally {
+      finishingRef.current = false;
       setBusy(false);
     }
   }, [busy, finish, navigation]);
@@ -433,7 +437,11 @@ export default function CameraScreen() {
           )}
           {/* 操作ボタン: 構え待ち・開始の合図の間は「中止」、開始前は「判定を開始」(準備ができるまで押せない)、採点中は「終了して採点」「中止」 */}
           <View style={styles.buttons}>
-            {waitingStance || startDelay ? (
+            {snapshot.status === "error" && !canRetryFinalize ? (
+              <TouchableOpacity style={[styles.primaryButton, busy && styles.buttonDisabled]} disabled={busy} onPress={() => void recover()}>
+                <Text style={styles.primaryButtonText}>やり直す</Text>
+              </TouchableOpacity>
+            ) : waitingStance || startDelay ? (
               <TouchableOpacity style={styles.secondaryButton} disabled={busy} onPress={onCancel}>
                 <Text style={styles.secondaryButtonText}>中止</Text>
               </TouchableOpacity>

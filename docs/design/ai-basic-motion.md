@@ -426,6 +426,8 @@ rhythmScore = clamp(100 * (1 - |userBpm - baseBpm| / baseBpm / TOLERANCE), 0, 10
 - 窓は 8 秒（`windowMs`）、4 秒未満（`minWindowMs`）では推定しない。1 秒ごとに推定し、GREAT（誤差 7% 以下）/ GOOD（15% 以下）/ MISS を `RHYTHM` のイベントとして発火する。
 - 合成データでの検証: 90 / 112 / 130 BPM を ±3 BPM 以内で復元、56 BPM の上下動を 112 として評価（`rules/rhythm.test.ts`）。
 
+**リズム推定の採用条件（暫定、2026-10-03）**: 周期性の強さ（自己相関ピークの高さ、`strength`）が `MIN_RHYTHM_STRENGTH`（0.45）未満の推定は採用せず、`userBpm = null`（「計測中」のまま・採点に含めない）とする。静止中のジッタ（白色ノイズを EMA 平滑）は強さ 0.11〜0.38 でも自己相関に山ができ、基準付近の BPM が返って GREAT が付いたため。周期的な上下動の合成データは 0.85 以上。実際の踊りでの強さの分布は未計測のため暫定値で、`defaultRules.json` の `rhythm.minStrength` または Firestore `analysisRules` で調整できる。回帰テストは `rhythm.test.ts`（静止ジッタ 30 seed・ドリフト・ランダムウォーク・実機で静止して撮った `__fixtures__/standing_real_hipy.json`）。
+
 **TBD-04（基準 BPM の決め方）→ 暫定決定: 案 B（ユーザーが選ぶ）。** U-02 の前段（`ScoringScreen`）で 96 / 104 / 112 / 120 / 128 から選ぶ。既定の 112 は `renkei_project_10/renkei/profiles.py` にあるさゝゆり連の熟練者映像の実測値（正面 112.8 / 横 111.2 BPM）。案 A（練習用音源の再生）は音源の権利処理と端末スピーカーの遅延が要るため MVP では行わない。案 C（マイクで鳴り物を拾う）は将来。
 
 ## 9. Analysis Score（仕様書 7.7）

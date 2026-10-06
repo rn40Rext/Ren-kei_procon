@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { X } from 'lucide-react-native';
+import { Play, X } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
@@ -30,7 +30,7 @@ import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
 import { Chip } from '../components/ui';
 import { ScoreRevealAnimation } from '../components/ScoreRevealAnimation';
-import RenkeiVideo from '../components/RenkeiVideo';
+import PracticeVideoModal from '../components/PracticeVideoModal';
 
 /** この画面で使う画面遷移と、前の画面から受け取る値(解析IDと動画ID)の型 */
 type ResultNav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
@@ -79,24 +79,24 @@ export default function ResultScreen() {
   const [shareError, setShareError] = useState<string | null>(null);
   const [posted, setPosted] = useState(false);
 
-  // 稽古の動画の再生URL(undefined=読み込み中、null=動画が保存されていない)
-  const [videoUrl, setVideoUrl] = useState<string | null | undefined>(undefined);
+  // 撮った動画の再生用URL(取れなかった・動画が無いときは null で、「撮った動画を見る」を出さない) / 再生画面を開いているか
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [watching, setWatching] = useState(false);
 
-  // 稽古の動画を読み込む。downloadUrlが無い古いデータはstoragePathからURLを取り直す
+  // 撮った動画の再生用URLを取る
   useEffect(() => {
-    let alive = true;
+    let cancelled = false;
     (async () => {
       try {
         const video = await fetchVideo(videoId);
         const url = video?.downloadUrl ?? (video?.storagePath ? await videoDownloadUrl(video.storagePath) : null);
-        if (alive) setVideoUrl(url);
+        if (!cancelled) setVideoUrl(url);
       } catch (e) {
-        console.warn('fetchVideo', e);
-        if (alive) setVideoUrl(null);
+        console.warn('動画のURL取得に失敗しました', e);
       }
     })();
     return () => {
-      alive = false;
+      cancelled = true;
     };
   }, [videoId]);
 
@@ -160,7 +160,7 @@ export default function ResultScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>{error ?? '解析結果が見つかりませんでした'}</Text>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home', undefined, { pop: true })}>
           <Text style={styles.secondaryButtonText}>踊り広場へ戻る</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -172,22 +172,11 @@ export default function ResultScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 見出しと説明 */}
         <KumihimoRule width={30} />
         <Text style={styles.title}>解析結果</Text>
         <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した評価です。</Text>
-
-        {/* 採点した稽古の動画。縦撮り・横撮りどちらでも全体が映るようにcontainで表示する */}
-        <View style={styles.videoBox}>
-          {videoUrl ? (
-            <RenkeiVideo uri={videoUrl} style={styles.video} contentFit="contain" nativeControls />
-          ) : videoUrl === undefined ? (
-            <NarutoLoader size={26} color={colors.gold} />
-          ) : (
-            <Text style={styles.muted}>この稽古の動画は保存されていません</Text>
-          )}
-        </View>
 
         {/* 極め度 = 手の高さ・腰の低さ・手を止める・リズムのうち評価できた項目の平均(サーバで確定。functions/src/analysis/score.ts) */}
         <View style={styles.totalCard}>
@@ -248,6 +237,14 @@ export default function ResultScreen() {
 
         <AwaDivider width={320} style={{ marginTop: spacing.xl, marginBottom: spacing.lg }} />
 
+        {/* 撮った動画を再生する(動画のURLが取れたときだけ) */}
+        {videoUrl ? (
+          <TouchableOpacity style={styles.watchButton} onPress={() => setWatching(true)} activeOpacity={0.85}>
+            <Play size={15} color={colors.gold} />
+            <Text style={styles.watchButtonText}>撮った動画を見る</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* 交流広場への投稿ボタン(投稿後は「投稿しました」の表示に変える) */}
         {posted ? (
           <View style={styles.postedNote}>
@@ -260,15 +257,18 @@ export default function ResultScreen() {
         )}
 
         {/* もう一度稽古する / 踊り広場へ戻る */}
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring')} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring', undefined, { pop: true })} activeOpacity={0.85}>
           <Text style={styles.primaryButtonText}>もう一度稽古する</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home', undefined, { pop: true })} activeOpacity={0.85}>
           <Text style={styles.secondaryButtonText}>踊り広場へ戻る</Text>
         </TouchableOpacity>
 
         <View style={{ height: spacing.xl }} />
       </ScrollView>
+
+      {/* 撮った動画の再生画面。この解析結果の動画は採点時のBGMを付けて流す */}
+      <PracticeVideoModal uri={watching ? videoUrl : null} scored onClose={() => setWatching(false)} />
 
       {/* 交流広場への投稿ダイアログ: 題名(必須)・ひとこと・タグと投稿ボタン */}
       <Modal visible={shareVisible} transparent animationType="slide" onRequestClose={() => setShareVisible(false)}>
@@ -348,18 +348,6 @@ const styles = StyleSheet.create({
   lead: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 17 },
 
 
-  // 稽古の動画の枠(読み込み中・動画なしの表示も同じ枠の中央に出す)
-  videoBox: {
-    height: 420,
-    marginBottom: spacing.lg,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    backgroundColor: colors.indigoRaised,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  video: { width: '100%', height: '100%' },
-
   // セクションの見出し(組紐の飾り + 明朝体の文字)
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.md },
   sectionTitle: { ...typography.headingSerif, color: colors.textPrimary },
@@ -408,6 +396,19 @@ const styles = StyleSheet.create({
   secondaryButton: { borderWidth: 1, borderColor: colors.indigoLine, paddingVertical: spacing.md, borderRadius: radius.sm, alignItems: 'center', backgroundColor: colors.indigo },
   secondaryButtonText: { ...typography.button, color: colors.textPrimary },
 
+  // 「撮った動画を見る」ボタン(投稿ボタンと同じ金色の枠。投稿ボタンの上に置く)
+  watchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    paddingVertical: spacing.md,
+    borderRadius: radius.sm,
+    marginBottom: spacing.sm,
+  },
+  watchButtonText: { ...typography.button, color: colors.gold },
   // 「交流広場へ投稿する」ボタン(金色の枠線)と、投稿後の「投稿しました」の表示
   shareButton: {
     borderWidth: 1,

@@ -36,6 +36,7 @@ import {
 } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
+import VideoThumbnail from '../components/VideoThumbnail';
 import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
 import { RenKeiWordmark } from '../components/Brand';
 import { auth } from '../config/firebaseConfig';
@@ -311,6 +312,19 @@ export default function HomeScreen({ navigation, route }: Props) {
   const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  // アプリ内録画のblob:URLは、差し替え・投稿後・画面離脱時に解放する(動画Blobが残り続けるのを防ぐ)
+  const blobUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = blobUrlRef.current;
+    if (prev && prev !== videoUri) URL.revokeObjectURL(prev);
+    blobUrlRef.current = videoUri && videoUri.startsWith('blob:') ? videoUri : null;
+  }, [videoUri]);
+  useEffect(
+    () => () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    },
+    [],
+  );
   // 稽古手帳(VideoList)の「交流広場へ投稿」から来た、既にStorageにある練習動画のID。
   // 設定されている間はsubmitPostが再アップロードせずpublishExistingVideoを使う
   const [existingVideoId, setExistingVideoId] = useState<string | null>(null);
@@ -685,8 +699,8 @@ export default function HomeScreen({ navigation, route }: Props) {
                         onPress={item.onPress}
                       >
                         <View style={styles.otherMineThumb}>
-                            <RenkeiVideo uri={item.videoUrl} style={styles.otherMineThumbVideo} contentFit="cover" muted />
-                          </View>
+                          <VideoThumbnail uri={item.videoUrl} style={styles.otherMineThumbVideo} />
+                        </View>
                         <Text style={styles.otherMineTitle} numberOfLines={2}>{item.title}</Text>
                         <Text style={styles.otherMineMeta}>{item.meta}</Text>
                       </TouchableOpacity>
@@ -738,7 +752,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               >
                 <View style={[styles.masterThumb, styles.masterThumbPlain]}>
                   {c.videoUrl ? (
-                    <RenkeiVideo uri={c.videoUrl} style={styles.masterThumbVideo} contentFit="cover" muted />
+                    <VideoThumbnail uri={c.videoUrl} style={styles.masterThumbVideo} />
                   ) : null}
                   <View style={styles.masterThumbScrim}>
                     <View style={styles.chChipRow}>
@@ -894,7 +908,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   {/* 左: 動画のサムネイルと、種類のアイコン・極め度の小さな表示 */}
                   <View style={styles.feedThumb}>
                     {p.videoUrl ? (
-                      <RenkeiVideo uri={p.videoUrl} style={styles.feedThumbVideo} contentFit="cover" muted />
+                      <VideoThumbnail uri={p.videoUrl} style={styles.feedThumbVideo} />
                     ) : null}
                     <View style={styles.feedCatMark}>
                       <IconEnbuPlay size={12} color={colors.goldBright} />
@@ -976,9 +990,15 @@ export default function HomeScreen({ navigation, route }: Props) {
                 activeOpacity={0.85}
                 disabled={submitting}
               >
-                <RenkeiVideo uri={videoUri} style={styles.modalPickerVideo} contentFit="cover" muted />
-                <View style={styles.modalPickerSelected}>
+                {/* 縦長の動画でも全体が見えるよう、枠に収めて(contain)出す。場面は一覧のサムネイルと同じ(2秒付近) */}
+                <View style={styles.modalPickerPreview}>
+                  <VideoThumbnail uri={videoUri} contentFit="contain" style={styles.modalPickerVideo} />
+                </View>
+                <View style={styles.modalPickerSide}>
                   <Text style={styles.modalPickerText}>動画を選び直す</Text>
+                  <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.reRecordText}>撮り直す</Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             ) : (
@@ -1007,11 +1027,6 @@ export default function HomeScreen({ navigation, route }: Props) {
             <Text style={styles.modalPickerHint}>
               初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。
             </Text>
-            {videoUri ? (
-              <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                <Text style={styles.reRecordText}>撮り直す</Text>
-              </TouchableOpacity>
-            ) : null}
             {/* 題名(必須)・概要・タグの入力 */}
             <Text style={styles.modalLabel}>演舞の題</Text>
             <TextInput
@@ -1039,6 +1054,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   label={t}
                   active={draftTags.includes(t)}
                   onPress={() => toggleDraftTag(t)}
+                  compact
                   style={{ marginBottom: spacing.sm }}
                 />
               ))}
@@ -1365,8 +1381,7 @@ const styles = StyleSheet.create({
   masterThumbScrim: { padding: spacing.sm },
   // 実データのお題は写真が無いので、無地の枠の中央に踊りの種類のアイコンを置く
   masterThumbPlain: { backgroundColor: colors.indigoRaised, overflow: 'hidden' },
-  // お手本動画を枠いっぱいに表示する。Web版の<video>は上下左右0の指定だけでは伸びず、
-  // 元の動画の大きさで描かれてしまうため、幅・高さを100%と明示する
+  // お手本動画のサムネイル(VideoThumbnail)を枠いっぱいに重ねる
   masterThumbVideo: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   masterPlainIcon: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   // 写真に重ねる難易度のチップと「チャレンジ」のバッジ(朱色)
@@ -1494,33 +1509,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
-  modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   // 選んだ動画の表示枠と「動画を選び直す」の表示、選ばないときの案内文
   modalPicker: {
-    height: 120,
+    height: 200,
+    flexDirection: 'row',
     borderRadius: radius.sm,
     borderWidth: 2,
     borderColor: colors.gold,
     borderStyle: 'dashed',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: colors.indigo,
     marginBottom: spacing.md,
     overflow: 'hidden',
   },
-  modalPickerVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  modalPickerSelected: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 4,
-    alignItems: 'center',
-    backgroundColor: colors.overlay,
-  },
+  // 左: 動画の確認枠(縦長でも横長でも全体が収まる正方形)。右: 説明と「動画を選び直す」
+  modalPickerPreview: { width: 180, height: '100%', backgroundColor: colors.indigoRaised },
+  modalPickerVideo: { width: '100%', height: '100%' },
+  modalPickerSide: { flex: 1, paddingHorizontal: spacing.md, justifyContent: 'center', alignItems: 'center' },
   modalPickerText: { ...typography.caption, color: colors.gold, marginTop: spacing.sm },
   modalPickerHint: { ...typography.caption, color: colors.textMuted, fontSize: 10, lineHeight: 15, marginBottom: spacing.md },
   // 「今すぐ撮る」「ライブラリから選ぶ」のボタン(金色の枠)と「撮り直す」のリンク
@@ -1537,7 +1546,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.indigo,
   },
   pickBtnText: { ...typography.caption, color: colors.gold, marginTop: spacing.xs, fontSize: 12 },
-  reRecordText: { ...typography.caption, color: colors.gold, textAlign: 'center', marginBottom: spacing.sm, textDecorationLine: 'underline' },
+  reRecordText: { ...typography.caption, color: colors.gold, textAlign: 'center', marginTop: spacing.md, textDecorationLine: 'underline' },
   // 入力欄(概要は複数行)と見出し(金色)
   modalTextarea: { minHeight: 64, textAlignVertical: 'top' },
   modalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, marginTop: spacing.sm },

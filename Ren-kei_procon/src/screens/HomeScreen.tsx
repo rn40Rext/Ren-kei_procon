@@ -1289,7 +1289,8 @@ const styles = StyleSheet.create({
   // ヒーローの動画・画像の枠と、その上の再生ボタンの置き場
   heroImageWrap: { overflow: 'hidden' },
   heroImage: { flex: 1, backgroundColor: colors.indigo },
-  heroVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.indigo },
+  // Web版の<video>は上下左右0の指定だけでは伸びず元の大きさで描かれる(拡大されたように見える)ため、幅・高さを100%と明示する
+  heroVideo: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: colors.indigo },
   // 動画の上には再生ボタンだけを重ねる。見出し・タグ・題名などの文字は
   // 動画に重ねず、下のheroBody(renderHeroInfo)に表示する。
   heroImgGrad: { flex: 1, alignItems: 'center', justifyContent: 'center' },

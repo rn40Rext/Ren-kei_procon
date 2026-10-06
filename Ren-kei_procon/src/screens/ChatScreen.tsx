@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Alert } from '../utils/alert';
 import {
   View,
   Text,
@@ -26,11 +27,13 @@ import type { ChatMessage } from '../types/firestore';
 /** 2人の間でメッセージをやり取りする画面(仕様書にない、試作だけの機能) */
 export default function ChatScreen({ route, navigation }: any) {
   // どの会話を開くか(会話ID)と相手の名前(前の画面から受け取る)
-  const { chatId, recipientName } = route.params;
+  const { chatId, recipientName, initialMessage } = route.params;
   const { uid } = useAuth();
   // メッセージの一覧(新しい順) / 入力中の文
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputText, setInputText] = useState('');
+  // 「連にお誘いする」から来たときは、定型のお誘い文を入力欄に最初から入れておく
+  const [inputText, setInputText] = useState(initialMessage ?? '');
+  const [sending, setSending] = useState(false);
 
   // メッセージをリアルタイム購読(画面を離れたら解除)。chatIdが変わったら購読し直す
   useEffect(() => {
@@ -41,9 +44,18 @@ export default function ChatScreen({ route, navigation }: any) {
 
   // 空文字・未ログインの時は送らない。送信に成功したら入力欄を空にする
   const sendMessage = async () => {
-    if (!inputText.trim() || !uid) return;
-    await sendChatMessage(chatId, uid, inputText);
-    setInputText('');
+    if (!inputText.trim() || !uid || sending) return;
+    setSending(true);
+    try {
+      await sendChatMessage(chatId, uid, inputText);
+      setInputText('');
+    } catch (e) {
+      // 失敗したら入力欄はそのまま残し、もう一度送れるようにする
+      console.error('メッセージの送信に失敗しました', e);
+      Alert.alert('送信に失敗しました', '通信状況を確認して、もう一度お試しください。');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

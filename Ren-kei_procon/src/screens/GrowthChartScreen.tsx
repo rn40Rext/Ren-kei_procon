@@ -99,7 +99,7 @@ export default function GrowthChartScreen() {
           </TouchableOpacity>
         </View>
       ) : results ? (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
           {/* 直近の極め度と前回比、自己ベスト */}
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>

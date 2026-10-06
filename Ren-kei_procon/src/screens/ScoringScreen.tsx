@@ -53,7 +53,7 @@ export default function AnalysisScreen() {
       </View>
       <HeaderSeam />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 踊りの種類 */}
         <View style={styles.sectionHead}>
           <KumihimoRule width={20} />

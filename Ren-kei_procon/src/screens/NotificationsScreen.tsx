@@ -124,7 +124,7 @@ export default function NotificationsScreen() {
           if (post) {
             navigation.navigate('VideoDetail', { postId: n.referenceId });
           } else {
-            navigation.navigate('Home');
+            navigation.navigate('Home', undefined, { pop: true });
           }
           return;
         }
@@ -181,7 +181,7 @@ export default function NotificationsScreen() {
               recipientName: profile?.nickname || profile?.name || '踊り子',
             });
           } else {
-            navigation.navigate('Home');
+            navigation.navigate('Home', undefined, { pop: true });
           }
           return;
         }

@@ -47,6 +47,19 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
   const chunksRef = useRef<BlobPart[]>([]);
   const fileMediaRef = useRef<RecordedMedia | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // 動画ファイルを再生するために作ったblob:URL。差し替え・カメラへ戻る・画面離脱時に解放する
+  const fileUrlRef = useRef<string | null>(null);
+  const setFileSrc = useCallback((video: HTMLVideoElement, blob: Blob) => {
+    if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
+    fileUrlRef.current = URL.createObjectURL(blob);
+    video.src = fileUrlRef.current;
+  }, []);
+  useEffect(
+    () => () => {
+      if (fileUrlRef.current) URL.revokeObjectURL(fileUrlRef.current);
+    },
+    []
+  );
   const [mode, setMode] = useState<Mode>("camera");
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [mirror, setMirror] = useState(true);
@@ -153,7 +166,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
         setMode("file");
         setMirror(false);
         video.srcObject = null;
-        video.src = URL.createObjectURL(blob);
+        setFileSrc(video, blob);
         video.loop = false;
         video.muted = true;
         // 「判定を開始」を押した瞬間に再生が始まるよう、ここでは再生しない
@@ -224,7 +237,7 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
       setMode("file");
       setMirror(false);
       video.srcObject = null;
-      video.src = URL.createObjectURL(file);
+      setFileSrc(video, file);
       video.loop = false;
       video.muted = true;
       // 「判定を開始」を押した瞬間に再生が始まるよう、選択直後は再生しない
@@ -267,6 +280,10 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
       video.load();
     }
     fileMediaRef.current = null;
+    if (fileUrlRef.current) {
+      URL.revokeObjectURL(fileUrlRef.current);
+      fileUrlRef.current = null;
+    }
     setMirror(true);
     setMode("camera");
   }, []);

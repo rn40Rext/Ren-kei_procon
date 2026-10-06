@@ -9,7 +9,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors, spacing, radius, typography } from '../theme';
 import { NarutoLoader } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
-import RenkeiVideo from '../components/RenkeiVideo';
+import VideoThumbnail from '../components/VideoThumbnail';
 import { subscribeRenJoinRequests, updateJoinRequestStatus } from '../repositories/joinRequests';
 import { fetchUserProfile } from '../repositories/users';
 import { fetchPostsByUser } from '../repositories/posts';
@@ -224,7 +224,7 @@ export default function ManageJoinRequestsScreen() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {applicantPosts.map((p) => (
                       <View key={p.id} style={styles.postThumbWrapper}>
-                        <RenkeiVideo uri={p.videoUrl} style={StyleSheet.absoluteFill} contentFit="cover" muted />
+                        <VideoThumbnail uri={p.videoUrl} style={StyleSheet.absoluteFill} />
                         <Text style={styles.postScoreBadge}>{formatAiScoreShort(p.score)}</Text>
                       </View>
                     ))}

@@ -79,19 +79,22 @@ export function Chip({
   active,
   onPress,
   style,
+  compact,
 }: {
   label: string;
   active?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
+  /** ひとまわり小さくする(タグが多く、狭い画面でも行数を抑えたいとき) */
+  compact?: boolean;
 }) {
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      style={[uiStyles.chip, active && uiStyles.chipActive, style]}
+      style={[uiStyles.chip, compact && uiStyles.chipCompact, active && uiStyles.chipActive, style]}
     >
-      <Text style={[uiStyles.chipText, active && uiStyles.chipTextActive]}>{label}</Text>
+      <Text style={[uiStyles.chipText, compact && uiStyles.chipTextCompact, active && uiStyles.chipTextActive]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -235,6 +238,8 @@ const uiStyles = StyleSheet.create({
     backgroundColor: colors.indigoRaised,
     marginRight: spacing.sm,
   },
+  chipCompact: { paddingHorizontal: 9, paddingVertical: 6, marginRight: 6 },
+  chipTextCompact: { fontSize: 10.5 },
   chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   chipText: textStyle({ ...typography.caption, color: colors.textSecondary }),
   chipTextActive: textStyle({ ...typography.caption, color: colors.textOnGold, fontWeight: '700' }),

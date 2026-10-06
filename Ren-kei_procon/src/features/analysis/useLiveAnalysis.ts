@@ -25,8 +25,16 @@ import { DanceType, RuleEvent, RuleSnapshot } from "../rules/types";
 import { frameRules, RHYTHM_RULE_ID } from "../rules/definitions";
 import { LoadedRuleSet, loadRuleSet } from "../../repositories/analysisRules";
 import { finalizeBasicAnalysis, FinalizeResponse } from "../../repositories/analysis";
-import { createPracticeVideo, uploadPoseSeries, uploadPracticeVideo } from "../../repositories/videos";
-import { LIVE_WARNING_MESSAGES, LiveSnapshot, LiveStatus, LiveVideoSource, LiveWarning, framingMessage } from "./liveTypes";
+import { createPracticeVideo, deleteVideoRecord, uploadPoseSeries, uploadPracticeVideo } from "../../repositories/videos";
+import {
+  LIVE_WARNING_MESSAGES,
+  LiveSnapshot,
+  LiveStatus,
+  LiveVideoSource,
+  LiveWarning,
+  RecordedMedia,
+  framingMessage,
+} from "./liveTypes";
 import { finalizeErrorMessage } from "./errorMessages";
 import { ScoringDurationSec, StanceGate, isStance } from "./stance";
 
@@ -127,6 +135,15 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   const rhythmActiveRef = useRef(true);
   /** FN-01 だけ失敗したときの再試行用。動画と姿勢系列は保存済み */
   const pendingRef = useRef<{ videoId: string; payload: FinalizeRequest } | null>(null);
+  // 保存の途中経過。通信断などで失敗しても、撮った動画を失わず続きから再試行できるよう控える
+  const draftRef = useRef<{
+    recorded?: RecordedMedia | null;
+    videoId?: string;
+    videoUploaded?: boolean;
+    poseUploaded?: boolean;
+  } | null>(null);
+  // 保存中のPromise。timeUpとonEndedが同時に終了を呼んでも、保存は1回だけ走らせる
+  const finishingRef = useRef<Promise<FinishResult> | null>(null);
   /** 構えの継続を数える。構えが STANCE_HOLD_MS 続いたら採点を始める */
   const stanceGateRef = useRef(new StanceGate());
   const stanceProgressRef = useRef(0);
@@ -419,6 +436,7 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
         !!rhythmDef?.enabled && !(rhythmDef.scoreParts && !rhythmDef.scoreParts.includes(scorePart));
       durationMsRef.current = durationSec * 1000;
       pendingRef.current = null;
+      draftRef.current = null;
       sessionRef.current = null;
       evaluatorsRef.current = [];
       gaugesRef.current = [];
@@ -463,10 +481,12 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
   }, [setStatus, stopLoop]);
 
   /**
-   * 終了して保存・スコア確定。
+   * 保存・スコア確定の本体。途中で失敗しても draftRef / pendingRef に進捗が残るので、
+   * もう一度呼ぶと続きから再開する(撮った動画は再録画しない・videosも重複して作らない)。
    * 動画・姿勢系列を Storage へ置き、集計値を FN-01 へ送る。
+   * FN-01 は clientRequestId が同じなので、サーバ側で二重に結果が作られることはない(冪等)。
    */
-  const finish = useCallback(async (): Promise<FinishResult> => {
+  const runFinish = useCallback(async (): Promise<FinishResult> => {
     stopLoop();
     const { uid, danceType, scorePart } = optionsRef.current;
     const session = sessionRef.current;
@@ -475,55 +495,91 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     if (!session) throw new Error("セッションが開始されていません");
     setStatus("finalizing");
     try {
-      const recorded = (await source?.stopRecording?.()) ?? source?.fileMedia ?? null;
-      const videoId = await createPracticeVideo({ uid, danceType, scorePart });
-      if (recorded) {
-        await uploadPracticeVideo(uid, videoId, recorded.blob, recorded.contentType);
+      let pending = pendingRef.current;
+      if (!pending) {
+        const draft = (draftRef.current ??= {});
+        if (draft.recorded === undefined) {
+          draft.recorded = (await source?.stopRecording?.()) ?? source?.fileMedia ?? null;
+        }
+        if (!draft.videoId) {
+          draft.videoId = await createPracticeVideo({ uid, danceType, scorePart });
+        }
+        if (draft.recorded && !draft.videoUploaded) {
+          await uploadPracticeVideo(uid, draft.videoId, draft.recorded.blob, draft.recorded.contentType);
+          draft.videoUploaded = true;
+        }
+        if (!draft.poseUploaded && recorderRef.current.frameCount > 0) {
+          await uploadPoseSeries(uid, draft.videoId, recorderRef.current.toSeries(), session.durationMs);
+          draft.poseUploaded = true;
+        }
+        const payload: FinalizeRequest = session.build({
+          videoId: draft.videoId,
+          clientRequestId: newRequestId(),
+          danceType,
+          scorePart,
+          game: gameRef.current,
+        });
+        // ここから先が失敗しても、動画と姿勢系列は保存済み。
+        // 同じ payload(clientRequestId 込み)で再試行できるよう控えておく
+        pending = { videoId: draft.videoId, payload };
+        pendingRef.current = pending;
       }
-      if (recorderRef.current.frameCount > 0) {
-        await uploadPoseSeries(uid, videoId, recorderRef.current.toSeries(), session.durationMs);
-      }
-      const payload: FinalizeRequest = session.build({
-        videoId,
-        clientRequestId: newRequestId(),
-        danceType,
-        scorePart,
-        game: gameRef.current,
-      });
-      // ここから先が失敗しても、動画と姿勢系列は保存済み。
-      // 同じ payload(clientRequestId 込み)で再試行できるよう控えておく
-      pendingRef.current = { videoId, payload };
-      const response = await finalizeBasicAnalysis(payload);
-      pendingRef.current = null;
-      setStatus("done");
-      return { videoId, analysisId: response.analysisId, response };
-    } catch (e) {
-      setStatus("error", finalizeErrorMessage(e));
-      throw e;
-    }
-  }, [setStatus, stopLoop]);
-
-  /**
-   * FN-01 だけをやり直す。動画・姿勢系列は保存済みなので再アップロードしない。
-   * clientRequestId が同じなので、サーバ側で二重に結果が作られることはない(冪等)。
-   */
-  const retryFinalize = useCallback(async (): Promise<FinishResult> => {
-    const pending = pendingRef.current;
-    if (!pending) throw new Error("再試行できる採点がありません");
-    setStatus("finalizing");
-    try {
       const response = await finalizeBasicAnalysis(pending.payload);
       pendingRef.current = null;
+      draftRef.current = null;
       setStatus("done");
       return { videoId: pending.videoId, analysisId: response.analysisId, response };
     } catch (e) {
       setStatus("error", finalizeErrorMessage(e));
       throw e;
     }
-  }, [setStatus]);
+  }, [setStatus, stopLoop]);
+
+  const guardedFinish = useCallback((): Promise<FinishResult> => {
+    if (finishingRef.current) return finishingRef.current;
+    const p = runFinish().finally(() => {
+      finishingRef.current = null;
+    });
+    finishingRef.current = p;
+    return p;
+  }, [runFinish]);
+
+  /** 終了して保存・スコア確定。 */
+  const finish = guardedFinish;
+
+  /** 保存・採点の失敗後にやり直す。続きから再開する(runFinish参照)。 */
+  const retryFinalize = useCallback(async (): Promise<FinishResult> => {
+    if (!pendingRef.current && !draftRef.current) throw new Error("再試行できる採点がありません");
+    return guardedFinish();
+  }, [guardedFinish]);
+
+  /**
+   * error から抜けて測り直せる状態に戻す(再試行できない失敗用)。
+   * 保存途中で作った videos の記録は、未完成のまま残らないよう消す。
+   * モデル/ルールの読み込みに失敗していた場合は、読み込みからやり直す。
+   */
+  const recover = useCallback(async () => {
+    stopLoop();
+    try {
+      await sourceRef.current?.stopRecording?.();
+    } catch {
+      /* 録画が既に止まっている */
+    }
+    const orphan = draftRef.current?.videoId;
+    pendingRef.current = null;
+    draftRef.current = null;
+    if (orphan) void deleteVideoRecord(orphan).catch(() => undefined);
+    if (ruleSetRef.current && detectorRef.current) {
+      setStatus("ready");
+    } else if (sourceRef.current) {
+      await prepare(sourceRef.current);
+    } else {
+      setStatus("idle");
+    }
+  }, [prepare, setStatus, stopLoop]);
 
   /** 採点だけが未完了か(動画は保存済み)。UI の再試行ボタン表示に使う */
-  const canRetryFinalize = snapshot.status === "error" && pendingRef.current !== null;
+  const canRetryFinalize = snapshot.status === "error" && (pendingRef.current !== null || draftRef.current !== null);
 
   useEffect(() => {
     return () => {
@@ -539,5 +595,5 @@ export function useLiveAnalysis(options: LiveAnalysisOptions) {
     return LIVE_WARNING_MESSAGES[snapshot.warning];
   }, [snapshot.warning]);
 
-  return { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize };
+  return { snapshot, warningMessage, prepare, start, cancel, finish, retryFinalize, canRetryFinalize, recover };
 }

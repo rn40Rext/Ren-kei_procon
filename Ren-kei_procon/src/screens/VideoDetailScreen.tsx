@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Alert } from '../utils/alert';
-import { ChevronLeft, ChevronRight, Play, Hand, Send } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Play, Hand, Send, Volume2, VolumeX } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { Badge, Chip, WashiCard, MetricRow, SectionHeader, Panel } from '../components/ui';
@@ -40,6 +40,7 @@ import {
 } from '../repositories/posts';
 import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firestore';
 import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
+import { SCORING_BGM_URL } from '../features/analysis/bgm';
 
 /** サンプル表示で探す演舞(本日の演舞・師範・門下生の全部) */
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
@@ -67,6 +68,8 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  // 採点済みの投稿は、採点時と同じBGMを動画に合わせて流す(録画に音は入っていない)。切り替えられる
+  const [bgmOn, setBgmOn] = useState(true);
   // stateのbusyは非同期更新のため同一イベントループ内の連打(react-native-web
   // でonPressが二重発火することがある)を防げない。refで即座にガードする
   const busyRef = useRef(false);
@@ -97,16 +100,23 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
       if (alive && !gotComments && cc.length) setComments(cc);
     });
 
-    fetchPost(postId).then((p) => {
-      if (!alive) return;
-      gotPost = true;
-      if (p) {
-        setPost(p);
-        setLikeCount(p.likeCount);
-      }
-      setLoading(false);
-    });
-    isLiked(postId).then((v) => alive && setLiked(v));
+    fetchPost(postId)
+      .then((p) => {
+        if (!alive) return;
+        gotPost = true;
+        if (p) {
+          setPost(p);
+          setLikeCount(p.likeCount);
+        }
+      })
+      // 通信失敗・権限エラーでも「開いています…」のまま止まらないようにする(キャッシュがあればそれを表示)
+      .catch((e) => console.warn('投稿の取得に失敗しました', e))
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    isLiked(postId)
+      .then((v) => alive && setLiked(v))
+      .catch(() => undefined);
     const unsub = subscribeComments(
       postId,
       (c) => {
@@ -186,6 +196,9 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
     );
   }
 
+  // 採点された投稿(score がある=採点画面でBGMを流して撮ったもの)で、動画があり、Webのとき
+  const hasScoringBgm = Platform.OS === 'web' && !!post.videoUrl && typeof post.score === 'number';
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -208,7 +221,13 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
           {/* 動画の再生(動画がない投稿は模様と再生アイコンだけ) */}
           <View style={styles.player}>
             {post.videoUrl ? (
-              <RenkeiVideo uri={post.videoUrl} style={styles.playerVideo} contentFit="contain" nativeControls />
+              <RenkeiVideo
+                uri={post.videoUrl}
+                style={styles.playerVideo}
+                contentFit="contain"
+                nativeControls
+                companionAudioUri={hasScoringBgm && bgmOn ? SCORING_BGM_URL : undefined}
+              />
             ) : (
               <View style={[styles.playerVideo, styles.center]}>
                 <AsanohaBackground width={SCREEN_W} height={(SCREEN_W * 16) / 9} color={colors.gold} opacity={0.08} />
@@ -216,6 +235,15 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
               </View>
             )}
           </View>
+
+          {hasScoringBgm ? (
+            <TouchableOpacity style={styles.bgmToggle} onPress={() => setBgmOn((v) => !v)} activeOpacity={0.8}>
+              {bgmOn ? <Volume2 size={16} color={colors.gold} /> : <VolumeX size={16} color={colors.textMuted} />}
+              <Text style={[styles.bgmToggleText, !bgmOn && { color: colors.textMuted }]}>
+                {bgmOn ? '採点時のBGMを流している(タップで消す)' : '採点時のBGMを流す'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
 
           {/* 投稿の情報: タグ・題名・投稿者・説明・極め度/拍手/声の数 */}
           <View style={styles.metaBlock}>
@@ -611,6 +639,9 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center' },
   // 稽古動画はスマホを縦に持って撮るため縦長(9:16)。固定の低い高さでcoverすると
   // 横長の枠に収めようとして上下が大きく切れていたため、縦長の比率で全体を映す
+  // 採点時のBGMを切り替える小さなボタン(プレイヤーのすぐ下)
+  bgmToggle: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  bgmToggleText: { ...typography.caption, color: colors.gold, marginLeft: spacing.sm },
   playerVideo: { width: '100%', aspectRatio: 9 / 16, backgroundColor: colors.indigoRaised },
   // コメントが0件のときと、読み込み中の文
   emptyComment: { ...typography.body, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl },

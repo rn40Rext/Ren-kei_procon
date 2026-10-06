@@ -33,6 +33,15 @@ export type RhythmEstimate = {
 
 export type Sample = { t: number; y: number };
 
+/**
+ * 周期性の強さがこの値未満の推定は採用しない(userBpm=null)。
+ * 静止中のジッタ(白色ノイズをEMA平滑)は強さ 0.11〜0.38 でも自己相関のどこかに山ができ、
+ * 基準付近のBPMが返って GREAT が付いてしまう。実際に周期的な上下動の入力は 0.85 以上。
+ * 暫定値(TBD-02)。実際の踊りでの分布は未計測なので、引き上げ・引き下げは
+ * defaultRules.json の rhythm.minStrength か Firestore analysisRules で調整できる。
+ */
+export const MIN_RHYTHM_STRENGTH = 0.45;
+
 /** 移動平均(奇数窓)。両端は取れる範囲で平均する。 */
 export function movingAverage(values: number[], window: number): number[] {
   const half = Math.floor(window / 2);
@@ -186,7 +195,7 @@ export function analyzeRhythm(
   // 2 拍に 1 回しか腰が沈まない踊り方(基準の 1/2 のテンポ)も拾えるよう、
   // 探索下限は bpmMin の半分まで下げる。倍・半分の補正は pickBpmCandidate が行う
   const { frequencyHz, strength } = estimateFrequency(uniform, stepMs, cfg.bpmMin / 60 / 2, cfg.bpmMax / 60);
-  if (frequencyHz === null) return { ...empty, strength };
+  if (frequencyHz === null || strength < (cfg.minStrength ?? MIN_RHYTHM_STRENGTH)) return { ...empty, strength };
   const userBpm = pickBpmCandidate(frequencyHz * 60, cfg.baseBpm);
   const errorRatio = Math.abs(userBpm - cfg.baseBpm) / cfg.baseBpm;
   return {

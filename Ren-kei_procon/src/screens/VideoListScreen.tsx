@@ -7,7 +7,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { Alert } from '../utils/alert';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { Award, ChevronLeft, Film, Lock, Send, Trash2, Unlock } from 'lucide-react-native';
+import { Award, ChevronLeft, Film, Lock, Play, Send, Trash2, Unlock } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, fetchAnalysisResult } from '../repositories/analysis';
@@ -18,6 +18,7 @@ import { colors, spacing, radius, typography } from '../theme';
 import { HeaderSeam } from '../components/motifs';
 import AppMenu from '../components/AppMenu';
 import VideoThumbnail from '../components/VideoThumbnail';
+import PracticeVideoModal from '../components/PracticeVideoModal';
 
 /** この画面で使う画面遷移の型 */
 type Nav = NativeStackNavigationProp<RootStackParamList, 'VideoList'>;
@@ -62,6 +63,8 @@ export default function VideoListScreen() {
   const [postedVideoIds, setPostedVideoIds] = useState<Set<string>>(new Set());
   const [thumbUrls, setThumbUrls] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  // 「動画を見る」で再生中の動画(なければ null)
+  const [playing, setPlaying] = useState<PracticeVideo | null>(null);
 
   // 自分の練習動画をリアルタイム購読する
   useEffect(() => {
@@ -281,8 +284,14 @@ export default function VideoListScreen() {
                   </View>
                 </TouchableOpacity>
 
-                {/* 下段: 「交流広場へ投稿」(解析済みで未投稿のときだけ)・「投稿済み」の表示・削除ボタン */}
+                {/* 下段: 「動画を見る」・「交流広場へ投稿」(解析済みで未投稿のときだけ)・「投稿済み」の表示・削除ボタン */}
                 <View style={styles.actionRow}>
+                  {thumbUrls[v.id] ? (
+                    <TouchableOpacity style={styles.watchBtn} onPress={() => setPlaying(v)} activeOpacity={0.85}>
+                      <Play size={13} color={colors.gold} />
+                      <Text style={styles.watchBtnText}>動画を見る</Text>
+                    </TouchableOpacity>
+                  ) : null}
                   {v.analysisStatus === 'completed' && !posted && (
                     <TouchableOpacity style={styles.postBtn} onPress={() => onPostToCommunity(v)} activeOpacity={0.85}>
                       <Send size={14} color={colors.textOnGold} />
@@ -304,6 +313,13 @@ export default function VideoListScreen() {
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
+
+      {/* 「動画を見る」で開く再生画面。採点済みの動画には採点時のBGMを付ける */}
+      <PracticeVideoModal
+        uri={playing ? thumbUrls[playing.id] ?? null : null}
+        scored={playing?.analysisStatus === 'completed'}
+        onClose={() => setPlaying(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -387,6 +403,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   postBtnText: { color: colors.textOnGold, fontSize: 12, fontWeight: '600' },
+  // 「動画を見る」ボタン(金色の枠。「交流広場へ投稿」より控えめに)
+  watchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  watchBtnText: { color: colors.gold, fontSize: 12, fontWeight: '600' },
   postedText: { fontSize: 12, color: colors.textMuted },
   deleteBtn: { padding: 6 },
 });

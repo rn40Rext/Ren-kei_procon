@@ -1366,7 +1366,7 @@ const styles = StyleSheet.create({
   masterThumb: { width: '100%', height: 128, justifyContent: 'flex-start' },
   masterThumbScrim: { padding: spacing.sm },
   // 実データのお題は写真が無いので、無地の枠の中央に踊りの種類のアイコンを置く
-  masterThumbPlain: { backgroundColor: colors.indigoRaised },
+  masterThumbPlain: { backgroundColor: colors.indigoRaised, overflow: 'hidden' },
   masterPlainIcon: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   // 写真に重ねる難易度のチップと「チャレンジ」のバッジ(朱色)
   catChip: {

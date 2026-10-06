@@ -24,12 +24,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
-import { fetchVideo } from '../repositories/videos';
+import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import { publishExistingVideo, POST_TAG_OPTIONS } from '../repositories/posts';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
 import { Chip } from '../components/ui';
 import { ScoreRevealAnimation } from '../components/ScoreRevealAnimation';
+import RenkeiVideo from '../components/RenkeiVideo';
 
 /** この画面で使う画面遷移と、前の画面から受け取る値(解析IDと動画ID)の型 */
 type ResultNav = NativeStackNavigationProp<RootStackParamList, 'Result'>;
@@ -77,6 +78,27 @@ export default function ResultScreen() {
   const [posting, setPosting] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [posted, setPosted] = useState(false);
+
+  // 稽古の動画の再生URL(undefined=読み込み中、null=動画が保存されていない)
+  const [videoUrl, setVideoUrl] = useState<string | null | undefined>(undefined);
+
+  // 稽古の動画を読み込む。downloadUrlが無い古いデータはstoragePathからURLを取り直す
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const video = await fetchVideo(videoId);
+        const url = video?.downloadUrl ?? (video?.storagePath ? await videoDownloadUrl(video.storagePath) : null);
+        if (alive) setVideoUrl(url);
+      } catch (e) {
+        console.warn('fetchVideo', e);
+        if (alive) setVideoUrl(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [videoId]);
 
   // 解析結果をリアルタイム購読する(サーバでの確定を待つため)
   useEffect(() => {
@@ -155,6 +177,17 @@ export default function ResultScreen() {
         <KumihimoRule width={30} />
         <Text style={styles.title}>解析結果</Text>
         <Text style={styles.lead}>基本動作トレーニング（AI解析①）。判定ルールの根拠から算出した評価です。</Text>
+
+        {/* 採点した稽古の動画。縦撮り・横撮りどちらでも全体が映るようにcontainで表示する */}
+        <View style={styles.videoBox}>
+          {videoUrl ? (
+            <RenkeiVideo uri={videoUrl} style={styles.video} contentFit="contain" nativeControls />
+          ) : videoUrl === undefined ? (
+            <NarutoLoader size={26} color={colors.gold} />
+          ) : (
+            <Text style={styles.muted}>この稽古の動画は保存されていません</Text>
+          )}
+        </View>
 
         {/* 極め度 = 手の高さ・腰の低さ・手を止める・リズムのうち評価できた項目の平均(サーバで確定。functions/src/analysis/score.ts) */}
         <View style={styles.totalCard}>
@@ -314,6 +347,18 @@ const styles = StyleSheet.create({
   title: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },
   lead: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 17 },
 
+
+  // 稽古の動画の枠(読み込み中・動画なしの表示も同じ枠の中央に出す)
+  videoBox: {
+    height: 420,
+    marginBottom: spacing.lg,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.indigoRaised,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  video: { width: '100%', height: '100%' },
 
   // セクションの見出し(組紐の飾り + 明朝体の文字)
   sectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.md },

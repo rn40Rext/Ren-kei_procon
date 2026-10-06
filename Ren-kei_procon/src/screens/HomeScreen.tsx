@@ -727,7 +727,8 @@ export default function HomeScreen({ navigation, route }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.masterScroll}
         >
-          {/* 実データ: 連の管理者が出題したお題(新しい順)。写真が無いので無地の枠に踊りの種類のアイコンを出す */}
+          {/* 実データ: 連の管理者が出題したお題(新しい順)。お手本動画があればその動画を、
+              無ければ無地の枠に踊りの種類のアイコンを出す */}
           {realChallenges.map((c) => {
             const CatIcon = categoryIcon(CHALLENGE_CATEGORY_LABEL[c.category]);
             return (
@@ -738,6 +739,9 @@ export default function HomeScreen({ navigation, route }: Props) {
                 onPress={() => navigation.navigate('Challenge', { challengeId: c.id })}
               >
                 <View style={[styles.masterThumb, styles.masterThumbPlain]}>
+                  {c.videoUrl ? (
+                    <RenkeiVideo uri={c.videoUrl} style={StyleSheet.absoluteFill} contentFit="cover" muted />
+                  ) : null}
                   <View style={styles.masterThumbScrim}>
                     <View style={styles.chChipRow}>
                       <View style={styles.chBadge}>
@@ -754,9 +758,11 @@ export default function HomeScreen({ navigation, route }: Props) {
                       ) : null}
                     </View>
                   </View>
-                  <View style={styles.masterPlainIcon} pointerEvents="none">
-                    <CatIcon size={44} color={colors.gold} />
-                  </View>
+                  {c.videoUrl ? null : (
+                    <View style={styles.masterPlainIcon} pointerEvents="none">
+                      <CatIcon size={44} color={colors.gold} />
+                    </View>
+                  )}
                 </View>
                 {/* お題の題名・出題者(連の名前と肩書き)・「コツを見る・挑戦する」 */}
                 <View style={styles.masterBody}>

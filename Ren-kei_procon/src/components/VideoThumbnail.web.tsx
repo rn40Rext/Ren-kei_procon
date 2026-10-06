@@ -18,7 +18,16 @@ import { colors } from "../theme";
 /** サムネイルに使う位置[秒] */
 const THUMBNAIL_SEC = 2;
 
-export default function VideoThumbnail({ uri, style }: { uri: string; style?: StyleProp<ViewStyle> }) {
+export default function VideoThumbnail({
+  uri,
+  style,
+  contentFit = "cover",
+}: {
+  uri: string;
+  style?: StyleProp<ViewStyle>;
+  /** cover: 枠を埋める(一覧用) / contain: 全体を収める(投稿前の確認用) */
+  contentFit?: "cover" | "contain";
+}) {
   const [shown, setShown] = useState(false);
   const [failed, setFailed] = useState(false);
   const src = uri.includes("#") ? uri : `${uri}#t=${THUMBNAIL_SEC}`;
@@ -50,7 +59,7 @@ export default function VideoThumbnail({ uri, style }: { uri: string; style?: St
             top: 0,
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: contentFit,
             opacity: shown ? 1 : 0,
             pointerEvents: "none",
           }}

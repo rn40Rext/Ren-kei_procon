@@ -7,6 +7,15 @@ import React from "react";
 import { StyleProp, ViewStyle } from "react-native";
 import RenkeiVideo from "./RenkeiVideo";
 
-export default function VideoThumbnail({ uri, style }: { uri: string; style?: StyleProp<ViewStyle> }) {
-  return <RenkeiVideo uri={uri} style={style} contentFit="cover" muted />;
+export default function VideoThumbnail({
+  uri,
+  style,
+  contentFit = "cover",
+}: {
+  uri: string;
+  style?: StyleProp<ViewStyle>;
+  /** cover: 枠を埋める(一覧用) / contain: 全体を収める(投稿前の確認用) */
+  contentFit?: "cover" | "contain";
+}) {
+  return <RenkeiVideo uri={uri} style={style} contentFit={contentFit} muted />;
 }

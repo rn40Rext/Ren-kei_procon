@@ -1119,8 +1119,12 @@ export default function HomeScreen({ navigation, route }: Props) {
                 activeOpacity={0.85}
                 disabled={submitting}
               >
-                <RenkeiVideo uri={videoUri} style={styles.modalPickerVideo} contentFit="cover" muted />
-                <View style={styles.modalPickerSelected}>
+                {/* 縦長の動画でも全体が見えるよう、枠に収めて(contain)出す。場面は一覧のサムネイルと同じ(2秒付近) */}
+                <View style={styles.modalPickerPreview}>
+                  <VideoThumbnail uri={videoUri} contentFit="contain" style={styles.modalPickerVideo} />
+                </View>
+                <View style={styles.modalPickerSide}>
+                  <Text style={styles.modalPickerNote}>一覧のサムネイルには、この場面(動画の2秒付近)が使われます</Text>
                   <Text style={styles.modalPickerText}>動画を選び直す</Text>
                 </View>
               </TouchableOpacity>
@@ -1641,26 +1645,21 @@ const styles = StyleSheet.create({
   // 選んだ動画の表示枠と「動画を選び直す」の表示、選ばないときの案内文
   modalPicker: {
     height: 120,
+    flexDirection: 'row',
     borderRadius: radius.sm,
     borderWidth: 2,
     borderColor: colors.gold,
     borderStyle: 'dashed',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: colors.indigo,
     marginBottom: spacing.md,
     overflow: 'hidden',
   },
-  modalPickerVideo: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  modalPickerSelected: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingVertical: 4,
-    alignItems: 'center',
-    backgroundColor: colors.overlay,
-  },
+  // 左: 動画の確認枠(縦長でも横長でも全体が収まる正方形)。右: 説明と「動画を選び直す」
+  modalPickerPreview: { width: 116, height: '100%', backgroundColor: colors.indigoRaised },
+  modalPickerVideo: { width: '100%', height: '100%' },
+  modalPickerSide: { flex: 1, paddingHorizontal: spacing.md, justifyContent: 'center' },
+  modalPickerNote: { ...typography.caption, color: colors.textSecondary, fontSize: 11, lineHeight: 16 },
   modalPickerText: { ...typography.caption, color: colors.gold, marginTop: spacing.sm },
   modalPickerHint: { ...typography.caption, color: colors.textMuted, fontSize: 10, lineHeight: 15, marginBottom: spacing.md },
   // 「今すぐ撮る」「ライブラリから選ぶ」のボタン(金色の枠)と「撮り直す」のリンク

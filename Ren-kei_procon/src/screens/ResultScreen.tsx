@@ -172,7 +172,7 @@ export default function ResultScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 見出しと説明 */}
         <KumihimoRule width={30} />
         <Text style={styles.title}>解析結果</Text>

@@ -740,7 +740,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               >
                 <View style={[styles.masterThumb, styles.masterThumbPlain]}>
                   {c.videoUrl ? (
-                    <RenkeiVideo uri={c.videoUrl} style={StyleSheet.absoluteFill} contentFit="cover" muted />
+                    <RenkeiVideo uri={c.videoUrl} style={styles.masterThumbVideo} contentFit="cover" muted />
                   ) : null}
                   <View style={styles.masterThumbScrim}>
                     <View style={styles.chChipRow}>
@@ -1367,6 +1367,9 @@ const styles = StyleSheet.create({
   masterThumbScrim: { padding: spacing.sm },
   // 実データのお題は写真が無いので、無地の枠の中央に踊りの種類のアイコンを置く
   masterThumbPlain: { backgroundColor: colors.indigoRaised, overflow: 'hidden' },
+  // お手本動画を枠いっぱいに表示する。Web版の<video>は上下左右0の指定だけでは伸びず、
+  // 元の動画の大きさで描かれてしまうため、幅・高さを100%と明示する
+  masterThumbVideo: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   masterPlainIcon: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   // 写真に重ねる難易度のチップと「チャレンジ」のバッジ(朱色)
   catChip: {

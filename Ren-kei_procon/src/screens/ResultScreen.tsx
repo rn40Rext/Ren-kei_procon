@@ -138,7 +138,7 @@ export default function ResultScreen() {
     return (
       <SafeAreaView style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>{error ?? '解析結果が見つかりませんでした'}</Text>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home')}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home', undefined, { pop: true })}>
           <Text style={styles.secondaryButtonText}>踊り広場へ戻る</Text>
         </TouchableOpacity>
       </SafeAreaView>
@@ -227,10 +227,10 @@ export default function ResultScreen() {
         )}
 
         {/* もう一度稽古する / 踊り広場へ戻る */}
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring')} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring', undefined, { pop: true })} activeOpacity={0.85}>
           <Text style={styles.primaryButtonText}>もう一度稽古する</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home')} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home', undefined, { pop: true })} activeOpacity={0.85}>
           <Text style={styles.secondaryButtonText}>踊り広場へ戻る</Text>
         </TouchableOpacity>
 

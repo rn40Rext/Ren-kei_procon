@@ -71,7 +71,7 @@ export default function AppMenu({
   const go = (key: NavKey) => {
     setOpen(false);
     if (key === route.name) return;
-    navigation.navigate(key as never);
+    navigation.navigate(key, undefined, { pop: true });
   };
 
   return (

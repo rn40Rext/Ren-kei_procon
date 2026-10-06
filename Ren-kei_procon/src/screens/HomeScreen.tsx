@@ -1124,8 +1124,10 @@ export default function HomeScreen({ navigation, route }: Props) {
                   <VideoThumbnail uri={videoUri} contentFit="contain" style={styles.modalPickerVideo} />
                 </View>
                 <View style={styles.modalPickerSide}>
-                  <Text style={styles.modalPickerNote}>一覧のサムネイルには、この場面(動画の2秒付近)が使われます</Text>
                   <Text style={styles.modalPickerText}>動画を選び直す</Text>
+                  <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.reRecordText}>撮り直す</Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             ) : (
@@ -1154,11 +1156,6 @@ export default function HomeScreen({ navigation, route }: Props) {
             <Text style={styles.modalPickerHint}>
               初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。選ばない場合は見本として保存されます。
             </Text>
-            {videoUri ? (
-              <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                <Text style={styles.reRecordText}>撮り直す</Text>
-              </TouchableOpacity>
-            ) : null}
             {/* 題名(必須)・概要・タグの入力 */}
             <Text style={styles.modalLabel}>演舞の題</Text>
             <TextInput
@@ -1638,13 +1635,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.indigoLine,
     padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: spacing.xl,
   },
-  modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  modalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   // 選んだ動画の表示枠と「動画を選び直す」の表示、選ばないときの案内文
   modalPicker: {
-    height: 120,
+    height: 168,
     flexDirection: 'row',
     borderRadius: radius.sm,
     borderWidth: 2,
@@ -1656,10 +1653,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   // 左: 動画の確認枠(縦長でも横長でも全体が収まる正方形)。右: 説明と「動画を選び直す」
-  modalPickerPreview: { width: 116, height: '100%', backgroundColor: colors.indigoRaised },
+  modalPickerPreview: { width: 150, height: '100%', backgroundColor: colors.indigoRaised },
   modalPickerVideo: { width: '100%', height: '100%' },
-  modalPickerSide: { flex: 1, paddingHorizontal: spacing.md, justifyContent: 'center' },
-  modalPickerNote: { ...typography.caption, color: colors.textSecondary, fontSize: 11, lineHeight: 16 },
+  modalPickerSide: { flex: 1, paddingHorizontal: spacing.md, justifyContent: 'center', alignItems: 'center' },
   modalPickerText: { ...typography.caption, color: colors.gold, marginTop: spacing.sm },
   modalPickerHint: { ...typography.caption, color: colors.textMuted, fontSize: 10, lineHeight: 15, marginBottom: spacing.md },
   // 「今すぐ撮る」「ライブラリから選ぶ」のボタン(金色の枠)と「撮り直す」のリンク
@@ -1676,7 +1672,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.indigo,
   },
   pickBtnText: { ...typography.caption, color: colors.gold, marginTop: spacing.xs, fontSize: 12 },
-  reRecordText: { ...typography.caption, color: colors.gold, textAlign: 'center', marginBottom: spacing.sm, textDecorationLine: 'underline' },
+  reRecordText: { ...typography.caption, color: colors.gold, textAlign: 'center', marginTop: spacing.md, textDecorationLine: 'underline' },
   // 入力欄(概要は複数行)と見出し(金色)
   modalTextarea: { minHeight: 64, textAlignVertical: 'top' },
   modalLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm, marginTop: spacing.sm },

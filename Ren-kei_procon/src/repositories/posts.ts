@@ -33,7 +33,6 @@ export const POST_TAG_OPTIONS = [
   '#初心者歓迎',
   '#足の運び',
   '#鳥追い笠',
-  '#腰落とし',
   '#2拍子',
   '#ちびっこ踊り',
 ] as const;

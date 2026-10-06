@@ -1183,6 +1183,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   label={t}
                   active={draftTags.includes(t)}
                   onPress={() => toggleDraftTag(t)}
+                  compact
                   style={{ marginBottom: spacing.sm }}
                 />
               ))}
@@ -1641,7 +1642,7 @@ const styles = StyleSheet.create({
   modalTitle: { ...typography.headingSerif, color: colors.textPrimary },
   // 選んだ動画の表示枠と「動画を選び直す」の表示、選ばないときの案内文
   modalPicker: {
-    height: 168,
+    height: 200,
     flexDirection: 'row',
     borderRadius: radius.sm,
     borderWidth: 2,
@@ -1653,7 +1654,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   // 左: 動画の確認枠(縦長でも横長でも全体が収まる正方形)。右: 説明と「動画を選び直す」
-  modalPickerPreview: { width: 150, height: '100%', backgroundColor: colors.indigoRaised },
+  modalPickerPreview: { width: 180, height: '100%', backgroundColor: colors.indigoRaised },
   modalPickerVideo: { width: '100%', height: '100%' },
   modalPickerSide: { flex: 1, paddingHorizontal: spacing.md, justifyContent: 'center', alignItems: 'center' },
   modalPickerText: { ...typography.caption, color: colors.gold, marginTop: spacing.sm },

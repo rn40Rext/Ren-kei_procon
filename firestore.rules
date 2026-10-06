@@ -79,6 +79,35 @@ service cloud.firestore {
       }
     }
 
+    // challenges: 先輩からのチャレンジ(お題)。連の管理者が自連の名義で出題し、
+    // ログインユーザー全員が閲覧できる(docs/design/challenges.md)。
+    // 管理者判定はusers.roleではなくren/{renId}/members側のroleで行う。
+    function isValidChallenge(d) {
+      return d.title is string && d.title.size() >= 1 && d.title.size() <= 100
+        && d.move is string && d.move.size() >= 1 && d.move.size() <= 50
+        && d.category in ['male', 'female', 'narimono']
+        && d.difficulty in ['beginner', 'intermediate', 'advanced']
+        && d.focus is string && d.focus.size() >= 1 && d.focus.size() <= 500
+        && d.posterName is string && d.posterName.size() <= 50
+        && d.posterRole is string && d.posterRole.size() <= 50
+        && d.renName is string && d.renName.size() <= 100
+        && d.advice is list && d.advice.size() >= 1 && d.advice.size() <= 5;
+    }
+    match /challenges/{challengeId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.renId is string
+                    && isRenAdmin(request.resource.data.renId)
+                    && isValidChallenge(request.resource.data);
+      // 出題した連の管理者なら、出題者本人でなくても編集・削除できる(担当交代に備える)
+      allow update: if isRenAdmin(resource.data.renId)
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                          .hasAny(['renId', 'createdBy', 'createdAt'])
+                    && isValidChallenge(request.resource.data);
+      allow delete: if isRenAdmin(resource.data.renId);
+    }
+
     // users: プロフィール。本人のみ読み書き可能。
     // roleは自己昇格防止のため、createではroleが'user'固定、
     // updateではrole/uid/createdAtが変更差分に含まれないことを検証する

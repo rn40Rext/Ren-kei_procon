@@ -37,6 +37,7 @@
 | 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ✅ 実装済み（FN-02） |
 | 17 | `analysisRules/{ruleId}` | 判定ルール定義（仕様書 7.9） | ルール ID | ✅ 実装済み（読み取り: `repositories/analysisRules.ts` / 投入: `functions npm run seed:rules`） |
 | — | `chats/{chatId}/messages/{messageId}` | **仕様書に無い独自実装** | 自動 ID | ⚠️ 実装済み（扱いは 7 章） |
+| — | `challenges/{challengeId}` | **仕様書に無い独自実装**（先輩からのチャレンジ） | 自動 ID | ✅ 実装済み（フィールド・権限は [challenges.md](challenges.md)） |
 
 ### サブコレクションにする / しないの判断
 
@@ -329,6 +330,7 @@
 | 連スタイル参照動画 | `ren/{renId}/styleReferences/{referenceId}.mp4` | 連管理者と system のみ |
 | 姿勢系列（ユーザー動画） | `users/{uid}/videos/{videoId}.pose.json` | 所有者と system |
 | 姿勢系列（連の参照動画） | `ren/{renId}/styleReferences/{referenceId}.pose.json` | 連管理者と system のみ |
+| チャレンジのお手本動画 | `users/{uid}/challengeVideos/{fileName}` | 認証ユーザーは read 可。書き込みは本人のみ（[challenges.md](challenges.md)） |
 
 **方針**:
 - パスに `uid` を含めることで、Storage Rules で所有者判定ができます。

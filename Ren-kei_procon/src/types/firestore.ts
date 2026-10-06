@@ -111,6 +111,42 @@ export interface Announcement {
   createdAt?: FirestoreDate;
 }
 
+// docs/design/challenges.md(先輩からのチャレンジ。仕様書v0.3には無い追加機能)
+/** チャレンジの踊りの種類 / 難易度(保存値。表示名は repositories/challenges.ts の LABEL で引く) */
+export type ChallengeCategory = 'male' | 'female' | 'narimono';
+export type ChallengeDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+/** お題に添えるコツ1件(見出しと説明) */
+export interface ChallengeAdviceItem {
+  point: string;
+  detail: string;
+}
+
+/** challenges/{challengeId}。連の管理者が自連の名義で出すお題 */
+export interface ChallengeDoc {
+  id: string;
+  /** 出題した連(この連の管理者だけが作成・削除できる) */
+  renId: string;
+  renName: string;
+  /** 出題者のuidと表示名・肩書き(肩書きは任意入力。例: 指導方・踊り歴20年) */
+  createdBy: string;
+  posterName: string;
+  posterRole: string;
+  title: string;
+  /** 対象の型・所作(例: 女踊り・千鳥足) */
+  move: string;
+  category: ChallengeCategory;
+  difficulty: ChallengeDifficulty;
+  /** 先輩が見てほしいところ */
+  focus: string;
+  advice: ChallengeAdviceItem[];
+  /** お手本動画(任意)。videoPathはStorage上の場所(削除用) */
+  videoUrl?: string;
+  videoPath?: string;
+  createdAt?: FirestoreDate;
+  updatedAt?: FirestoreDate;
+}
+
 /** 参加申請の状態(審査待ち/承認/却下/取り下げ) */
 export type JoinRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 

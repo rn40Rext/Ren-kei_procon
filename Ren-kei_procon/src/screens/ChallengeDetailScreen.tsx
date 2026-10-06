@@ -1,10 +1,11 @@
 /**
  * 「先輩からのチャレンジ」の詳細。お題の演舞・出題者・コツを見せて、
  * 自分の演舞で挑戦(採点画面へ)したり、挑戦した人の演舞を見たりできる。
- * 現状のチャレンジはすべて見本(サンプル)データ。
+ * challengeId: 連の管理者が出題した実データ(challenges。docs/design/challenges.md)。
+ * id: 見本(サンプル)データ。挑戦人数・挑戦した人の演舞・勧誘ボタンは見本にだけ出す。
  */
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,31 +18,105 @@ import {
 import { Alert } from '../utils/alert';
 import { ChevronLeft, UserPlus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, WashiCard, Panel, SectionHeader } from '../components/ui';
-import { RenMon, HeaderSeam } from '../components/motifs';
+import { RenMon, HeaderSeam, NarutoLoader } from '../components/motifs';
 import { IconEnbuPlay, IconGeta, IconWagasa, categoryIcon } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
-import { challengeById, DIFFICULTY_TONE } from '../data/mockChallenges';
+import RenkeiVideo from '../components/RenkeiVideo';
+import { challengeById, DIFFICULTY_TONE, Challenge } from '../data/mockChallenges';
+import {
+  CHALLENGE_CATEGORY_LABEL,
+  CHALLENGE_DIFFICULTY_LABEL,
+  subscribeChallenge,
+} from '../repositories/challenges';
+import type { ChallengeDoc } from '../types/firestore';
 import { monkaEnbu } from '../data/mockEnbu';
 import { useMyRole, isRenLeaderClass } from '../data/role';
 import { formatAiScore } from '../features/analysis/format';
 
+type Props = NativeStackScreenProps<RootStackParamList, 'Challenge'>;
+
+/** 画面に出す形にそろえたお題(見本と実データの共通形) */
+type ChallengeView = Omit<Challenge, 'id' | 'image' | 'participants' | 'advice'> & {
+  isSample: boolean;
+  advice: { id: string; point: string; detail: string }[];
+  image?: string;
+  videoUrl?: string;
+  participants?: number;
+};
+
+/** 見本のお題を画面用の形にする */
+function fromSample(c: Challenge): ChallengeView {
+  return { ...c, isSample: true };
+}
+
+/** 実データのお題を画面用の形にする(肩書きの前に出題した連の名前を付ける) */
+function fromDoc(c: ChallengeDoc): ChallengeView {
+  return {
+    isSample: false,
+    title: c.title,
+    move: c.move,
+    poster: c.posterName,
+    posterRole: [c.renName, c.posterRole].filter(Boolean).join(' '),
+    posterRen: c.renName,
+    category: CHALLENGE_CATEGORY_LABEL[c.category],
+    difficulty: CHALLENGE_DIFFICULTY_LABEL[c.difficulty],
+    focus: c.focus,
+    advice: c.advice.map((a, i) => ({ id: String(i), ...a })),
+    videoUrl: c.videoUrl,
+  };
+}
+
 /** 先輩が出したチャレンジ(お題)の詳細を見て、自分の演舞で挑戦する画面 */
-export default function ChallengeDetailScreen({ navigation, route }: any) {
-  // どのお題を表示するか(前の画面から受け取る)。見つからなければ先頭のお題を出す
-  const id: string | undefined = route?.params?.id;
-  const ch = useMemo(() => challengeById(id), [id]);
-  const CatIcon = categoryIcon(ch.category);
-  // 自分の役割。連の世話役以上なら「連へ勧誘する」ボタンを出す
+export default function ChallengeDetailScreen({ navigation, route }: Props) {
+  const { id, challengeId } = route.params ?? {};
+  // 実データのお題(undefined=読み込み中、null=見つからない)
+  const [challengeDoc, setChallengeDoc] = useState<ChallengeDoc | null | undefined>(undefined);
+  useEffect(() => {
+    if (!challengeId) return;
+    return subscribeChallenge(challengeId, setChallengeDoc, (e) => {
+      console.error('チャレンジの取得に失敗しました', e);
+      setChallengeDoc(null);
+    });
+  }, [challengeId]);
+
+  // 見本はIDから探す(見つからなければ先頭のお題)。実データは読み込めたら画面用の形にする
+  const ch = useMemo<ChallengeView | null>(() => {
+    if (!challengeId) return fromSample(challengeById(id));
+    return challengeDoc ? fromDoc(challengeDoc) : null;
+  }, [challengeId, id, challengeDoc]);
+
+  // 自分の役割。連の世話役以上なら「連へ勧誘する」ボタンを出す(見本のみ)
   const role = useMyRole();
-  const canScout = isRenLeaderClass(role);
+  const canScout = isRenLeaderClass(role) && ch?.isSample === true;
 
   // 「先輩からのチャレンジ」は現状すべて見本(サンプル)データで、実在しない人物のため、
   // 実際の招待フロー(RequestScreen)には繋がない(#108レビュー)。
   const scoutPoster = () => {
     Alert.alert('これは見本です', 'このチャレンジは表示用のサンプルのため、実際に招待することはできません。');
   };
+
+  // 実データの読み込み中・見つからないとき
+  if (!ch) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        {challengeDoc === undefined ? (
+          <NarutoLoader size={28} color={colors.gold} />
+        ) : (
+          <>
+            <Text style={styles.notFound}>このチャレンジは見つかりませんでした（削除された可能性があります）</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.backText}>戻る</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </SafeAreaView>
+    );
+  }
+  const CatIcon = categoryIcon(ch.category);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -61,21 +136,37 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
       <HeaderSeam />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* お題の演舞 */}
+        {/* お題の演舞。実データはお手本動画(あれば)、見本は写真、どちらも無ければ無地の枠 */}
+        {ch.videoUrl ? (
+          <View>
+            <RenkeiVideo uri={ch.videoUrl} style={styles.video} contentFit="contain" nativeControls />
+            <View style={styles.videoBadges}>
+              <Badge label="チャレンジ" tone="aka" />
+              <Badge label={ch.difficulty} tone={DIFFICULTY_TONE[ch.difficulty]} style={{ marginLeft: spacing.sm }} />
+              <Text style={styles.catTagText}>　お手本：{ch.move}</Text>
+            </View>
+          </View>
+        ) : (
         <View style={styles.banner}>
-          <ImageBackground source={{ uri: ch.image }} style={styles.bannerImg}>
+          <ImageBackground source={ch.image ? { uri: ch.image } : undefined} style={[styles.bannerImg, !ch.image && styles.bannerPlain]}>
             <LinearGradient
               colors={['rgba(11,19,43,0.25)', 'rgba(11,19,43,0.85)']}
               style={styles.bannerScrim}
             >
               <View style={styles.bannerTop}>
-                <Badge label="見本(サンプル)" tone="outline" />
-                <Badge label="チャレンジ" tone="aka" style={{ marginLeft: spacing.sm }} />
+                {ch.isSample ? <Badge label="見本(サンプル)" tone="outline" style={{ marginRight: spacing.sm }} /> : null}
+                <Badge label="チャレンジ" tone="aka" />
                 <Badge label={ch.difficulty} tone={DIFFICULTY_TONE[ch.difficulty]} style={{ marginLeft: spacing.sm }} />
               </View>
-              <View style={styles.playCircle}>
-                <IconEnbuPlay size={24} color={colors.textOnGold} />
-              </View>
+              {ch.isSample ? (
+                <View style={styles.playCircle}>
+                  <IconEnbuPlay size={24} color={colors.textOnGold} />
+                </View>
+              ) : (
+                <View style={styles.plainIcon}>
+                  <CatIcon size={40} color={colors.gold} />
+                </View>
+              )}
               <View style={styles.catTag}>
                 <CatIcon size={12} color={colors.goldBright} />
                 <Text style={styles.catTagText}>　{ch.move}</Text>
@@ -83,6 +174,7 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
             </LinearGradient>
           </ImageBackground>
         </View>
+        )}
 
         {/* お題と出題者 */}
         <View style={styles.head}>
@@ -98,7 +190,9 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
             </View>
           </View>
 
-          <Text style={styles.participants}>{ch.participants} 人が挑戦中</Text>
+          {ch.participants !== undefined ? (
+            <Text style={styles.participants}>{ch.participants} 人が挑戦中</Text>
+          ) : null}
 
           {canScout ? (
             <TouchableOpacity style={styles.scoutBtn} onPress={scoutPoster} activeOpacity={0.85}>
@@ -136,7 +230,9 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
           <Text style={styles.challengeBtnText}>　自分の演舞で挑戦する</Text>
         </TouchableOpacity>
 
-        {/* 挑戦した人の演舞 */}
+        {/* 挑戦した人の演舞(見本のみ。実データの挑戦記録はまだ無い) */}
+        {ch.isSample ? (
+        <>
         <SectionHeader title="挑戦した人の演舞" />
         <ScrollView
           horizontal
@@ -156,6 +252,8 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+        </>
+        ) : null}
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>
@@ -165,6 +263,9 @@ export default function ChallengeDetailScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
+  // 読み込み中・見つからないときは中央に案内を出す
+  center: { alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  notFound: { ...typography.body, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.lg },
 
   // 画面上部のヘッダー。「戻る」・タイトル・メニューを横一列に並べる
   topBar: {
@@ -185,6 +286,12 @@ const styles = StyleSheet.create({
   // お題の演舞写真を全幅で表示する枠
   banner: { height: 200 },
   bannerImg: { flex: 1 },
+  // 写真の無い実データのお題は無地の枠にし、中央に踊りの種類のアイコンを置く
+  bannerPlain: { backgroundColor: colors.indigoRaised },
+  plainIcon: { alignItems: 'center', justifyContent: 'center' },
+  // お手本動画(縦撮り・横撮りどちらでも全体が映るようにcontainで表示)と、その下のバッジ行
+  video: { width: '100%', height: 360, backgroundColor: colors.indigoRaised },
+  videoBadges: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   // 写真の上に薄い暗幕をかけ、その上にバッジ・再生ボタン等を乗せる
   bannerScrim: { flex: 1, padding: spacing.lg, justifyContent: 'space-between' },
   bannerTop: { flexDirection: 'row', alignItems: 'center' },

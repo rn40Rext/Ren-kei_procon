@@ -53,6 +53,12 @@ import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
 import { feedTags } from '../data/mockEnbu';
 import { challenges } from '../data/mockChallenges';
+import {
+  CHALLENGE_CATEGORY_LABEL,
+  CHALLENGE_DIFFICULTY_LABEL,
+  subscribeChallenges,
+} from '../repositories/challenges';
+import type { ChallengeDoc } from '../types/firestore';
 import { formatAiScore } from '../features/analysis/format';
 
 
@@ -367,6 +373,12 @@ export default function HomeScreen({ navigation, route }: Props) {
     if (!uid) return;
     return subscribeUnreadNotificationCount(uid, setUnreadCount, () => undefined);
   }, [uid]);
+
+  // 連の管理者が出題した「先輩からのチャレンジ」(実データ)。見本より前に並べる
+  const [realChallenges, setRealChallenges] = useState<ChallengeDoc[]>([]);
+  useEffect(() => {
+    return subscribeChallenges(setRealChallenges, (e) => console.warn('subscribeChallenges', e));
+  }, []);
 
   // 実際の投稿の詳細画面を開く
   const openPost = (postId: string) => navigation.navigate('VideoDetail', { postId });
@@ -707,7 +719,7 @@ export default function HomeScreen({ navigation, route }: Props) {
         {/* 先輩からのチャレンジ（横スクロール） */}
         <SectionHeader
           title="先輩からのチャレンジ"
-          note="見本(サンプル)です。年長・ベテランの「これ踊ってみよう」。タップでコツが読めます"
+          note="連の先輩からの「これ踊ってみよう」。タップでコツが読めます（「見本」の印はサンプルです）"
           style={styles.sectionAfterDivider}
         />
         <ScrollView
@@ -715,6 +727,57 @@ export default function HomeScreen({ navigation, route }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.masterScroll}
         >
+          {/* 実データ: 連の管理者が出題したお題(新しい順)。写真が無いので無地の枠に踊りの種類のアイコンを出す */}
+          {realChallenges.map((c) => {
+            const CatIcon = categoryIcon(CHALLENGE_CATEGORY_LABEL[c.category]);
+            return (
+              <TouchableOpacity
+                key={c.id}
+                style={styles.masterCard}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('Challenge', { challengeId: c.id })}
+              >
+                <View style={[styles.masterThumb, styles.masterThumbPlain]}>
+                  <View style={styles.masterThumbScrim}>
+                    <View style={styles.chChipRow}>
+                      <View style={styles.chBadge}>
+                        <Text style={styles.chBadgeText}>チャレンジ</Text>
+                      </View>
+                      <View style={styles.catChip}>
+                        <CatIcon size={11} color={colors.goldBright} />
+                        <Text style={styles.catChipText}>{CHALLENGE_DIFFICULTY_LABEL[c.difficulty]}</Text>
+                      </View>
+                      {c.videoUrl ? (
+                        <View style={styles.catChip}>
+                          <Text style={[styles.catChipText, { marginLeft: 0 }]}>お手本動画</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                  <View style={styles.masterPlainIcon} pointerEvents="none">
+                    <CatIcon size={44} color={colors.gold} />
+                  </View>
+                </View>
+                {/* お題の題名・出題者(連の名前と肩書き)・「コツを見る・挑戦する」 */}
+                <View style={styles.masterBody}>
+                  <Text style={styles.masterName} numberOfLines={2}>{c.title}</Text>
+                  <View style={styles.chPoster}>
+                    <RenMon size={16} color={colors.gold}>
+                      <Text style={styles.chPosterInitial}>{c.posterName.slice(0, 1)}</Text>
+                    </RenMon>
+                    <Text style={styles.chPosterText} numberOfLines={1}>
+                      　{c.posterName}／{[c.renName, c.posterRole].filter(Boolean).join(' ')}
+                    </Text>
+                  </View>
+                  <View style={styles.playSmallBtn}>
+                    <IconMakimono size={12} color={colors.gold} />
+                    <Text style={styles.playSmallText}>コツを見る・挑戦する</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+          {/* 見本(サンプル)のお題 */}
           {challenges.map((c) => {
             const CatIcon = categoryIcon(c.category);
             return (
@@ -733,6 +796,9 @@ export default function HomeScreen({ navigation, route }: Props) {
                       <View style={styles.catChip}>
                         <CatIcon size={11} color={colors.goldBright} />
                         <Text style={styles.catChipText}>{c.difficulty}</Text>
+                      </View>
+                      <View style={styles.catChip}>
+                        <Text style={[styles.catChipText, { marginLeft: 0 }]}>見本</Text>
                       </View>
                     </View>
                   </View>
@@ -1293,6 +1359,9 @@ const styles = StyleSheet.create({
   },
   masterThumb: { width: '100%', height: 128, justifyContent: 'flex-start' },
   masterThumbScrim: { padding: spacing.sm },
+  // 実データのお題は写真が無いので、無地の枠の中央に踊りの種類のアイコンを置く
+  masterThumbPlain: { backgroundColor: colors.indigoRaised },
+  masterPlainIcon: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   // 写真に重ねる難易度のチップと「チャレンジ」のバッジ(朱色)
   catChip: {
     flexDirection: 'row',

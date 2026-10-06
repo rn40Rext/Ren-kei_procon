@@ -389,11 +389,9 @@ export default function HomeScreen({ navigation, route }: Props) {
     [realPosts, uid],
   );
   const realHero = myRealPosts[0] ?? null;
-  // フィード一覧・「ほかのあなたの投稿」はヒーローに出している最新投稿を除いて表示
-  const feedRealPosts = useMemo(
-    () => realPosts.filter((p) => p.id !== realHero?.id),
-    [realPosts, realHero],
-  );
+  // フィード一覧(みんなの演舞)には、ヒーローに出している自分の最新投稿も含めて全件出す。
+  // 以前は重複を避けて除いていたが、見本を無くしたため投稿が1件だけだと一覧が空に見えていた
+  const feedRealPosts = realPosts;
 
   // フィード上で直接「拍手」できるように、表示中の投稿の自分のいいね状態を持つ
   // （数そのものはsubscribePostsのライブ購読が反映するので、ここではliked表示だけ管理する）。
@@ -882,7 +880,7 @@ export default function HomeScreen({ navigation, route }: Props) {
         </ScrollView>
 
         <View style={styles.feedList}>
-          {/* 交流広場に投稿された演舞(新着順。ヒーローに出している自分の最新分は除く)。
+          {/* 交流広場に投稿された演舞(新着順。自分の投稿も含む)。
               該当する投稿がなければ案内文を出す */}
           {visibleRealPosts.length > 0 ? (
             <>

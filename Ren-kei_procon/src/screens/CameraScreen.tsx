@@ -25,6 +25,7 @@ import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
 import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
+import { SCORING_BGM_URL } from "../features/analysis/bgm";
 
 /** この画面で使う画面遷移と、前の画面から受け取る値(踊りの型・重点部位・基準のテンポ)の型 */
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
@@ -35,7 +36,7 @@ type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
 // (expo-av等)には依存せず、Web標準のAudio要素だけで再生する。
 // (expo-avは静的importするだけでネイティブモジュール'ExponentAV'が
 // 見つからずクラッシュするため、ここでは使わない)
-const BGM_URL: string = require("../../assets/audio/bgm-awaodori.mp3");
+const BGM_URL = SCORING_BGM_URL;
 
 /** 判定ゲージに出すルールと、その表示名(ここにないルールはゲージに出さない) */
 const GAUGE_LABELS: Record<string, string> = {

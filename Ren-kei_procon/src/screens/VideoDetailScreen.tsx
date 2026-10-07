@@ -352,7 +352,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.commentName}>{c.userName}</Text>
-                      <Text style={styles.commentRen}>
+                      <Text style={c.type === 'instructor' ? styles.commentRenLeader : styles.commentRen}>
                         {c.type === 'instructor' ? instructorLabel(c.renId ? renNames[c.renId] : null) : '門下生の声'}
                       </Text>
                     </View>
@@ -792,6 +792,8 @@ const styles = StyleSheet.create({
   avatarText: { ...typography.bodyStrong, color: colors.gold },
   commentName: { ...typography.bodyStrong, color: colors.textPrimary },
   commentRen: { ...typography.caption, color: colors.textMuted, marginTop: 1 },
+  // 師匠(連長)のコメントの肩書き。目立つよう金色にする
+  commentRenLeader: { ...typography.caption, color: colors.gold, marginTop: 1 },
   commentClap: { flexDirection: 'row', alignItems: 'center' },
   commentClapText: { ...typography.caption, color: colors.gold, marginLeft: 3 },
   commentText: { ...typography.body, color: colors.textSecondary },

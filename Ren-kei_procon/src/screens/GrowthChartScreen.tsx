@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import { ChevronLeft, Minus, TrendingDown, TrendingUp } from 'lucide-react-native';
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -13,7 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, subscribeAnalysisResultsByUser } from '../repositories/analysis';
 import GrowthLineChart, { ChartPoint } from '../components/GrowthLineChart';
 import { colors } from '../theme';
-import AppMenu from '../components/AppMenu';
+import ScreenHeader from '../components/ScreenHeader';
 
 /** この画面で使う画面遷移の型 */
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GrowthChart'>;
@@ -71,18 +71,11 @@ export default function GrowthChartScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー: 稽古手帳へ戻るボタン・画面名・メニュー */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
-          style={styles.backBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ChevronLeft size={22} color={colors.gold} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>成長の記録</Text>
-        <AppMenu />
-      </View>
+      {/* ヘッダー(共通): 稽古手帳へ戻るボタン・画面名・メニュー */}
+      <ScreenHeader
+        title="成長の記録"
+        onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
+      />
 
       {/* 4つの表示状態: 読み込み中 / エラー / 記録なし / 記録あり */}
       {results === null && !error ? (
@@ -168,19 +161,6 @@ export default function GrowthChartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  // 画面上部のヘッダー。「戻る」ボタン・タイトル・メニューを横一列に並べる
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-    backgroundColor: colors.indigo,
-    borderBottomWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-  // 戻るボタンと、中央寄せの画面名
-  backBtn: { padding: 4, width: 34 },
-  headerTitle: { flex: 1, fontSize: 17, fontWeight: 'bold', color: colors.textPrimary, textAlign: 'center' },
 
   // まだ記録が無いときに、中央に案内文とボタンだけを表示するエリア
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },

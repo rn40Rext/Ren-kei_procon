@@ -107,8 +107,8 @@ export interface ChallengeInput {
   difficulty: ChallengeDifficulty;
   focus: string;
   advice: ChallengeAdviceItem[];
-  /** 端末上のお手本動画(任意)。指定するとStorageへ上げてから作成する */
-  videoUri?: string;
+  /** 端末上のお手本動画(必須)。Storageへ上げてから作成する */
+  videoUri: string;
 }
 
 /** お手本動画をStorageへアップロードし、表示用URLと保存場所を返す(storage.rulesで本人のみ書き込み可) */
@@ -122,12 +122,13 @@ async function uploadChallengeVideo(uid: string, uri: string): Promise<{ videoUr
   return { videoUrl: await getDownloadURL(videoRef), videoPath };
 }
 
-/** チャレンジを出題する。お手本動画があれば先にアップロードする */
+/** チャレンジを出題する。お手本動画(必須)を先にアップロードする */
 export async function createChallenge(input: ChallengeInput): Promise<string> {
   const user = auth.currentUser;
   if (!user) throw new Error('ログインが必要です');
 
-  const video = input.videoUri ? await uploadChallengeVideo(user.uid, input.videoUri) : null;
+  if (!input.videoUri) throw new Error('お手本動画を選んでください');
+  const video = await uploadChallengeVideo(user.uid, input.videoUri);
   const posterName = await myDisplayName();
   const created = await addDoc(collection(db, 'challenges'), {
     renId: input.renId,
@@ -141,7 +142,7 @@ export async function createChallenge(input: ChallengeInput): Promise<string> {
     difficulty: input.difficulty,
     focus: input.focus.trim(),
     advice: input.advice.map((a) => ({ point: a.point.trim(), detail: a.detail.trim() })),
-    ...(video ?? {}),
+    ...video,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });

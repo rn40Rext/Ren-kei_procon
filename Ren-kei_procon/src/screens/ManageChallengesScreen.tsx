@@ -117,6 +117,11 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
       Alert.alert('入力が足りません', 'コツを1つ以上、見出しを付けて入力してください');
       return;
     }
+    // お手本動画は必須(動画のないお題は出題できない)
+    if (!videoUri) {
+      Alert.alert('お手本動画がありません', 'お手本動画を選んでから出題してください');
+      return;
+    }
     setSending(true);
     try {
       await createChallenge({
@@ -129,7 +134,7 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
         difficulty,
         focus,
         advice: filled,
-        videoUri: videoUri ?? undefined,
+        videoUri,
       });
       resetForm();
       Alert.alert('出題しました', 'ホーム画面の「師匠からのチャレンジ」に表示されます');
@@ -292,14 +297,14 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
               </TouchableOpacity>
             ) : null}
 
-            {/* お手本動画(任意) */}
-            <Text style={[styles.label, { marginTop: spacing.lg }]}>お手本動画（任意）</Text>
+            {/* お手本動画(必須) */}
+            <Text style={[styles.label, { marginTop: spacing.lg }]}>お手本動画（必須）</Text>
             {videoUri ? (
               <View>
                 <RenkeiVideo uri={videoUri} style={styles.preview} contentFit="contain" nativeControls />
-                <TouchableOpacity style={styles.outlineBtn} onPress={() => setVideoUri(null)}>
-                  <X size={15} color={colors.gold} />
-                  <Text style={styles.outlineBtnText}>動画を外す</Text>
+                <TouchableOpacity style={styles.outlineBtn} onPress={pickVideo}>
+                  <Film size={15} color={colors.gold} />
+                  <Text style={styles.outlineBtnText}>動画を選び直す</Text>
                 </TouchableOpacity>
               </View>
             ) : (

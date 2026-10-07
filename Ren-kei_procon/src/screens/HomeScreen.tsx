@@ -36,6 +36,7 @@ import {
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
 import VideoThumbnail from '../components/VideoThumbnail';
+import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
 import { RenKeiWordmark } from '../components/Brand';
 import { auth } from '../config/firebaseConfig';
 import { subscribeUnreadNotificationCount } from '../repositories/notifications';
@@ -299,6 +300,10 @@ export default function HomeScreen({ navigation, route }: Props) {
   const festivalDays = useMemo(() => daysToFestival(), []);
 
   const [posting, setPosting] = useState(false);
+  // Web版の「今すぐ撮る」はOSのカメラアプリに丸投げせず、採点画面と同じ
+  // getUserMedia+MediaRecorderでアプリ内完結させる(launchCameraAsyncはWebでは
+  // 撮影後にアプリへ戻ってこないことがある。expo-image-picker公式ドキュメント参照)
+  const [recording, setRecording] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
@@ -509,11 +514,34 @@ export default function HomeScreen({ navigation, route }: Props) {
     }
   };
 
-  // 「今すぐ撮る」は、投稿フォームを閉じて自主稽古・演舞解析(採点画面)へ移る。
-  // その場でAIの採点を受け、解析結果画面から交流広場へ投稿できる(採点つきの投稿になる)
-  const goPractice = () => {
-    setPosting(false);
-    navigation.navigate('Scoring');
+  // 初心者サポート：見てほしい演舞をその場で撮って、そのまま解析・投稿に回せるように。
+  // Web版はOSカメラアプリへの丸投げ(launchCameraAsync)をやめ、採点画面と同じ
+  // getUserMedia+MediaRecorderでアプリ内完結の録画モーダルを開く
+  const recordVideo = async () => {
+    if (Platform.OS === 'web') {
+      setRecording(true);
+      return;
+    }
+    const camPerm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!camPerm.granted) {
+      Alert.alert('権限が必要です', '撮影にはカメラへのアクセスを許可してください。');
+      return;
+    }
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['videos'],
+      quality: 1,
+      videoMaxDuration: 120,
+    });
+    if (!res.canceled && res.assets?.[0]?.uri) {
+      setVideoUri(res.assets[0].uri);
+      setExistingVideoId(null);
+    }
+  };
+
+  const onRecordedInPage = (media: RecordedVideo) => {
+    setVideoUri(URL.createObjectURL(media.blob));
+    setExistingVideoId(null);
+    setRecording(false);
   };
 
   /** 投稿モーダルの送信。選んだ動画を交流広場へ公開する(動画が無いと送れない) */
@@ -922,8 +950,8 @@ export default function HomeScreen({ navigation, route }: Props) {
                 </View>
                 <View style={styles.modalPickerSide}>
                   <Text style={styles.modalPickerText}>動画を選び直す</Text>
-                  <TouchableOpacity onPress={goPractice} disabled={submitting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={styles.reRecordText}>自主稽古で撮る</Text>
+                  <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.reRecordText}>撮り直す</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -931,7 +959,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               <View style={styles.pickRow}>
                 <TouchableOpacity
                   style={styles.pickBtn}
-                  onPress={goPractice}
+                  onPress={recordVideo}
                   activeOpacity={0.85}
                   disabled={submitting}
                 >
@@ -951,7 +979,7 @@ export default function HomeScreen({ navigation, route }: Props) {
             )}
             {/* 撮影・選択の案内と、撮り直すリンク */}
             <Text style={styles.modalPickerHint}>
-              初めての演舞でも大丈夫。「今すぐ撮る」は自主稽古でAIの採点を受けてから、結果の画面で投稿できます。
+              初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。
             </Text>
             {/* 題名(必須)・概要・タグの入力 */}
             <Text style={styles.modalLabel}>演舞の題</Text>
@@ -1004,6 +1032,11 @@ export default function HomeScreen({ navigation, route }: Props) {
         </KeyboardAvoidingView>
       </Modal >
 
+      <InPageVideoRecorder
+        visible={recording}
+        onCancel={() => setRecording(false)}
+        onDone={onRecordedInPage}
+      />
     </SafeAreaView >
   );
 }

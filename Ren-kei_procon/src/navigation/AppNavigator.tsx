@@ -48,12 +48,14 @@ export type RootStackParamList = {
   // shareVideoId: 稽古手帳(VideoList)の「交流広場へ投稿」から来たとき、
   // その練習動画を投稿フォームに入れて開く。Homeが交流広場を兼ねる
   Home: { shareVideoId?: string } | undefined;
-  // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。id: サンプル演舞 / postId: 実データ投稿
-  VideoDetail: { id?: string; postId?: string };
+  // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。postId: 交流広場の投稿(posts)
+  VideoDetail: { postId: string };
   // 先輩からのチャレンジの詳細。id: 見本のお題 / challengeId: 連の管理者が出題した実データ(challenges)
   Challenge: { id?: string; challengeId?: string };
   Mypage: undefined;
-  Scoring: undefined;
+  // challengeId/challengeTitle: 先輩からのチャレンジの「自分の演舞で挑戦する」から来たとき。
+  // 撮影(Camera)→解析結果(Result)まで引き継ぎ、結果をそのお題への挑戦として投稿する
+  Scoring: { challengeId?: string; challengeTitle?: string } | undefined;
   VideoList: undefined;
   // U-10 成長曲線(#37)。analysisResultsをuserId横断で購読する
   GrowthChart: undefined;
@@ -65,9 +67,15 @@ export type RootStackParamList = {
   // 通知一覧(#44)。仕様書 U-01/R-01 の「通知への導線」の遷移先
   Notifications: undefined;
   // U-02 本体。baseBpm はリズム判定の基準テンポ(TBD-04 の暫定: ユーザー選択)
-  Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
+  Camera: {
+    danceType: "male" | "female";
+    scorePart: "feet" | "hands" | "whole";
+    baseBpm?: number;
+    challengeId?: string;
+    challengeTitle?: string;
+  };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
-  Result: { analysisId: string; videoId: string };
+  Result: { analysisId: string; videoId: string; challengeId?: string; challengeTitle?: string };
   Request: undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   // 連スタイル類似度の結果（AI機能②）。表示可否は

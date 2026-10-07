@@ -1,5 +1,5 @@
 /**
- * ダミーデータ用の阿波踊り写真。
+ * 見本の「先輩からのチャレンジ」(data/mockChallenges.ts)で使う阿波踊り写真。
  * すべて Wikimedia Commons の実写真（生成画像ではない）。
  * ライセンス表記が必要な場合は各ファイルページを参照：
  *   https://commons.wikimedia.org/wiki/File:<ファイル名>

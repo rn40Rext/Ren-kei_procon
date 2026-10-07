@@ -20,7 +20,7 @@
 
 ### やらないこと（今回の範囲外）
 
-- 挑戦の記録（誰が挑戦したか・挑戦人数・「挑戦した人の演舞」）。見本にだけ表示し、実データでは出さない（作り物の数字を出さないため）
+- ~~挑戦の記録~~ → 2026-10-07 に「挑戦の投稿」として実装（7 章）。挑戦人数の表示は引き続き見本のみ
 - お題の編集画面
 - 出題時の通知
 - 見本データの削除（実データと並べて「見本」の印を付けて表示する）
@@ -71,6 +71,21 @@ Storage Rules からは「連の管理者かどうか」を判定できないた
 | Rules | `firestore.rules` の `challenges`。作成は `isRenAdmin(request.resource.data.renId)` と `createdBy == request.auth.uid`、項目の型・長さ・許可値を検証。更新で `renId`・`createdBy`・`createdAt` は変更不可。テストは `tests/rules/challenges.rules.test.mjs` |
 | Functions | 使わない（クライアントから直接書き込み、Rules で守る） |
 | UI | 管理画面は `useAdminRens()` に含まれる連でだけフォームを出す |
+
+## 7. 挑戦の投稿（2026-10-07 追加）
+
+「自分の演舞で挑戦する」から採点した演舞を、**そのお題への挑戦として投稿できる**ようにしました。
+
+| 論点 | 決定 | 理由 |
+| --- | --- | --- |
+| 表示先 | **お題の詳細の「挑戦した人の演舞」にだけ出す。交流広場（ホーム）には出さない** | 2026-10-07 ユーザー判断 |
+| 保存方法 | 通常の投稿（`posts`）として publishPost で作り、作成直後に投稿者本人が `posts/{postId}.challengeId` を書き足す | Cloud Functions と Rules を変えずに済む（Rules は投稿者本人による `userId`・`likeCount`・`commentCount` 以外の更新を許可している） |
+| 交流広場からの除外 | ホーム画面で `challengeId` の付いた投稿を表示しない | 連管理者の投稿一覧（`ManagePostsScreen`）には出す（指導の対象として見られるように） |
+| お題の引き継ぎ | チャレンジ詳細 → 採点（`Scoring`）→ 撮影（`Camera`）→ 解析結果（`Result`）の画面パラメータ `challengeId`・`challengeTitle` で渡す | 見本のお題から挑戦した場合は渡さず、従来どおり交流広場への投稿になる |
+
+- 「挑戦した人の演舞」は `where('challengeId', '==', id)` で取り、並べ替えは手元で行う（複合インデックスを増やさないため）
+- **既知の制約**: 投稿の作成と `challengeId` の書き足しが別の書き込みのため、その間（1 秒未満）だけホームに表示されることがある。また書き足しに失敗すると交流広場の投稿のまま残る（画面に案内を出す）。publishPost に `challengeId` を受け取らせれば 1 回で書けるが、Functions のデプロイが必要なため見送った
+- Rules テスト: `tests/rules/challenges.rules.test.mjs` に「投稿者本人だけが challengeId を付けられる」を追加
 
 ## 6. 未決定・今後
 

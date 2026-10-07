@@ -96,3 +96,17 @@ test("更新でrenIdを別の連に付け替えられない", async () => {
   await assertFails(alice.doc("challenges/c1").update({ renId: "r2" }));
   await assertSucceeds(alice.doc("challenges/c1").update({ title: "題名を直しました" }));
 });
+
+// 挑戦の投稿: publishPost で作られた投稿に、投稿者本人が challengeId を書き足す
+test("投稿者本人は自分の投稿にchallengeIdを付けられるが、他人の投稿には付けられない", async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await ctx.firestore().doc("posts/p1").set({
+      userId: "dave", authorName: "デイブ", title: "挑戦", videoUrl: "https://example.com/v.mp4",
+      tags: [], likeCount: 0, commentCount: 0, createdAt: new Date(),
+    });
+  });
+  const dave = testEnv.authenticatedContext("dave").firestore();
+  const carol = testEnv.authenticatedContext("carol").firestore();
+  await assertFails(carol.doc("posts/p1").update({ challengeId: "c1" }));
+  await assertSucceeds(dave.doc("posts/p1").update({ challengeId: "c1" }));
+});

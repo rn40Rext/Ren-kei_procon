@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  updateDoc,
   onSnapshot,
   query,
   orderBy,
@@ -57,6 +58,7 @@ function mapPost(id: string, d: any): Post {
     videoUrl: d.videoUrl ?? '',
     score: typeof d.score === 'number' ? d.score : typeof d.totalScore === 'number' ? d.totalScore : undefined,
     videoId: typeof d.videoId === 'string' ? d.videoId : undefined,
+    challengeId: typeof d.challengeId === 'string' ? d.challengeId : undefined,
     likeCount: typeof d.likeCount === 'number' ? d.likeCount : 0,
     commentCount: typeof d.commentCount === 'number' ? d.commentCount : 0,
     tags: Array.isArray(d.tags) ? d.tags : [],
@@ -110,6 +112,32 @@ export function subscribePosts(
     },
     onError
   );
+}
+
+/**
+ * あるチャレンジ(お題)への挑戦として投稿された演舞を新しい順にリアルタイム購読する
+ * (チャレンジ詳細の「挑戦した人の演舞」。docs/design/challenges.md)。
+ * challengeId + createdAt の複合インデックスを増やさないよう、並べ替えは手元で行う。
+ */
+export function subscribeChallengeEntries(
+  challengeId: string,
+  onData: (posts: Post[]) => void,
+  onError: (error: FirestoreError) => void
+): Unsubscribe {
+  return onSnapshot(
+    query(collection(db, 'posts'), where('challengeId', '==', challengeId)),
+    (snap) => onData(sortNewest(snap.docs.map((d) => mapPost(d.id, d.data())))),
+    onError
+  );
+}
+
+/**
+ * 自分の投稿を、チャレンジへの挑戦として印を付ける(challengeId を書き足す)。
+ * 投稿の作成は publishPost(Cloud Functions)経由のため、作成直後に本人が書き足す
+ * (firestore.rules は投稿者本人による userId/likeCount/commentCount 以外の更新を許可している)。
+ */
+export async function attachPostToChallenge(postId: string, challengeId: string): Promise<void> {
+  await updateDoc(doc(db, 'posts', postId), { challengeId });
 }
 
 /** 通知(type:'comment')タップ時、投稿詳細へ直接遷移するために1件だけ取得する。 */

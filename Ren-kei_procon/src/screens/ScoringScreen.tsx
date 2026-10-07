@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Footprints, Hand, User } from 'lucide-react-native';
@@ -37,6 +37,10 @@ export default function AnalysisScreen() {
   const [scorePart, setScorePart] = useState<ScorePart | null>(null);
 
   const navigation = useNavigation<AnalysisScreenNavigationProp>();
+  // 先輩からのチャレンジの「自分の演舞で挑戦する」から来たときのお題(撮影・解析結果まで引き継ぐ)
+  const route = useRoute<RouteProp<RootStackParamList, 'Scoring'>>();
+  const challengeId = route.params?.challengeId;
+  const challengeTitle = route.params?.challengeTitle;
   // 両方選んだら撮影へ進める
   const ready = danceType !== null && scorePart !== null;
 
@@ -52,6 +56,15 @@ export default function AnalysisScreen() {
         <AppMenu />
       </View>
       <HeaderSeam />
+
+      {/* チャレンジへの挑戦として採点するときは、どのお題かを出しておく */}
+      {challengeId ? (
+        <View style={styles.challengeBanner}>
+          <Text style={styles.challengeBannerLabel}>チャレンジに挑戦中</Text>
+          <Text style={styles.challengeBannerTitle} numberOfLines={2}>「{challengeTitle ?? 'お題'}」</Text>
+          <Text style={styles.challengeBannerNote}>採点した演舞は、このお題の「挑戦した人の演舞」に投稿できます</Text>
+        </View>
+      ) : null}
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* 踊りの種類 */}
@@ -109,7 +122,7 @@ export default function AnalysisScreen() {
           style={[styles.nextButton, !ready && styles.nextButtonDisabled]}
           onPress={() => {
             if (danceType === null || scorePart === null) return;
-            navigation.navigate('Camera', { danceType, scorePart });
+            navigation.navigate('Camera', { danceType, scorePart, challengeId, challengeTitle });
           }}
         >
           <Text style={[styles.nextButtonText, !ready && styles.nextButtonTextDisabled]}>
@@ -128,6 +141,19 @@ const styles = StyleSheet.create({
   headerIcon: { marginRight: spacing.md },
   headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
   headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+  // チャレンジに挑戦中であることを示す帯(朱色の枠)
+  challengeBanner: {
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.aka,
+    backgroundColor: colors.akaSoft,
+  },
+  challengeBannerLabel: { ...typography.sectionLabel, color: colors.aka },
+  challengeBannerTitle: { ...typography.bodyStrong, color: colors.textPrimary, marginTop: 4 },
+  challengeBannerNote: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
   // スクロール部分の余白と、セクション見出し(組紐の飾り + 金色の文字)
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },

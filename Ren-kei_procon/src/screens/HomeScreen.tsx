@@ -52,7 +52,6 @@ import {
 } from '../repositories/posts';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
-import { feedTags } from '../data/mockEnbu';
 import { challenges } from '../data/mockChallenges';
 import {
   CHALLENGE_CATEGORY_LABEL,
@@ -284,6 +283,9 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
 /** この画面が受け取る値(画面遷移と、稽古手帳から渡される動画IDなど)の型 */
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+/** フィードの絞り込みタグ。投稿時に選べるタグ(POST_TAG_OPTIONS)と同じものを並べ、名前のずれで絞り込めなくなるのを防ぐ */
+const FEED_TAGS: string[] = ['すべて', ...POST_TAG_OPTIONS];
+
 /**
  * ホーム画面(U-01)。交流広場を兼ねる(旧CommunityScreenはここに統合済み)。
  * 自分の最新投稿をヒーローに、その下に交流フィード(実際の投稿)を出す。
@@ -295,7 +297,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   const { width: SCREEN_W } = useWindowDimensions();
   const HERO_H = Math.min(Math.round(SCREEN_W * 0.64), 320);
   // フィードタグ／検索欄の状態（絞り込みは「みんなの演舞と門下生の声」側に統一）
-  const [feedTag, setFeedTag] = useState(feedTags[0]);
+  const [feedTag, setFeedTag] = useState(FEED_TAGS[0]);
   const [search, setSearch] = useState('');
 
   // スクロール量を使って、ヘッダーなどの演出を制御するための値、演出には今は使っていない
@@ -362,17 +364,19 @@ export default function HomeScreen({ navigation, route }: Props) {
   }, [route.params?.shareVideoId, navigation]);
 
   // 実データ：交流広場の投稿（posts）を購読
+  // チャレンジへの挑戦として投稿されたもの(challengeIdあり)は、お題の詳細にだけ出すので除く
   const [realPosts, setRealPosts] = useState<PostDoc[]>([]);
   const gotLive = useRef(false);
   useEffect(() => {
+    const communityOnly = (posts: PostDoc[]) => posts.filter((p) => !p.challengeId);
     // まず前回セッションの保存分を即表示（Firestore 応答前・オフラインでも残る）
     loadCachedPosts().then((cached) => {
-      if (!gotLive.current && cached.length) setRealPosts(cached);
+      if (!gotLive.current && cached.length) setRealPosts(communityOnly(cached));
     });
     const unsub = subscribePosts(
       (posts) => {
         gotLive.current = true;
-        setRealPosts(posts);
+        setRealPosts(communityOnly(posts));
       },
       (e) => console.warn('subscribePosts', e),
     );
@@ -482,7 +486,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   // 交流フィードの投稿を、選んだタグと検索キーワード(題名・投稿者)で絞り込む
   const visibleRealPosts = useMemo(() => {
     return feedRealPosts.filter((p) => {
-      const tagOk = feedTag === feedTags[0] || p.tags.includes(feedTag);
+      const tagOk = feedTag === FEED_TAGS[0] || p.tags.includes(feedTag);
       const q = search.trim();
       const searchOk = !q || p.title.includes(q) || p.authorName.includes(q);
       return tagOk && searchOk;
@@ -575,7 +579,7 @@ export default function HomeScreen({ navigation, route }: Props) {
       }
       setPosting(false);
       resetDraft();
-      setFeedTag(feedTags[0]);
+      setFeedTag(FEED_TAGS[0]);
     } catch (e: any) {
       Alert.alert('投稿に失敗しました', e?.message ?? '時間をおいて再度お試しください。');
     } finally {
@@ -888,7 +892,7 @@ export default function HomeScreen({ navigation, route }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.feedTagRow}
         >
-          {feedTags.map((t) => (
+          {FEED_TAGS.map((t) => (
             <Chip key={t} label={t} active={feedTag === t} onPress={() => setFeedTag(t)} />
           ))}
         </ScrollView>

@@ -25,7 +25,7 @@ import { Play, X } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { AnalysisResult, subscribeAnalysisResult } from '../repositories/analysis';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
-import { publishExistingVideo, POST_TAG_OPTIONS } from '../repositories/posts';
+import { attachPostToChallenge, publishExistingVideo, POST_TAG_OPTIONS } from '../repositories/posts';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { KumihimoRule, NarutoLoader, AwaDivider } from '../components/motifs';
 import { Chip } from '../components/ui';
@@ -66,6 +66,8 @@ export default function ResultScreen() {
   const route = useRoute<ResultRoute>();
   // どの解析結果を表示するか(前の画面から受け取る)
   const { analysisId, videoId } = route.params;
+  // 先輩からのチャレンジへの挑戦として採点したときのお題。あれば交流広場ではなくこのお題に投稿する
+  const { challengeId, challengeTitle } = route.params;
   // 解析結果(undefined=読み込み中、null=見つからない) / 読み込みのエラー文
   const [result, setResult] = useState<AnalysisResult | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +118,7 @@ export default function ResultScreen() {
     setShareTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
-  /** 解析結果の動画を交流広場へ投稿する */
+  /** 解析結果の動画を交流広場へ投稿する(チャレンジへの挑戦なら、そのお題への挑戦として投稿する) */
   const submitShare = async () => {
     if (!shareTitle.trim()) {
       setShareError('タイトルを入力してください');
@@ -130,13 +132,25 @@ export default function ResultScreen() {
         setShareError('動画の準備がまだできていません。少し待ってからもう一度お試しください');
         return;
       }
-      await publishExistingVideo({
+      const { postId } = await publishExistingVideo({
         videoUrl: video.downloadUrl,
         title: shareTitle,
         description: shareDescription || undefined,
         tags: shareTags,
         videoId,
       });
+      // 挑戦の投稿には印(challengeId)を付け、交流広場には出さずお題の詳細にだけ出す
+      if (challengeId) {
+        try {
+          await attachPostToChallenge(postId, challengeId);
+        } catch (e) {
+          console.error('チャレンジへの登録に失敗しました', e);
+          setShareError('投稿はできましたが、チャレンジへの登録に失敗しました。交流広場に表示されています');
+          setPosted(true);
+          setShareVisible(false);
+          return;
+        }
+      }
       setPosted(true);
       setShareVisible(false);
     } catch (e) {
@@ -245,19 +259,33 @@ export default function ResultScreen() {
           </TouchableOpacity>
         ) : null}
 
-        {/* 交流広場への投稿ボタン(投稿後は「投稿しました」の表示に変える) */}
+        {/* 投稿ボタン(チャレンジへの挑戦ならそのお題へ、それ以外は交流広場へ)。投稿後は「投稿しました」の表示に変える */}
         {posted ? (
-          <View style={styles.postedNote}>
-            <Text style={styles.postedNoteText}>交流広場へ投稿しました</Text>
-          </View>
+          <>
+            <View style={styles.postedNote}>
+              <Text style={styles.postedNoteText}>{challengeId ? 'チャレンジに投稿しました' : '交流広場へ投稿しました'}</Text>
+            </View>
+            {shareError ? <Text style={styles.shareModalError}>{shareError}</Text> : null}
+            {challengeId ? (
+              <TouchableOpacity
+                style={styles.shareButton}
+                onPress={() => navigation.navigate('Challenge', { challengeId })}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.shareButtonText}>お題と挑戦した人の演舞を見る</Text>
+              </TouchableOpacity>
+            ) : null}
+          </>
         ) : (
           <TouchableOpacity style={styles.shareButton} onPress={openShare} activeOpacity={0.85}>
-            <Text style={styles.shareButtonText}>この演舞を交流広場へ投稿する</Text>
+            <Text style={styles.shareButtonText}>
+              {challengeId ? 'この演舞をチャレンジに投稿する' : 'この演舞を交流広場へ投稿する'}
+            </Text>
           </TouchableOpacity>
         )}
 
         {/* もう一度稽古する / 踊り広場へ戻る */}
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring', undefined, { pop: true })} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('Scoring', challengeId ? { challengeId, challengeTitle } : undefined, { pop: true })} activeOpacity={0.85}>
           <Text style={styles.primaryButtonText}>もう一度稽古する</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.navigate('Home', undefined, { pop: true })} activeOpacity={0.85}>
@@ -278,12 +306,16 @@ export default function ResultScreen() {
         >
           <View style={styles.shareModalCard}>
             <View style={styles.shareModalHead}>
-              <Text style={styles.shareModalTitle}>交流広場へ投稿</Text>
+              <Text style={styles.shareModalTitle}>{challengeId ? 'チャレンジに投稿' : '交流広場へ投稿'}</Text>
               <TouchableOpacity onPress={() => setShareVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <X size={20} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.shareModalLead}>この稽古の演舞を、みんなが見られる交流広場に公開します。</Text>
+            <Text style={styles.shareModalLead}>
+              {challengeId
+                ? `この稽古の演舞を、お題「${challengeTitle ?? ''}」の「挑戦した人の演舞」に公開します（交流広場には出ません）。`
+                : 'この稽古の演舞を、みんなが見られる交流広場に公開します。'}
+            </Text>
 
             <Text style={styles.shareModalLabel}>タイトル</Text>
             <TextInput

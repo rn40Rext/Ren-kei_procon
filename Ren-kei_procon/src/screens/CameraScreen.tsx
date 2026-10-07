@@ -101,6 +101,8 @@ export default function CameraScreen() {
   const navigation = useNavigation<CameraNav>();
   // 前の画面で選んだ踊りの型・重点部位と、基準のテンポ(BPM)
   const { danceType, scorePart, baseBpm } = route.params;
+  // チャレンジへの挑戦として来たときのお題。解析結果画面へそのまま引き継ぐ
+  const { challengeId, challengeTitle } = route.params;
   const { uid } = useAuth();
   // 画面の状態: undefined=カメラ確認中 / null=この端末は未対応 / それ以外=映像ソース
   const [source, setSource] = useState<LiveVideoSource | null | undefined>(undefined);
@@ -145,7 +147,7 @@ export default function CameraScreen() {
     setBusy(true);
     try {
       const result = await finish();
-      navigation.replace("Result", { analysisId: result.analysisId, videoId: result.videoId });
+      navigation.replace("Result", { analysisId: result.analysisId, videoId: result.videoId, challengeId, challengeTitle });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       Alert.alert("保存に失敗しました", msg);
@@ -153,7 +155,7 @@ export default function CameraScreen() {
       finishingRef.current = false;
       setBusy(false);
     }
-  }, [busy, finish, navigation]);
+  }, [busy, finish, navigation, challengeId, challengeTitle]);
 
   // 判定を中止する(保存も採点もしない)
   const onCancel = useCallback(async () => {
@@ -166,13 +168,13 @@ export default function CameraScreen() {
     setBusy(true);
     try {
       const result = await retryFinalize();
-      navigation.replace("Result", { analysisId: result.analysisId, videoId: result.videoId });
+      navigation.replace("Result", { analysisId: result.analysisId, videoId: result.videoId, challengeId, challengeTitle });
     } catch {
       // エラー文言は snapshot.errorMessage に出るので、ここでは何もしない
     } finally {
       setBusy(false);
     }
-  }, [busy, retryFinalize, navigation]);
+  }, [busy, retryFinalize, navigation, challengeId, challengeTitle]);
 
   // 採点時間が来たら自動で保存・採点へ進む
   useEffect(() => {

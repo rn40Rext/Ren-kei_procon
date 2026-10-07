@@ -43,6 +43,9 @@ export interface Post {
   score?: number;
   // 練習動画(videos)から投稿した場合の元動画
   videoId?: string;
+  // 師匠からのチャレンジへの挑戦として投稿した場合のお題(challenges/{id})。
+  // 付いている投稿は交流広場には出さず、チャレンジ詳細の「挑戦した人の演舞」にだけ出す
+  challengeId?: string;
   likeCount: number;
   commentCount: number;
   tags: string[];

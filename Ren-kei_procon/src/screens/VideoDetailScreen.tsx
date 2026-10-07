@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ImageBackground,
   TouchableOpacity,
   SafeAreaView,
   TextInput,
@@ -15,20 +14,14 @@ import {
 } from 'react-native';
 import { Alert } from '../utils/alert';
 import { ChevronLeft, ChevronRight, Play, Hand, Send } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
-import { Badge, Chip, WashiCard, MetricRow, SectionHeader, Panel } from '../components/ui';
+import { Badge, MetricRow, Panel } from '../components/ui';
 import { RenMon, NarutoLoader, SeigaihaBand, AsanohaBackground } from '../components/motifs';
 import RenkeiVideo from '../components/RenkeiVideo';
 import AppMenu from '../components/AppMenu';
 import { useAdminRens } from '../hooks/useAdminRens';
-import {
-  todaysEnbu,
-  masterEnbu,
-  monkaEnbu,
-  masterTeachings,
-  monkaComments,
-} from '../data/mockEnbu';
 import {
   fetchPost,
   subscribeComments,
@@ -39,26 +32,23 @@ import {
   loadCachedComments,
 } from '../repositories/posts';
 import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firestore';
-import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
+import { formatAiScoreShort } from '../features/analysis/format';
 import { fetchRenName } from '../repositories/renProfile';
 import { instructorLabel } from '../utils/renLabel';
 
-/** サンプル表示で探す演舞(本日の演舞・師範・門下生の全部) */
-const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
+type Props = NativeStackScreenProps<RootStackParamList, 'VideoDetail'>;
+type VideoDetailNav = Props['navigation'];
 
-/** 投稿詳細画面。postIdがあれば実データ、無ければサンプル演舞を表示する */
-export default function VideoDetailScreen({ navigation, route }: any) {
-  const postId: string | undefined = route?.params?.postId;
-  // 実データ（交流広場の投稿）ならこちら
-  if (postId) return <RealPostDetail postId={postId} navigation={navigation} />;
-  return <SampleDetail navigation={navigation} route={route} />;
+/** 投稿詳細画面。交流広場の投稿(posts/{postId})を表示する */
+export default function VideoDetailScreen({ navigation, route }: Props) {
+  return <RealPostDetail postId={route.params.postId} navigation={navigation} />;
 }
 
 /* ================================================================== */
 /* 実データ：交流広場の投稿（posts/{postId}）                            */
 /* ================================================================== */
 /** 実データ(posts/{postId})の投稿詳細。コメント・拍手はFirestoreへ反映する */
-function RealPostDetail({ postId, navigation }: { postId: string; navigation: any }) {
+function RealPostDetail({ postId, navigation }: { postId: string; navigation: VideoDetailNav }) {
   const { width: SCREEN_W } = useWindowDimensions();
   // 投稿 / 読み込み中か / コメント一覧 / 表示中のタブ(師匠の教え/門下生の声)
   // 拍手したか・拍手の数・拍手の送信中か
@@ -401,249 +391,6 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   );
 }
 
-/* ================================================================== */
-/* サンプル（ダミーデータ）表示 — 従来どおり                             */
-/* ================================================================== */
-/** サンプル(ダミーデータ)の演舞詳細。見本であることを明示して表示する */
-function SampleDetail({ navigation, route }: any) {
-  const { width: SCREEN_W } = useWindowDimensions();
-  // どの見本の演舞を表示するか(見つからなければ本日の演舞)
-  const enbuId: string | undefined = route?.params?.id;
-  const enbu = useMemo(() => ALL_ENBU.find((e) => e.id === enbuId) ?? todaysEnbu, [enbuId]);
-
-  // 表示中のタブ / 拍手の数 / 拍手したか / 入力中のコメント(見本なので送信はしない)
-  const [tab, setTab] = useState<'teaching' | 'voice'>('teaching');
-  const [claps, setClaps] = useState(enbu.cheers);
-  const [clapped, setClapped] = useState(false);
-  const [draft, setDraft] = useState('');
-  // 連打でonPressが同一イベントループ内で二重発火しても二重に増減しないようにする
-  const clapBusyRef = useRef(false);
-
-  /** 見本の拍手。端末の中だけで数を増減する */
-  const sendClap = () => {
-    if (clapBusyRef.current) return;
-    clapBusyRef.current = true;
-    setClaps((c) => Math.max(0, clapped ? c - 1 : c + 1));
-    setClapped((v) => !v);
-    setTimeout(() => {
-      clapBusyRef.current = false;
-    }, 0);
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        {/* 上部バー */}
-        <View style={styles.topBar}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <ChevronLeft color={colors.gold} size={22} />
-            <Text style={styles.backText}>広場へ戻る</Text>
-          </TouchableOpacity>
-          <Text style={styles.topTitle} numberOfLines={1}>稽古録</Text>
-          <AppMenu />
-        </View>
-        <SeigaihaBand width={SCREEN_W} height={8} color={colors.gold} opacity={0.2} />
-
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* 演舞プレイヤー */}
-          <View style={styles.player}>
-            <ImageBackground source={{ uri: enbu.image }} style={styles.playerImage}>
-              <LinearGradient
-                colors={['rgba(11,19,43,0.1)', 'rgba(11,19,43,0.75)']}
-                style={styles.playerScrim}
-              >
-                <View style={styles.playCircle}>
-                  <Play size={26} fill={colors.textOnGold} color={colors.textOnGold} />
-                </View>
-                <View style={styles.playerBottom}>
-                  <Badge label={`${enbu.bpm} BPM ${enbu.cho}`} tone="dark" />
-                  <Text style={styles.playerTime}>{enbu.duration}</Text>
-                </View>
-              </LinearGradient>
-            </ImageBackground>
-          </View>
-
-          {/* 演舞情報 */}
-          {/* 演舞の情報: 見本の印などのバッジ・題名・踊り手・説明・極め度/演舞尺/調子 */}
-          <View style={styles.metaBlock}>
-            <View style={styles.metaBadges}>
-              {/* 見本データの極め度は本物の採点と同じ表記なので、見本であることを必ず示す(AGENTS.md 5章) */}
-              <Badge label="見本(サンプル)" tone="dark" style={{ marginRight: spacing.sm }} />
-              {enbu.isShihan ? <Badge label="阿波公認師範" tone="outline" /> : null}
-              <Badge label={`${enbu.category}演舞`} tone="aka" style={{ marginLeft: spacing.sm }} />
-            </View>
-
-            <Text style={styles.enbuTitle}>{enbu.title}</Text>
-
-            <View style={styles.performerRow}>
-              <RenMon size={32} color={colors.gold}>
-                <Text style={styles.performerInitial}>{enbu.performer.slice(0, 1)}</Text>
-              </RenMon>
-              <View style={styles.performerText}>
-                <Text style={styles.performerName}>
-                  {enbu.performer}
-                  <Text style={styles.performerRole}>　{enbu.role}</Text>
-                </Text>
-                <Text style={styles.performerRen}>{enbu.ren}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.enbuDesc}>{enbu.description}</Text>
-
-            <Panel style={styles.metricsPanel}>
-              <MetricRow
-                items={[
-                  { label: lexicon.aiScore, value: formatAiScoreShort(enbu.kimeRate) },
-                  { label: '演舞尺', value: enbu.duration },
-                  { label: '調子', value: `${enbu.bpm} BPM ${enbu.cho}` },
-                ]}
-              />
-            </Panel>
-
-            {/* 拍手を送る */}
-            <TouchableOpacity
-              style={[styles.clapBtn, clapped && styles.clapBtnActive]}
-              onPress={sendClap}
-              activeOpacity={0.85}
-            >
-              <Hand
-                size={18}
-                color={clapped ? colors.textOnAka : colors.aka}
-                fill={clapped ? colors.textOnAka : 'transparent'}
-              />
-              <Text style={[styles.clapText, clapped && styles.clapTextActive]}>
-                {lexicon.like}　{claps.toLocaleString()}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.toKeikoBtn}
-              onPress={() => navigation.navigate('Scoring')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.toKeikoText}>自主稽古・演舞解析へ</Text>
-              <ChevronRight size={15} color={colors.gold} />
-            </TouchableOpacity>
-          </View>
-
-          {/* 師匠の教え / 門下生の声 */}
-          <View style={styles.tabBar}>
-            <TouchableOpacity
-              style={[styles.tabItem, tab === 'teaching' && styles.tabItemActive]}
-              onPress={() => setTab('teaching')}
-            >
-              <Text style={[styles.tabLabel, tab === 'teaching' && styles.tabLabelActive]}>
-                {lexicon.masterTeaching}・極意録
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabItem, tab === 'voice' && styles.tabItemActive]}
-              onPress={() => setTab('voice')}
-            >
-              <Text style={[styles.tabLabel, tab === 'voice' && styles.tabLabelActive]}>
-                {lexicon.comment}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 師匠の教え(和紙風のカード)/ 門下生の声(拍手の数つき) */}
-          {tab === 'teaching' ? (
-            <View style={styles.tabBody}>
-              {masterTeachings.map((t) => (
-                <WashiCard key={t.id} eyebrow="秘伝・身体操法の指南" style={styles.washiGap}>
-                  <Text style={styles.washiTitle}>{t.title}</Text>
-                  <Text style={styles.washiBody}>{t.body}</Text>
-                  <Text style={styles.washiMaster}>{t.master}</Text>
-                </WashiCard>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.tabBody}>
-              {monkaComments.map((c) => (
-                <View key={c.id} style={styles.comment}>
-                  <View style={styles.commentHead}>
-                    <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{c.name.slice(0, 1)}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.commentName}>{c.name}</Text>
-                      <Text style={styles.commentRen}>{c.rank}・{c.ren}</Text>
-                    </View>
-                    <View style={styles.commentClap}>
-                      <Hand size={12} color={colors.gold} />
-                      <Text style={styles.commentClapText}>{c.claps}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.commentText}>{c.text}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* 関連する門下生の稽古演舞 */}
-          <SectionHeader title="同じ型に取り組む門下生" />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.relatedScroll}
-          >
-            {monkaEnbu.map((m) => (
-              <TouchableOpacity
-                key={m.id}
-                style={styles.relatedCard}
-                activeOpacity={0.9}
-                onPress={() => navigation.push('VideoDetail', { id: m.id })}
-              >
-                <ImageBackground
-                  source={{ uri: m.image }}
-                  style={styles.relatedThumb}
-                  imageStyle={{ borderRadius: radius.sm }}
-                />
-                <Text style={styles.relatedTitle} numberOfLines={2}>{m.title}</Text>
-                <Text style={styles.relatedMeta}>{m.performer}／{formatAiScore(m.kimeRate)}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <View style={{ height: 120 }} />
-        </ScrollView>
-
-        {/* 言の葉を届ける（投稿欄） */}
-        <View style={styles.inputDock}>
-          <View style={styles.inputChips}>
-            <Chip label="礼をこめて" />
-            <Chip label="教えを乞う" />
-          </View>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder={`${lexicon.commentInput}…`}
-              placeholderTextColor={colors.textMuted}
-              value={draft}
-              onChangeText={setDraft}
-              multiline
-            />
-            <TouchableOpacity
-              style={[styles.sendBtn, !draft.trim() && styles.sendBtnDisabled]}
-              disabled={!draft.trim()}
-              onPress={() => setDraft('')}
-            >
-              <Send size={18} color={colors.textOnGold} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-}
-
 const styles = StyleSheet.create({
   // 画面全体の背景と、中央寄せの補助スタイル
   container: { flex: 1, backgroundColor: colors.indigoDeep },
@@ -672,29 +419,8 @@ const styles = StyleSheet.create({
   // スクロール部分の下の余白
   scroll: { paddingBottom: spacing.xl },
 
-  // サンプル用の動画プレイヤー枠(写真の上に再生ボタンを重ねて見せる)
+  // 動画プレイヤーの枠(角を丸めて余白を取る)
   player: { marginHorizontal: spacing.lg, marginTop: spacing.lg, borderRadius: radius.sm, overflow: 'hidden' },
-  playerImage: { width: '100%', height: 220, justifyContent: 'center', alignItems: 'center' },
-  playerScrim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
-  // 写真の中央の丸い再生ボタンと、下端のテンポ・長さの表示
-  playCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: radius.pill,
-    backgroundColor: colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playerBottom: {
-    position: 'absolute',
-    left: spacing.md,
-    right: spacing.md,
-    bottom: spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  playerTime: { ...typography.metric, color: colors.goldBright },
 
   // 演舞の情報のまとまりと、バッジの並び・題名(大きめの明朝体)
   metaBlock: {
@@ -710,7 +436,6 @@ const styles = StyleSheet.create({
   performerInitial: { ...typography.bodyStrong, color: colors.gold, fontSize: 13 },
   performerText: { flex: 1, marginLeft: spacing.md },
   performerName: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 14 },
-  performerRole: { ...typography.caption, color: colors.textSecondary },
   performerRen: { ...typography.caption, color: colors.gold, marginTop: 2 },
 
   // 説明文と、極め度などの数字の枠
@@ -757,17 +482,8 @@ const styles = StyleSheet.create({
   tabLabel: { ...typography.bodyStrong, color: colors.textMuted },
   tabLabelActive: { color: colors.gold },
 
-  // タブの中身の余白と、師匠の教えのカード(和紙風の明るい背景なので文字は濃い色)
+  // タブの中身の余白
   tabBody: { padding: spacing.lg },
-  washiGap: { marginBottom: spacing.md },
-  washiTitle: { ...typography.headingSerif, color: colors.indigoDeep },
-  washiBody: {
-    ...typography.body,
-    color: '#3A3427',
-    marginTop: spacing.sm,
-    lineHeight: 22,
-  },
-  washiMaster: { ...typography.caption, color: colors.akaDeep, marginTop: spacing.md, textAlign: 'right' },
 
   // コメント1件分の吹き出し
   comment: {
@@ -778,7 +494,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  // コメントの見出し行(頭文字の丸・名前・種類)・拍手の数・本文
+  // コメントの見出し行(頭文字の丸・名前・種類)・本文
   commentHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   avatar: {
     width: 30,
@@ -794,16 +510,7 @@ const styles = StyleSheet.create({
   commentRen: { ...typography.caption, color: colors.textMuted, marginTop: 1 },
   // 師匠(連長)のコメントの肩書き。目立つよう金色にする
   commentRenLeader: { ...typography.caption, color: colors.gold, marginTop: 1 },
-  commentClap: { flexDirection: 'row', alignItems: 'center' },
-  commentClapText: { ...typography.caption, color: colors.gold, marginLeft: 3 },
   commentText: { ...typography.body, color: colors.textSecondary },
-
-  // 「同じ型に取り組む門下生」を横スクロールで並べるエリア
-  relatedScroll: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
-  relatedCard: { width: 150, marginRight: spacing.md },
-  relatedThumb: { width: '100%', height: 92, backgroundColor: colors.indigoRaised },
-  relatedTitle: { ...typography.caption, color: colors.textPrimary, marginTop: spacing.sm, fontWeight: '700' },
-  relatedMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2, fontSize: 10 },
 
   // 画面下部に固定された、コメント入力欄のエリア
   inputDock: {
@@ -822,8 +529,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.indigo,
   },
   inputDockDisabledText: { textAlign: 'center', fontSize: 12, color: colors.textMuted },
-  // 入力欄の上の定型文チップ・入力欄と送信ボタンの行
-  inputChips: { flexDirection: 'row', marginBottom: spacing.sm },
+  // 入力欄と送信ボタンの行
   inputRow: { flexDirection: 'row', alignItems: 'flex-end' },
   // コメントの入力欄(複数行)
   input: {

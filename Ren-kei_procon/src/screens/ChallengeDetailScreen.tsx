@@ -1,8 +1,9 @@
 /**
  * 「師匠からのチャレンジ」の詳細。お題の演舞・出題者・コツを見せて、
- * 自分の演舞で挑戦(採点画面へ)したり、挑戦した人の演舞を見たりできる。
+ * 自分の演舞で挑戦(採点画面へ)し、採点した演舞をこのお題への挑戦として投稿できる。
+ * 実データのお題には、挑戦として投稿された演舞(posts.challengeId)を「挑戦した人の演舞」に並べる。
  * challengeId: 連の管理者が出題した実データ(challenges。docs/design/challenges.md)。
- * id: 見本(サンプル)データ。挑戦人数・挑戦した人の演舞・勧誘ボタンは見本にだけ出す。
+ * id: 見本(サンプル)データ。挑戦人数・勧誘ボタンは見本にだけ出す。
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -26,16 +27,17 @@ import { RenMon, HeaderSeam, NarutoLoader } from '../components/motifs';
 import { IconEnbuPlay, IconGeta, IconWagasa, categoryIcon } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
+import VideoThumbnail from '../components/VideoThumbnail';
+import { subscribeChallengeEntries } from '../repositories/posts';
+import { formatAiScore } from '../features/analysis/format';
 import { challengeById, DIFFICULTY_TONE, Challenge } from '../data/mockChallenges';
 import {
   CHALLENGE_CATEGORY_LABEL,
   CHALLENGE_DIFFICULTY_LABEL,
   subscribeChallenge,
 } from '../repositories/challenges';
-import type { ChallengeDoc } from '../types/firestore';
-import { monkaEnbu } from '../data/mockEnbu';
+import type { ChallengeDoc, Post } from '../types/firestore';
 import { useMyRole, isRenLeaderClass } from '../data/role';
-import { formatAiScore } from '../features/analysis/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Challenge'>;
 
@@ -81,6 +83,15 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
       console.error('チャレンジの取得に失敗しました', e);
       setChallengeDoc(null);
     });
+  }, [challengeId]);
+
+  // このお題への挑戦として投稿された演舞(実データのお題のみ)
+  const [entries, setEntries] = useState<Post[]>([]);
+  useEffect(() => {
+    if (!challengeId) return;
+    return subscribeChallengeEntries(challengeId, setEntries, (e) =>
+      console.warn('subscribeChallengeEntries', e),
+    );
   }, [challengeId]);
 
   // 見本はIDから探す(見つからなければ先頭のお題)。実データは読み込めたら画面用の形にする
@@ -224,35 +235,38 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
         <TouchableOpacity
           style={styles.challengeBtn}
           activeOpacity={0.9}
-          onPress={() => navigation.navigate('Scoring')}
+          onPress={() =>
+            // 実データのお題なら、採点画面〜解析結果までお題を引き継ぎ、結果をこのお題に投稿できるようにする
+            navigation.navigate('Scoring', challengeId ? { challengeId, challengeTitle: ch.title } : undefined)
+          }
         >
           <IconGeta size={17} color={colors.textOnGold} />
           <Text style={styles.challengeBtnText}>　自分の演舞で挑戦する</Text>
         </TouchableOpacity>
 
-        {/* 挑戦した人の演舞(見本のみ。実データの挑戦記録はまだ無い) */}
-        {ch.isSample ? (
-        <>
-        <SectionHeader title="挑戦した人の演舞" />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tryScroll}
-        >
-          {monkaEnbu.map((m) => (
-            <TouchableOpacity
-              key={m.id}
-              style={styles.tryCard}
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate('VideoDetail', { id: m.id })}
-            >
-              <ImageBackground source={{ uri: m.image }} style={styles.tryThumb} imageStyle={{ borderRadius: radius.sm }} />
-              <Text style={styles.tryName}>{m.performer}</Text>
-              <Text style={styles.tryMeta}>{formatAiScore(m.kimeRate)}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        </>
+        {/* 挑戦した人の演舞(実データのお題のみ)。タップで投稿詳細へ */}
+        {challengeId ? (
+          <>
+            <SectionHeader title={`挑戦した人の演舞（${entries.length}）`} />
+            {entries.length === 0 ? (
+              <Text style={styles.emptyEntries}>まだ挑戦した人はいません。最初の挑戦者になりましょう。</Text>
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tryScroll}>
+                {entries.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.tryCard}
+                    activeOpacity={0.9}
+                    onPress={() => navigation.navigate('VideoDetail', { postId: p.id })}
+                  >
+                    <VideoThumbnail uri={p.videoUrl} style={styles.tryThumb} />
+                    <Text style={styles.tryName} numberOfLines={1}>{p.authorName}</Text>
+                    <Text style={styles.tryMeta} numberOfLines={1}>{formatAiScore(p.score)}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </>
         ) : null}
 
         <View style={{ height: spacing.xxl }} />
@@ -359,10 +373,12 @@ const styles = StyleSheet.create({
   },
   challengeBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
 
-  // 「挑戦した人の演舞」の横スクロールと、1人分のカード(写真・名前・極め度)
+  // 「挑戦した人の演舞」の横スクロールと、1人分のカード(動画のサムネイル・名前・極め度)と0件の案内
   tryScroll: { paddingHorizontal: spacing.lg },
   tryCard: { width: 132, marginRight: spacing.md },
-  tryThumb: { width: '100%', height: 84, backgroundColor: colors.indigoRaised },
+  tryThumb: { width: '100%', height: 84, borderRadius: radius.sm },
   tryName: { ...typography.caption, color: colors.textPrimary, fontWeight: '700', marginTop: spacing.sm },
   tryMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2, fontSize: 10 },
+  emptyEntries: { ...typography.caption, color: colors.textMuted, paddingHorizontal: spacing.lg },
+
 });

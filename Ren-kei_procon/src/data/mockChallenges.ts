@@ -3,7 +3,8 @@
  * 連の年長クラス・ベテランが「この型を踊ってみよう」とお題を出し、
  * 踊りのコツ・アドバイスを添える。タップで詳細（アドバイス一覧）へ。
  */
-import type { DanceCategory } from './mockEnbu';
+/** 踊りの種類(男踊り/女踊り/鳴り物) */
+export type DanceCategory = '男踊り' | '女踊り' | '鳴り物';
 import { awaImage } from './awaImages';
 
 /** お題に添えるコツ1件(見出しと説明) */

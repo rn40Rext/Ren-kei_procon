@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Alert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, Send, UserPlus, Check, Trash2, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, Chip } from '../components/ui';
@@ -23,7 +24,7 @@ import AppMenu from '../components/AppMenu';
 import { KasaGarland, RenMon, NarutoLoader } from '../components/motifs';
 import { IconWagasa, IconUchiwa, categoryIcon } from '../components/awaIcons';
 import { auth } from '../config/firebaseConfig';
-import type { InviteStatus } from '../data/mockRequests';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 import {
   subscribeOtherDancers,
   subscribeSentInvitations,
@@ -45,6 +46,9 @@ type StyleFilter = (typeof STYLE_FILTERS)[number]['key'];
 
 /** 画面上部の3つのタブ(気になる踊り手/送ったお誘い/届いたお誘い) */
 type Tab = 'scout' | 'sent' | 'received';
+
+/** お誘いの状態の表示名 */
+type InviteStatus = '返答待ち' | '承諾' | '辞退';
 
 /** お誘いの状態ごとのバッジの色(返答待ち=枠線、承諾=金、辞退=朱) */
 const STATUS_TONE: Record<InviteStatus, 'gold' | 'aka' | 'outline'> = {
@@ -90,11 +94,11 @@ function targetDisplayMeta(t: InviteTarget | null): string {
 /**
  * リクエスト画面(U-07)。未所属の踊り手を見つけて連に招く「お誘い」機能。
  * scout(見つける)/sent(送信済み)/received(受信)の3タブ構成。
- * 表示するのはアプリに登録している実在の踊り手と、実際に送受信したお誘いだけ(data/invitations.ts参照)。
+ * 同じアプリに登録している踊り手(users)と、お誘い(invitations)の実データを扱う(data/invitations.ts参照)。
  */
 export default function RequestScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Request'>>();
   // 表示中のタブ / お誘い文を書いている相手(null ならダイアログを閉じる) / お誘い文 / 送信中か
   // 応答・取り消しの処理中のお誘いID(ボタンを二重に押せないようにする)
   const [tab, setTab] = useState<Tab>('scout');
@@ -107,7 +111,6 @@ export default function RequestScreen() {
   // 気になる踊り手の絞り込み
   const [search, setSearch] = useState('');
   const [styleFilter, setStyleFilter] = useState<StyleFilter>('all');
-
 
   // 実データ：同じアプリの踊り手・送受信したお誘い
   const [otherDancers, setOtherDancers] = useState<OtherDancer[]>([]);
@@ -633,9 +636,7 @@ const styles = StyleSheet.create({
   // カードの中の文字(名前・地域・踊りの種類・演舞名・自己紹介)
   dancerName: { ...typography.bodyStrong, color: colors.textPrimary, fontSize: 15 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
-  metaText: { ...typography.caption, color: colors.textMuted },
   dancerTags: { ...typography.caption, color: colors.gold },
-  enbuTitle: { ...typography.caption, color: colors.textSecondary, marginTop: 4 },
   dancerNote: { ...typography.caption, color: colors.textMuted, marginTop: 4, lineHeight: 16 },
 
   // カードのボタンの並び。「連に招く」は金色、送った後は灰色、「話す」は金色の枠線

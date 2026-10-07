@@ -40,6 +40,8 @@ import {
 } from '../repositories/posts';
 import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firestore';
 import { formatAiScore, formatAiScoreShort } from '../features/analysis/format';
+import { fetchRenName } from '../repositories/renProfile';
+import { instructorLabel } from '../utils/renLabel';
 
 /** サンプル表示で探す演舞(本日の演舞・師範・門下生の全部) */
 const ALL_ENBU = [todaysEnbu, ...masterEnbu, ...monkaEnbu];
@@ -64,6 +66,8 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState<CommentDoc[]>([]);
   const [tab, setTab] = useState<'teaching' | 'voice'>('voice');
+  // 師匠の教えの肩書き(「○○連の連長」)に使う連の名前(連のIDごと)。取れなかった連は null
+  const [renNames, setRenNames] = useState<Record<string, string | null>>({});
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -168,6 +172,28 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
       setSending(false);
     }
   };
+
+  // 指導者コメントが付いている連の名前を取る(同じ連は1回だけ)
+  useEffect(() => {
+    const ids = [...new Set(comments.filter((c) => c.type === 'instructor' && c.renId).map((c) => c.renId as string))].filter(
+      (id) => !(id in renNames)
+    );
+    if (ids.length === 0) return;
+    let alive = true;
+    Promise.all(
+      ids.map((id) =>
+        fetchRenName(id).then(
+          (name) => [id, name] as const,
+          () => [id, null] as const
+        )
+      )
+    ).then((entries) => {
+      if (alive) setRenNames((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [comments, renNames]);
 
   // 表示中のタブに合うコメントだけを出す(師匠の教え=指導者コメント、門下生の声=通常のコメント)
   const shown = comments.filter((c) => (tab === 'teaching' ? c.type === 'instructor' : c.type === 'normal'));
@@ -327,7 +353,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: an
                     <View style={{ flex: 1 }}>
                       <Text style={styles.commentName}>{c.userName}</Text>
                       <Text style={styles.commentRen}>
-                        {c.type === 'instructor' ? '師匠の教え' : '門下生の声'}
+                        {c.type === 'instructor' ? instructorLabel(c.renId ? renNames[c.renId] : null) : '門下生の声'}
                       </Text>
                     </View>
                   </View>

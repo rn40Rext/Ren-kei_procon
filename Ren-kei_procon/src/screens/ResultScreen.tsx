@@ -267,8 +267,8 @@ export default function ResultScreen() {
         <View style={{ height: spacing.xl }} />
       </ScrollView>
 
-      {/* 撮った動画の再生画面。この解析結果の動画は採点時のBGMを付けて流す */}
-      <PracticeVideoModal uri={watching ? videoUrl : null} scored onClose={() => setWatching(false)} />
+      {/* 撮った動画の再生画面(採点中のBGMは動画の音声として入っている) */}
+      <PracticeVideoModal uri={watching ? videoUrl : null} onClose={() => setWatching(false)} />
 
       {/* 交流広場への投稿ダイアログ: 題名(必須)・ひとこと・タグと投稿ボタン */}
       <Modal visible={shareVisible} transparent animationType="slide" onRequestClose={() => setShareVisible(false)}>

@@ -33,18 +33,11 @@ import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
 import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
-import { SCORING_BGM_URL } from "../features/analysis/bgm";
+import { disposeScoringBgm, prepareScoringBgm, startScoringBgm, stopScoringBgm } from "../features/analysis/scoringBgm";
 
 /** この画面で使う画面遷移と、前の画面から受け取る値(踊りの型・重点部位・基準のテンポ)の型 */
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
 type CameraNav = NativeStackNavigationProp<RootStackParamList, "Camera">;
-
-// 採点中(analyzing)の雰囲気づくり用BGM。自前で撮影した動画から抽出した音源。
-// リアルタイム判定はWeb版のみ対応(TBD-01)なので、ネイティブのAudio実装
-// (expo-av等)には依存せず、Web標準のAudio要素だけで再生する。
-// (expo-avは静的importするだけでネイティブモジュール'ExponentAV'が
-// 見つからずクラッシュするため、ここでは使わない)
-const BGM_URL = SCORING_BGM_URL;
 
 /** 判定ゲージに出すルールと、その表示名(ここにないルールはゲージに出さない) */
 const GAUGE_LABELS: Record<string, string> = {
@@ -188,66 +181,22 @@ export default function CameraScreen() {
   // --- 採点中のBGM ---
   // 採点中(analyzing)だけループ再生する。判定ロジックとは無関係なので
   // useLiveAnalysis ではなくこの画面側で扱う(docs/rules/coding.md)。
-  // リアルタイム判定はWeb版のみなので、Web標準のAudio要素で足りる(ネイティブでは何もしない)。
+  // 鳴らす仕組みは features/analysis/scoringBgm.ts(Web Audio)。聞こえる音と同じ音が録画の
+  // 音声にも入り、投稿動画を見るときに採点時と同じBGMが同じ位置で鳴る。ネイティブでは何もしない。
   //
   // モバイルブラウザは「ユーザー操作と同期していない再生」をブロックする。
   // 構え待ちを挟むと analyzing はボタン押下から時間差で始まるため、
-  // 「判定を開始」押下の中で一度 play() しておき(unlockBgm)、以降はそのAudioを使い回す。
-  // Audio要素は unlockBgm で初めて作る(採点しないなら音源を読み込まない)。
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-  /** 今BGMを鳴らすべきか。unlockの非同期な後始末が本再生を止めないよう判定に使う */
-  const bgmWantedRef = useRef(false);
-  // BGM用の Audio を作る(初回だけ)。Web以外では何もしない
-  const getBgmAudio = useCallback((): HTMLAudioElement | null => {
-    if (Platform.OS !== "web") return null;
-    const AudioCtor = (globalThis as { Audio?: typeof window.Audio }).Audio;
-    if (!AudioCtor) return null;
-    if (!bgmRef.current) {
-      const audio = new AudioCtor(BGM_URL);
-      audio.loop = true;
-      audio.volume = 0.5;
-      bgmRef.current = audio;
-    }
-    return bgmRef.current;
-  }, []);
-  // ボタンを押した直後に、音を出さずに一度だけ再生して「再生してよい」状態にしておく
-  const unlockBgm = useCallback(() => {
-    const audio = getBgmAudio();
-    if (!audio || bgmWantedRef.current) return;
-    // unlockの再生音は聞かせない。動画ファイルの判定はstart()直後にanalyzingになるので、
-    // play()の解決より先に本再生が始まっていたら止めずにそのまま鳴らす
-    audio.muted = true;
-    audio
-      .play()
-      .then(() => {
-        if (!bgmWantedRef.current) audio.pause();
-      })
-      .catch(() => undefined)
-      .finally(() => {
-        audio.muted = false;
-      });
-  }, [getBgmAudio]);
-
-  // 採点中になったらBGMを最初から流し、それ以外になったら止める
+  // 「判定を開始」押下の中で音を出す準備をしておく(prepareScoringBgm)。
+  // 録画を始める瞬間のBGM開始は PoseCameraView 側が行う(ここは動画ファイルの判定などの保険)。
+  // 採点中になったらBGMを流し(鳴っていれば何もしない)、それ以外になったら止める
   useEffect(() => {
-    bgmWantedRef.current = analyzing;
-    const audio = bgmRef.current;
-    if (!audio) return;
-    if (analyzing) {
-      audio.muted = false;
-      audio.currentTime = 0;
-      audio.play().catch((e) => console.warn("BGMの再生に失敗しました", e));
-    } else {
-      audio.pause();
-    }
+    if (analyzing) startScoringBgm();
+    else stopScoringBgm();
   }, [analyzing]);
 
-  // 画面を離れるときは確実に止める
+  // 画面を離れるときは確実に止めて、後片付けする
   useEffect(() => {
-    return () => {
-      bgmRef.current?.pause();
-      bgmRef.current = null;
-    };
+    return () => disposeScoringBgm();
   }, []);
 
   /** 判定を始めてから保存に入るまで(構え待ち + 開始の合図 + 採点中) */
@@ -451,8 +400,8 @@ export default function CameraScreen() {
                 disabled={snapshot.status !== "ready" || busy}
                 onPress={() => {
                   // モバイルブラウザの自動再生制限を回避するため、ボタン押下(ユーザー操作)の
-                  // 中で同期的にBGMを一度再生しておく。実際の採点開始とBGM再生はこの後始まる
-                  unlockBgm();
+                  // 中で、BGMを鳴らす準備(音声の有効化・音源の読み込み)をしておく。実際の採点開始とBGM再生はこの後始まる
+                  prepareScoringBgm();
                   start(durationSec, startDelaySec);
                 }}
               >

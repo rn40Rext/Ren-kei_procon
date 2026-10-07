@@ -52,7 +52,7 @@ service firebase.storage {
       allow delete: if false;
     }
 
-    // チャレンジ(先輩からのお題)のお手本動画。アップロードした本人のパスにだけ
+    // チャレンジ(師匠からのお題)のお手本動画。アップロードした本人のパスにだけ
     // 書き込め、ログインユーザー全員が閲覧できる(docs/design/challenges.md)。
     // 「管理者だけ」の判定はStorage Rulesから行えない(ren/{renId}/iconと同じ事情)ため、
     // 出題そのもの(challengesドキュメント)をfirestore.rulesで管理者に限定している。

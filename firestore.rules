@@ -79,7 +79,7 @@ service cloud.firestore {
       }
     }
 
-    // challenges: 先輩からのチャレンジ(お題)。連の管理者が自連の名義で出題し、
+    // challenges: 師匠からのチャレンジ(お題)。連の管理者が自連の名義で出題し、
     // ログインユーザー全員が閲覧できる(docs/design/challenges.md)。
     // 管理者判定はusers.roleではなくren/{renId}/members側のroleで行う。
     function isValidChallenge(d) {

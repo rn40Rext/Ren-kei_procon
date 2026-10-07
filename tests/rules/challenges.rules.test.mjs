@@ -2,7 +2,7 @@ import { test, before, beforeEach, after } from "node:test";
 import { assertSucceeds, assertFails } from "@firebase/rules-unit-testing";
 import { setupTestEnv } from "./setup.mjs";
 
-// challenges(先輩からのチャレンジ)のRules。docs/design/challenges.md
+// challenges(師匠からのチャレンジ)のRules。docs/design/challenges.md
 let testEnv;
 before(async () => {
   testEnv = await setupTestEnv("rules-test-challenges");

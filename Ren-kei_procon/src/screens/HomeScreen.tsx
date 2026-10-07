@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ImageBackground,
   TouchableOpacity,
   SafeAreaView,
   Modal,
@@ -37,7 +36,6 @@ import {
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
 import VideoThumbnail from '../components/VideoThumbnail';
-import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
 import { RenKeiWordmark } from '../components/Brand';
 import { auth } from '../config/firebaseConfig';
 import { subscribeUnreadNotificationCount } from '../repositories/notifications';
@@ -52,7 +50,6 @@ import {
 } from '../repositories/posts';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
-import { challenges } from '../data/mockChallenges';
 import {
   CHALLENGE_CATEGORY_LABEL,
   CHALLENGE_DIFFICULTY_LABEL,
@@ -60,9 +57,6 @@ import {
 } from '../repositories/challenges';
 import type { ChallengeDoc } from '../types/firestore';
 import { formatAiScore } from '../features/analysis/format';
-
-
-
 
 /* ------------------------------------------------------------------ */
 /* 華やか演出：再生ボタンの波紋 / 動く火の粉 / 押下演出 */
@@ -204,7 +198,6 @@ function HeroFade({ height = 84 }: { height?: number }) {
   );
 }
 
-
 /** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
 function daysToFestival(): number {
   const now = new Date();
@@ -306,10 +299,6 @@ export default function HomeScreen({ navigation, route }: Props) {
   const festivalDays = useMemo(() => daysToFestival(), []);
 
   const [posting, setPosting] = useState(false);
-  // Web版の「今すぐ撮る」はOSのカメラアプリに丸投げせず、採点画面と同じ
-  // getUserMedia+MediaRecorderでアプリ内完結させる(launchCameraAsyncはWebでは
-  // 撮影後にアプリへ戻ってこないことがある。expo-image-picker公式ドキュメント参照)
-  const [recording, setRecording] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftDesc, setDraftDesc] = useState('');
   const [draftTags, setDraftTags] = useState<string[]>([]);
@@ -520,34 +509,11 @@ export default function HomeScreen({ navigation, route }: Props) {
     }
   };
 
-  // 初心者サポート：見てほしい演舞をその場で撮って、そのまま解析・投稿に回せるように。
-  // Web版はOSカメラアプリへの丸投げ(launchCameraAsync)をやめ、採点画面と同じ
-  // getUserMedia+MediaRecorderでアプリ内完結の録画モーダルを開く
-  const recordVideo = async () => {
-    if (Platform.OS === 'web') {
-      setRecording(true);
-      return;
-    }
-    const camPerm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!camPerm.granted) {
-      Alert.alert('権限が必要です', '撮影にはカメラへのアクセスを許可してください。');
-      return;
-    }
-    const res = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['videos'],
-      quality: 1,
-      videoMaxDuration: 120,
-    });
-    if (!res.canceled && res.assets?.[0]?.uri) {
-      setVideoUri(res.assets[0].uri);
-      setExistingVideoId(null);
-    }
-  };
-
-  const onRecordedInPage = (media: RecordedVideo) => {
-    setVideoUri(URL.createObjectURL(media.blob));
-    setExistingVideoId(null);
-    setRecording(false);
+  // 「今すぐ撮る」は、投稿フォームを閉じて自主稽古・演舞解析(採点画面)へ移る。
+  // その場でAIの採点を受け、解析結果画面から交流広場へ投稿できる(採点つきの投稿になる)
+  const goPractice = () => {
+    setPosting(false);
+    navigation.navigate('Scoring');
   };
 
   /** 投稿モーダルの送信。選んだ動画を交流広場へ公開する(動画が無いと送れない) */
@@ -735,9 +701,13 @@ export default function HomeScreen({ navigation, route }: Props) {
         {/* 師匠からのチャレンジ（横スクロール） */}
         <SectionHeader
           title="師匠からのチャレンジ"
-          note="連の師匠からの「これ踊ってみよう」。タップでコツが読めます（「見本」の印はサンプルです）"
+          note="連の師匠からの「これ踊ってみよう」。タップでコツが読めます"
           style={styles.sectionAfterDivider}
         />
+        {/* まだ出題が無いときは案内だけ出す */}
+        {realChallenges.length === 0 ? (
+          <Text style={styles.noChallengeText}>まだお題はありません。連の管理者が「連の管理」から出題できます。</Text>
+        ) : null}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -790,54 +760,6 @@ export default function HomeScreen({ navigation, route }: Props) {
                     <Text style={styles.chPosterText} numberOfLines={1}>
                       　{c.posterName}／{[c.renName, c.posterRole].filter(Boolean).join(' ')}
                     </Text>
-                  </View>
-                  <View style={styles.playSmallBtn}>
-                    <IconMakimono size={12} color={colors.gold} />
-                    <Text style={styles.playSmallText}>コツを見る・挑戦する</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-          {/* 見本(サンプル)のお題 */}
-          {challenges.map((c) => {
-            const CatIcon = categoryIcon(c.category);
-            return (
-              <TouchableOpacity
-                key={c.id}
-                style={styles.masterCard}
-                activeOpacity={0.9}
-                onPress={() => navigation.navigate('Challenge', { id: c.id })}
-              >
-                <ImageBackground source={{ uri: c.image }} style={styles.masterThumb}>
-                  <View style={styles.masterThumbScrim}>
-                    <View style={styles.chChipRow}>
-                      <View style={styles.chBadge}>
-                        <Text style={styles.chBadgeText}>チャレンジ</Text>
-                      </View>
-                      <View style={styles.catChip}>
-                        <CatIcon size={11} color={colors.goldBright} />
-                        <Text style={styles.catChipText}>{c.difficulty}</Text>
-                      </View>
-                      <View style={styles.catChip}>
-                        <Text style={[styles.catChipText, { marginLeft: 0 }]}>見本</Text>
-                      </View>
-                    </View>
-                  </View>
-                </ImageBackground>
-                {/* 写真の下端に添える飾り(点と線) */}
-                <View style={styles.masterAccent} pointerEvents="none">
-                  <View style={styles.masterAccentDot} />
-                  <View style={styles.masterAccentLine} />
-                </View>
-                {/* お題の題名・出題者・「コツを見る・挑戦する」 */}
-                <View style={styles.masterBody}>
-                  <Text style={styles.masterName} numberOfLines={2}>{c.title}</Text>
-                  <View style={styles.chPoster}>
-                    <RenMon size={16} color={colors.gold}>
-                      <Text style={styles.chPosterInitial}>{c.poster.slice(0, 1)}</Text>
-                    </RenMon>
-                    <Text style={styles.chPosterText} numberOfLines={1}>　{c.poster}／{c.posterRole}</Text>
                   </View>
                   <View style={styles.playSmallBtn}>
                     <IconMakimono size={12} color={colors.gold} />
@@ -1000,8 +922,8 @@ export default function HomeScreen({ navigation, route }: Props) {
                 </View>
                 <View style={styles.modalPickerSide}>
                   <Text style={styles.modalPickerText}>動画を選び直す</Text>
-                  <TouchableOpacity onPress={recordVideo} disabled={submitting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={styles.reRecordText}>撮り直す</Text>
+                  <TouchableOpacity onPress={goPractice} disabled={submitting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={styles.reRecordText}>自主稽古で撮る</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -1009,7 +931,7 @@ export default function HomeScreen({ navigation, route }: Props) {
               <View style={styles.pickRow}>
                 <TouchableOpacity
                   style={styles.pickBtn}
-                  onPress={recordVideo}
+                  onPress={goPractice}
                   activeOpacity={0.85}
                   disabled={submitting}
                 >
@@ -1029,7 +951,7 @@ export default function HomeScreen({ navigation, route }: Props) {
             )}
             {/* 撮影・選択の案内と、撮り直すリンク */}
             <Text style={styles.modalPickerHint}>
-              初めての演舞でも大丈夫。その場で撮ってすぐ投稿できます。
+              初めての演舞でも大丈夫。「今すぐ撮る」は自主稽古でAIの採点を受けてから、結果の画面で投稿できます。
             </Text>
             {/* 題名(必須)・概要・タグの入力 */}
             <Text style={styles.modalLabel}>演舞の題</Text>
@@ -1082,11 +1004,6 @@ export default function HomeScreen({ navigation, route }: Props) {
         </KeyboardAvoidingView>
       </Modal >
 
-      <InPageVideoRecorder
-        visible={recording}
-        onCancel={() => setRecording(false)}
-        onDone={onRecordedInPage}
-      />
     </SafeAreaView >
   );
 }
@@ -1157,28 +1074,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,239,170,0.10)',
   },
   // チャレンジカードの写真下端に添える飾り(点と線)
-  masterAccent: {
-    position: 'absolute',
-    top: 112,
-    left: spacing.md,
-    right: spacing.md,
-    height: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  masterAccentDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.goldBright,
-  },
-  masterAccentLine: {
-    flex: 1,
-    height: 1,
-    marginLeft: 5,
-    backgroundColor: colors.gold,
-    opacity: 0.55,
-  },
   // フィード見出しの上の飾り線(左右に星)
   feedStageTop: {
     flexDirection: 'row',
@@ -1384,6 +1279,8 @@ const styles = StyleSheet.create({
   },
   masterThumb: { width: '100%', height: 128, justifyContent: 'flex-start' },
   masterThumbScrim: { padding: spacing.sm },
+  // お題が1件も無いときの案内文
+  noChallengeText: { ...typography.caption, color: colors.textMuted, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   // 実データのお題は写真が無いので、無地の枠の中央に踊りの種類のアイコンを置く
   masterThumbPlain: { backgroundColor: colors.indigoRaised, overflow: 'hidden' },
   // お手本動画のサムネイル(VideoThumbnail)を枠いっぱいに重ねる

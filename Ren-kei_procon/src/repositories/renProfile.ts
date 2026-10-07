@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   updateDoc,
   onSnapshot,
   query,
@@ -40,6 +41,13 @@ export function subscribeRen(
     (snap) => onData(snap.exists() ? ({ id: snap.id, ...snap.data() } as Ren) : null),
     onError
   );
+}
+
+/** 連の名前を1回だけ取る(指導者コメントの肩書き「○○連の連長」用)。連が無い・読めないときは null */
+export async function fetchRenName(renId: string): Promise<string | null> {
+  const snap = await getDoc(doc(db, 'ren', renId));
+  const name = snap.exists() ? (snap.data() as Partial<Ren>).name : undefined;
+  return typeof name === 'string' && name.trim() ? name : null;
 }
 
 export interface CreateRenInput {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  ImageBackground,
   Image,
   Modal,
   TextInput,
@@ -16,16 +15,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Alert } from '../utils/alert';
-import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
-import { X, Send, MapPin, UserPlus, Check, Trash2, ChevronLeft, MessageCircle } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { X, Send, UserPlus, Check, Trash2, ChevronLeft, MessageCircle } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, Chip } from '../components/ui';
 import AppMenu from '../components/AppMenu';
 import { KasaGarland, RenMon, NarutoLoader } from '../components/motifs';
 import { IconWagasa, IconUchiwa, categoryIcon } from '../components/awaIcons';
 import { auth } from '../config/firebaseConfig';
-import type { RootStackParamList } from '../navigation/AppNavigator';
-import { freeDancers, sentInvitations, Invitation, InviteStatus, FreeDancer } from '../data/mockRequests';
+import type { InviteStatus } from '../data/mockRequests';
 import {
   subscribeOtherDancers,
   subscribeSentInvitations,
@@ -36,7 +34,6 @@ import {
   type OtherDancer,
   type InvitationDoc,
 } from '../data/invitations';
-import { formatAiScore } from '../features/analysis/format';
 
 /** 「気になる踊り手」を踊りの種類で絞り込むチップの選択肢 */
 const STYLE_FILTERS = [
@@ -76,33 +73,27 @@ function timeAgo(ms: number | null): string {
   return `${Math.floor(diff / 86_400_000)}日前`;
 }
 
-/** お誘いの送り先。実在ユーザー(real)・見本の踊り手(dummy)・チャレンジ画面から来た相手(challenge)の3通り */
-type InviteTarget =
-  | { kind: 'real'; id: string; name: string; meta: string }
-  | { kind: 'dummy'; dancer: FreeDancer }
-  | { kind: 'challenge'; name: string; meta: string };
+/** お誘いの送り先(アプリに登録している実在の踊り手) */
+type InviteTarget = { id: string; name: string; meta: string };
 
-/** お誘い先の表示名(サンプル/実データ/チャレンジ経由のいずれでも取れるようにする) */
+/** お誘い先の表示名 */
 function targetDisplayName(t: InviteTarget | null): string {
-  if (!t) return '';
-  return t.kind === 'dummy' ? t.dancer.name : t.name;
+  return t ? t.name : '';
 }
 
-/** お誘い先の補足情報(活動地域・種別など) */
+/** お誘い先の補足情報(踊りの種類など) */
 function targetDisplayMeta(t: InviteTarget | null): string {
   if (!t) return '';
-  if (t.kind === 'dummy') return `${t.dancer.area}・${t.dancer.category}・${t.dancer.years}`;
   return t.meta || '踊り手';
 }
 
 /**
  * リクエスト画面(U-07)。未所属の踊り手を見つけて連に招く「お誘い」機能。
  * scout(見つける)/sent(送信済み)/received(受信)の3タブ構成。
- * 実データ(users/invitations)とサンプル(mockRequests)が混在する(data/invitations.ts参照)。
+ * 表示するのはアプリに登録している実在の踊り手と、実際に送受信したお誘いだけ(data/invitations.ts参照)。
  */
 export default function RequestScreen() {
   const { width: SCREEN_W } = useWindowDimensions();
-  const route = useRoute<RouteProp<RootStackParamList, 'Request'>>();
   const navigation = useNavigation<any>();
   // 表示中のタブ / お誘い文を書いている相手(null ならダイアログを閉じる) / お誘い文 / 送信中か
   // 応答・取り消しの処理中のお誘いID(ボタンを二重に押せないようにする)
@@ -117,8 +108,6 @@ export default function RequestScreen() {
   const [search, setSearch] = useState('');
   const [styleFilter, setStyleFilter] = useState<StyleFilter>('all');
 
-  // ダミー：送信したお誘いはローカル state に積む（見本表示）
-  const [sent, setSent] = useState<Invitation[]>(sentInvitations);
 
   // 実データ：同じアプリの踊り手・送受信したお誘い
   const [otherDancers, setOtherDancers] = useState<OtherDancer[]>([]);
@@ -147,19 +136,9 @@ export default function RequestScreen() {
     };
   }, []);
 
-  // 他画面（チャレンジ詳細など）から「◯◯さんを連へ勧誘する」で渡された相手を、開いたら即お誘い文を出す
-  const consumedInviteRef = useRef<string | null>(null);
-  useEffect(() => {
-    const name = route.params?.inviteName;
-    if (!name || consumedInviteRef.current === name) return;
-    consumedInviteRef.current = name;
-    setTarget({ kind: 'challenge', name, meta: route.params?.inviteMeta ?? '' });
-    setMessage(`${name}さん、動画を拝見しました。うちの連の稽古に一度いらっしゃいませんか。`);
-  }, [route.params?.inviteName, route.params?.inviteMeta]);
-
   /** 実在ユーザーのカードから「お誘い」ダイアログを開き、定型文を入れておく */
   const openRealInvite = (d: OtherDancer) => {
-    setTarget({ kind: 'real', id: d.id, name: d.name, meta: d.danceStyle ? DANCE_LABEL[d.danceStyle] : '' });
+    setTarget({ id: d.id, name: d.name, meta: d.danceStyle ? DANCE_LABEL[d.danceStyle] : '' });
     setMessage(`${d.name}さん、いつも演舞を拝見しています。うちの連の稽古に一度いらっしゃいませんか。`);
   };
 
@@ -172,48 +151,21 @@ export default function RequestScreen() {
     navigation.navigate('Chat', { chatId, recipientName: otherName });
   };
 
-  /** サンプルの踊り手カードから「お誘い」モーダルを開き、定型文を入れておく */
-  const openDummyInvite = (d: FreeDancer) => {
-    setTarget({ kind: 'dummy', dancer: d });
-    setMessage(`${d.name}さん、演舞を拝見しました。うちの連の稽古に一度いらっしゃいませんか。`);
-  };
-
-  /** お誘いを送信する。実在ユーザーならFirestoreへ、サンプル相手なら端末内だけに追加する */
+  /** お誘いを送信する(Firestore の invitations に保存する) */
   const submitInvite = async () => {
     if (!target || !message.trim() || sending) return;
 
-    if (target.kind === 'real') {
-      setSending(true);
-      try {
-        await sendInvitation({ toUserId: target.id, toUserName: target.name, message });
-        setTarget(null);
-        setMessage('');
-        setTab('sent');
-      } catch (e: any) {
-        Alert.alert('送信に失敗しました', e?.message ?? '時間をおいて再度お試しください。');
-      } finally {
-        setSending(false);
-      }
-      return;
+    setSending(true);
+    try {
+      await sendInvitation({ toUserId: target.id, toUserName: target.name, message });
+      setTarget(null);
+      setMessage('');
+      setTab('sent');
+    } catch (e: any) {
+      Alert.alert('送信に失敗しました', e?.message ?? '時間をおいて再度お試しください。');
+    } finally {
+      setSending(false);
     }
-
-    // ダミー・チャレンジ経由：この端末の中だけの見本表示に追加
-    const dancerName = target.kind === 'dummy' ? target.dancer.name : target.name;
-    const dancerArea = target.kind === 'dummy' ? target.dancer.area : target.meta || 'チャレンジ投稿より';
-    setSent((prev) => [
-      {
-        id: `inv-${Date.now()}`,
-        dancerName,
-        dancerArea,
-        message: message.trim(),
-        sentAt: 'たった今',
-        status: '返答待ち',
-      },
-      ...prev,
-    ]);
-    setTarget(null);
-    setMessage('');
-    setTab('sent');
   };
 
   /** 受信したお誘いに承諾/辞退で応答する */
@@ -251,7 +203,6 @@ export default function RequestScreen() {
   };
 
   // すでにお誘いを送った相手(「お誘い済み」表示に使う)と、まだ返事をしていない届いたお誘いの数
-  const invitedDummyNames = new Set(sent.map((s) => s.dancerName));
   const invitedRealIds = new Set(sentReal.map((i) => i.toUserId));
   const pendingReceivedCount = receivedReal.filter((i) => i.status === 'pending').length;
 
@@ -271,18 +222,6 @@ export default function RequestScreen() {
         })
         .sort((a, b) => profileCompleteness(b) - profileCompleteness(a)),
     [otherDancers, styleFilter, q],
-  );
-  // 見本の踊り手も同じ条件で絞り込む
-  const filteredFreeDancers = useMemo(
-    () =>
-      freeDancers.filter((d) => {
-        const dummyStyle = d.category === '男踊り' ? 'male' : d.category === '女踊り' ? 'female' : null;
-        const styleOk = styleFilter === 'all' || dummyStyle === styleFilter;
-        const searchOk =
-          !q || d.name.toLowerCase().includes(q) || d.area.toLowerCase().includes(q) || d.note.toLowerCase().includes(q);
-        return styleOk && searchOk;
-      }),
-    [styleFilter, q],
   );
 
   return (
@@ -327,7 +266,7 @@ export default function RequestScreen() {
           onPress={() => setTab('sent')}
         >
           <Text style={[styles.tabLabel, tab === 'sent' && styles.tabLabelActive]}>
-            送った（{sentReal.length}{sent.length > 0 ? `+サンプル${sent.length}` : ''}）
+            送った（{sentReal.length}）
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -379,7 +318,7 @@ export default function RequestScreen() {
                 <NarutoLoader size={22} color={colors.gold} />
                 <Text style={styles.loadingText}>踊り手を探しています…</Text>
               </View>
-            ) : filteredOtherDancers.length === 0 && filteredFreeDancers.length === 0 && q ? (
+            ) : filteredOtherDancers.length === 0 && q ? (
               <Text style={styles.lead}>「{search}」に一致する踊り手が見つかりませんでした。</Text>
             ) : filteredOtherDancers.length > 0 ? (
               <>
@@ -444,60 +383,6 @@ export default function RequestScreen() {
               </View>
             )}
 
-            {/* ここから下は見本の踊り手。実在ユーザーと区別できるよう区切りの文を入れる */}
-            {filteredFreeDancers.length > 0 && (
-              <View style={styles.sampleDivider}>
-                <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
-              </View>
-            )}
-            {filteredFreeDancers.length > 0 && (
-              <Text style={styles.lead}>連に所属していない踊り手たち。演舞を見て声を掛けられます。</Text>
-            )}
-            {filteredFreeDancers.map((d) => {
-              const already = invitedDummyNames.has(d.name);
-              return (
-                // 見本の踊り手1人分のカード: 写真・名前・地域・踊り歴・演舞名と「連に招く」ボタン
-                <View key={d.id} style={styles.card}>
-                  <ImageBackground
-                    source={{ uri: d.image }}
-                    style={styles.thumb}
-                    imageStyle={{ borderRadius: radius.sm }}
-                  >
-                    {d.seekingRen ? (
-                      <Badge label="連を探し中" tone="aka" style={styles.thumbBadge} />
-                    ) : null}
-                  </ImageBackground>
-
-                  <View style={styles.cardBody}>
-                    <Text style={styles.dancerName}>{d.name}</Text>
-                    <View style={styles.metaRow}>
-                      <MapPin size={11} color={colors.textMuted} />
-                      <Text style={styles.metaText}>　{d.area}</Text>
-                    </View>
-                    <View style={styles.metaRow}>
-                      {React.createElement(categoryIcon(d.category), { size: 12, color: colors.gold })}
-                      <Text style={styles.dancerTags}>
-                        　{d.category}・{d.years}　{formatAiScore(d.kimeRate)}
-                      </Text>
-                    </View>
-                    <Text style={styles.enbuTitle} numberOfLines={1}>演舞「{d.enbuTitle}」</Text>
-                    <Text style={styles.dancerNote} numberOfLines={2}>{d.note}</Text>
-
-                    <TouchableOpacity
-                      style={[styles.inviteBtn, already && styles.inviteBtnDone]}
-                      onPress={() => !already && openDummyInvite(d)}
-                      activeOpacity={0.85}
-                      disabled={already}
-                    >
-                      <UserPlus size={14} color={already ? colors.textMuted : colors.textOnGold} />
-                      <Text style={[styles.inviteBtnText, already && styles.inviteBtnTextDone]}>
-                        {already ? 'お誘い済み' : '連に招く'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            })}
           </>
         ) : tab === 'sent' ? (
           <>
@@ -546,29 +431,9 @@ export default function RequestScreen() {
               </>
             ) : null}
 
-            {/* 見本として端末内だけに積んだお誘い */}
-            {sent.length > 0 ? (
-              <View style={styles.sampleDivider}>
-                <Text style={styles.sampleDividerText}>ここから下は見本（サンプル）</Text>
-              </View>
-            ) : null}
-
-            {sent.length === 0 && sentReal.length === 0 ? (
+            {sentReal.length === 0 ? (
               <Text style={styles.lead}>まだお誘いを送っていません。</Text>
-            ) : (
-              sent.map((inv) => (
-                <View key={inv.id} style={styles.sentCard}>
-                  <View style={styles.sentHead}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.sentName}>{inv.dancerName}</Text>
-                      <Text style={styles.sentMeta}>{inv.dancerArea}・{inv.sentAt}</Text>
-                    </View>
-                    <Badge label={inv.status} tone={STATUS_TONE[inv.status]} />
-                  </View>
-                  <Text style={styles.sentMsg}>{inv.message}</Text>
-                </View>
-              ))
-            )}
+            ) : null}
           </>
         ) : (
           <>
@@ -750,26 +615,7 @@ const styles = StyleSheet.create({
   loadingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl },
   loadingText: { ...typography.caption, color: colors.textMuted, marginLeft: spacing.sm },
 
-  // 「ここから下は見本」の区切り
-  sampleDivider: { alignItems: 'center', marginVertical: spacing.lg },
-  sampleDividerText: { ...typography.caption, color: colors.textMuted },
-
-  // サンプルの踊り手カード
-  card: {
-    flexDirection: 'row',
-    backgroundColor: colors.indigo,
-    borderWidth: 1,
-    borderColor: colors.indigoLine,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  // 写真のサムネイルと「連を探し中」のバッジ
-  thumb: { width: 92, height: 92, backgroundColor: colors.indigoRaised },
-  thumbBadge: { margin: 4 },
-  cardBody: { flex: 1, marginLeft: spacing.md },
-
-  // 実在するユーザーのカード(サンプルのcardと見た目は同じだが別スタイルとして持つ)
+  // 実在するユーザーのカード
   realCard: {
     flexDirection: 'row',
     backgroundColor: colors.indigo,

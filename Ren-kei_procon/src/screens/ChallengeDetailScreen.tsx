@@ -1,5 +1,5 @@
 /**
- * 「先輩からのチャレンジ」の詳細。お題の演舞・出題者・コツを見せて、
+ * 「師匠からのチャレンジ」の詳細。お題の演舞・出題者・コツを見せて、
  * 自分の演舞で挑戦(採点画面へ)したり、挑戦した人の演舞を見たりできる。
  * challengeId: 連の管理者が出題した実データ(challenges。docs/design/challenges.md)。
  * id: 見本(サンプル)データ。挑戦人数・挑戦した人の演舞・勧誘ボタンは見本にだけ出す。
@@ -70,7 +70,7 @@ function fromDoc(c: ChallengeDoc): ChallengeView {
   };
 }
 
-/** 先輩が出したチャレンジ(お題)の詳細を見て、自分の演舞で挑戦する画面 */
+/** 師匠が出したチャレンジ(お題)の詳細を見て、自分の演舞で挑戦する画面 */
 export default function ChallengeDetailScreen({ navigation, route }: Props) {
   const { id, challengeId } = route.params ?? {};
   // 実データのお題(undefined=読み込み中、null=見つからない)
@@ -93,7 +93,7 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
   const role = useMyRole();
   const canScout = isRenLeaderClass(role) && ch?.isSample === true;
 
-  // 「先輩からのチャレンジ」は現状すべて見本(サンプル)データで、実在しない人物のため、
+  // 「師匠からのチャレンジ」は現状すべて見本(サンプル)データで、実在しない人物のため、
   // 実際の招待フロー(RequestScreen)には繋がない(#108レビュー)。
   const scoutPoster = () => {
     Alert.alert('これは見本です', 'このチャレンジは表示用のサンプルのため、実際に招待することはできません。');
@@ -205,12 +205,12 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
 
         {/* 見どころ・課題 */}
         <Panel style={styles.focusPanel}>
-          <Text style={styles.focusLabel}>先輩が見てほしいところ</Text>
+          <Text style={styles.focusLabel}>師匠が見てほしいところ</Text>
           <Text style={styles.focusText}>{ch.focus}</Text>
         </Panel>
 
-        {/* 先輩からのアドバイス */}
-        <SectionHeader title="先輩からのアドバイス" />
+        {/* 師匠からのアドバイス */}
+        <SectionHeader title="師匠からのアドバイス" />
         <View style={styles.adviceList}>
           {ch.advice.map((a, i) => (
             <WashiCard key={a.id} eyebrow={`コツ ${i + 1}`} style={styles.adviceCard}>
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   scoutBtnText: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
-  // 「先輩が見てほしいところ」の枠
+  // 「師匠が見てほしいところ」の枠
   focusPanel: { marginHorizontal: spacing.lg, marginTop: spacing.lg, padding: spacing.md },
   focusLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   focusText: { ...typography.body, color: colors.textSecondary },

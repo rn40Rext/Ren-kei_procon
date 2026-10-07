@@ -23,7 +23,7 @@ import {
 } from '../types/firestore';
 
 /**
- * 先輩からのチャレンジ(challenges/{challengeId})へのアクセスを集約する
+ * 師匠からのチャレンジ(challenges/{challengeId})へのアクセスを集約する
  * (docs/design/challenges.md)。作成・削除は連の管理者のみ(firestore.rulesで保護)。
  */
 

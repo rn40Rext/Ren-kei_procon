@@ -37,7 +37,7 @@
 | 16 | `styleAnalysisResults/{styleAnalysisId}` | StyleAnalysisResults | 自動 ID | ✅ 実装済み（FN-02） |
 | 17 | `analysisRules/{ruleId}` | 判定ルール定義（仕様書 7.9） | ルール ID | ✅ 実装済み（読み取り: `repositories/analysisRules.ts` / 投入: `functions npm run seed:rules`） |
 | — | `chats/{chatId}/messages/{messageId}` | **仕様書に無い独自実装** | 自動 ID | ⚠️ 実装済み（扱いは 7 章） |
-| — | `challenges/{challengeId}` | **仕様書に無い独自実装**（先輩からのチャレンジ） | 自動 ID | ✅ 実装済み（フィールド・権限は [challenges.md](challenges.md)） |
+| — | `challenges/{challengeId}` | **仕様書に無い独自実装**（師匠からのチャレンジ） | 自動 ID | ✅ 実装済み（フィールド・権限は [challenges.md](challenges.md)） |
 
 ### サブコレクションにする / しないの判断
 

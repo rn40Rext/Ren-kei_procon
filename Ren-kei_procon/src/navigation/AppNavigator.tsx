@@ -50,7 +50,7 @@ export type RootStackParamList = {
   Home: { shareVideoId?: string } | undefined;
   // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。id: サンプル演舞 / postId: 実データ投稿
   VideoDetail: { id?: string; postId?: string };
-  // 先輩からのチャレンジの詳細。id: 見本のお題 / challengeId: 連の管理者が出題した実データ(challenges)
+  // 師匠からのチャレンジの詳細。id: 見本のお題 / challengeId: 連の管理者が出題した実データ(challenges)
   Challenge: { id?: string; challengeId?: string };
   Mypage: undefined;
   Scoring: undefined;
@@ -79,7 +79,7 @@ export type RootStackParamList = {
   MemberManagement: { renId: string };
   ManageAnnouncements: { renId: string };
   ManageActivities: { renId: string };
-  // 先輩からのチャレンジの出題・出題済みの一覧(連の管理者向け。docs/design/challenges.md)
+  // 師匠からのチャレンジの出題・出題済みの一覧(連の管理者向け。docs/design/challenges.md)
   ManageChallenges: { renId: string };
   ManagePosts: { renId: string };
   AdviceCompose: { postId: string; renId: string; postTitle: string; authorName: string; videoUrl: string };

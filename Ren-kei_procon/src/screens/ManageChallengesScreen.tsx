@@ -1,5 +1,5 @@
 /**
- * 先輩からのチャレンジの出題(連の管理者向け)。出題フォームと、この連が出したお題の一覧。
+ * 師匠からのチャレンジの出題(連の管理者向け)。出題フォームと、この連が出したお題の一覧。
  * docs/design/challenges.md。仕様書v0.3には無い追加機能。
  */
 import React, { useEffect, useState } from 'react';
@@ -44,7 +44,7 @@ const DIFFICULTIES: ChallengeDifficulty[] = ['beginner', 'intermediate', 'advanc
 type AdviceDraft = { point: string; detail: string };
 const emptyAdvice = (): AdviceDraft => ({ point: '', detail: '' });
 
-/** 連の管理者が「先輩からのチャレンジ」を出題し、出題済みのお題を確認・削除する画面 */
+/** 連の管理者が「師匠からのチャレンジ」を出題し、出題済みのお題を確認・削除する画面 */
 export default function ManageChallengesScreen({ navigation, route }: Props) {
   const { renId } = route.params;
   // 自分が管理者を務める連(この連の管理者でなければ出題させない。最終的な判定はfirestore.rules)
@@ -132,7 +132,7 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
         videoUri: videoUri ?? undefined,
       });
       resetForm();
-      Alert.alert('出題しました', 'ホーム画面の「先輩からのチャレンジ」に表示されます');
+      Alert.alert('出題しました', 'ホーム画面の「師匠からのチャレンジ」に表示されます');
     } catch (e) {
       console.error('チャレンジの出題に失敗しました', e);
       Alert.alert('エラー', '出題に失敗しました。時間をおいて再度お試しください');
@@ -182,7 +182,7 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
         <ScrollView style={styles.list} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* 出題フォーム */}
           <View style={styles.formCard}>
-            <Text style={styles.lead}>{ren.name} の名義で、ホーム画面の「先輩からのチャレンジ」に出題します。</Text>
+            <Text style={styles.lead}>{ren.name} の名義で、ホーム画面の「師匠からのチャレンジ」に出題します。</Text>
 
             <Text style={styles.label}>題名（1〜100文字）</Text>
             <TextInput
@@ -240,7 +240,7 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
               maxLength={50}
             />
 
-            <Text style={styles.label}>先輩が見てほしいところ（1〜500文字）</Text>
+            <Text style={styles.label}>師匠が見てほしいところ（1〜500文字）</Text>
             <TextInput
               style={styles.textArea}
               placeholder="例：腰を落とすのではなく「預ける」感覚で、膝が固まっていないか"

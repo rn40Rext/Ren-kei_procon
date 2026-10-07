@@ -41,6 +41,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ManageAnnouncements: "admin/announcements",
       ManageActivities: "admin/activities",
       ManagePosts: "admin/posts",
+      ManageChallenges: "admin/challenges",
       AdviceCompose: "admin/advice",
     },
   },

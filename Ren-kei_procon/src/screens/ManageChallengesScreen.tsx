@@ -110,7 +110,7 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
     // 見出しも説明も空のコツは無視する。説明だけで見出しが無いものはエラーにする
     const filled = advice.filter((a) => a.point.trim() || a.detail.trim());
     if (!title.trim() || !move.trim() || !focus.trim()) {
-      Alert.alert('入力が足りません', '題名・型・見てほしいところを入力してください');
+      Alert.alert('入力が足りません', '題名・型・詳細を入力してください');
       return;
     }
     if (filled.length === 0 || filled.some((a) => !a.point.trim())) {
@@ -240,7 +240,7 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
               maxLength={50}
             />
 
-            <Text style={styles.label}>師匠が見てほしいところ（1〜500文字）</Text>
+            <Text style={styles.label}>詳細（1〜500文字）</Text>
             <TextInput
               style={styles.textArea}
               placeholder="例：腰を落とすのではなく「預ける」感覚で、膝が固まっていないか"
@@ -251,8 +251,8 @@ export default function ManageChallengesScreen({ navigation, route }: Props) {
               maxLength={500}
             />
 
-            {/* コツ(1〜5件)。見出しと説明を1組にして入力する */}
-            <Text style={styles.label}>コツ（1〜{CHALLENGE_ADVICE_MAX}件）</Text>
+            {/* 意識してほしいところ(コツ1〜5件)。見出しと説明を1組にして入力する */}
+            <Text style={styles.label}>意識してほしいところ（1〜{CHALLENGE_ADVICE_MAX}件）</Text>
             {advice.map((a, i) => (
               <View key={i} style={styles.adviceCard}>
                 <View style={styles.adviceHead}>

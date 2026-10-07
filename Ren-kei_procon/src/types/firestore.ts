@@ -137,7 +137,7 @@ export interface ChallengeDoc {
   move: string;
   category: ChallengeCategory;
   difficulty: ChallengeDifficulty;
-  /** 師匠が見てほしいところ */
+  /** 詳細(画面の表示名。以前は「師匠が見てほしいところ」) */
   focus: string;
   advice: ChallengeAdviceItem[];
   /** お手本動画(任意)。videoPathはStorage上の場所(削除用) */

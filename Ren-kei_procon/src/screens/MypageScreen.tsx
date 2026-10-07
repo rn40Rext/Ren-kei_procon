@@ -19,10 +19,10 @@ import { doc, getDoc } from 'firebase/firestore';
 import { saveUserProfile } from '../repositories/users';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import AppMenu from '../components/AppMenu';
+import ScreenHeader from '../components/ScreenHeader';
 import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, subscribeAnalysisResultsByUser } from '../repositories/analysis';
-import { RenMon, HeaderSeam } from '../components/motifs';
+import { RenMon } from '../components/motifs';
 import { colors, spacing, radius, typography } from '../theme';
 
 /** 踊りの種類(男踊り/女踊り/未設定) と、ユーザーの役割 */
@@ -175,13 +175,8 @@ export default function MypageScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー: 画面名とメニュー(左は中央寄せのための空きスペース) */}
-      <View style={styles.header}>
-        <View style={{ width: 38 }} />
-        <Text style={styles.headerTitle}>稽古手帳</Text>
-        <AppMenu />
-      </View>
-      <HeaderSeam />
+      {/* ヘッダー(共通): 画面名と注釈・メニュー */}
+      <ScreenHeader title="稽古手帳" note="プロフィール等を確認する" garland />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* プロフィール欄: アイコン・名前・役割・自己紹介と、稽古の実績 */}
@@ -349,17 +344,6 @@ export default function MypageScreen() {
 const styles = StyleSheet.create({
   // 画面全体の背景と、画面名を中央に置くヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: {
-    height: 56,
-    backgroundColor: colors.indigoDeep,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-  headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
   content: { flex: 1 },
 
   // アイコン・名前・役割・統計をまとめた、画面上部のプロフィールエリア

@@ -7,7 +7,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { Alert } from '../utils/alert';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { Award, ChevronLeft, Film, Lock, Send, Trash2, Unlock } from 'lucide-react-native';
+import { Award, Film, Lock, Send, Trash2, Unlock } from 'lucide-react-native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, fetchAnalysisResult } from '../repositories/analysis';
@@ -15,8 +15,7 @@ import { fetchPostsByUser } from '../repositories/posts';
 import { AnalysisStatus, PracticeVideo, deleteVideoRecord, subscribeMyVideos, videoDownloadUrl } from '../repositories/videos';
 import { formatAiScore } from '../features/analysis/format';
 import { colors, spacing, radius, typography } from '../theme';
-import { HeaderSeam } from '../components/motifs';
-import AppMenu from '../components/AppMenu';
+import ScreenHeader from '../components/ScreenHeader';
 import VideoThumbnail from '../components/VideoThumbnail';
 
 /** この画面で使う画面遷移の型 */
@@ -207,20 +206,11 @@ export default function VideoListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー: 稽古手帳へ戻るボタン・画面名・メニュー */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
-          style={styles.backBtn}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ChevronLeft size={22} color={colors.gold} />
-          <Text style={styles.backText}>稽古手帳</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>練習動画一覧</Text>
-        <AppMenu />
-      </View>
-      <HeaderSeam />
+      {/* ヘッダー(共通): 稽古手帳へ戻るボタン・画面名・メニュー */}
+      <ScreenHeader
+        title="練習動画一覧"
+        onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Mypage'))}
+      />
 
       {/* 読み込み中・エラー・0件の場合は案内を出し、それ以外は動画の一覧を出す */}
       {videos === null && !error ? (
@@ -311,19 +301,6 @@ export default function VideoListScreen() {
 const styles = StyleSheet.create({
   // 画面全体の背景と、戻るボタン・画面名を並べるヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-  // 「＜ 稽古手帳」の戻るボタンと、画面名
-  backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
-  backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
-  headerTitle: { ...typography.headingSerif, color: colors.textPrimary, fontSize: 15 },
 
   // 読み込みエラー・0件のときの表示(画面の中央に案内文)
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },

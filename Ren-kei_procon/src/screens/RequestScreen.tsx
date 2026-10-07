@@ -11,18 +11,17 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-  useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import { Alert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { X, Send, UserPlus, Check, Trash2, ChevronLeft, MessageCircle } from 'lucide-react-native';
+import { X, Send, UserPlus, Check, Trash2, MessageCircle } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, Chip } from '../components/ui';
-import AppMenu from '../components/AppMenu';
-import { KasaGarland, RenMon, NarutoLoader } from '../components/motifs';
-import { IconWagasa, IconUchiwa, categoryIcon } from '../components/awaIcons';
+import ScreenHeader from '../components/ScreenHeader';
+import { RenMon, NarutoLoader } from '../components/motifs';
+import { IconUchiwa, categoryIcon } from '../components/awaIcons';
 import { auth } from '../config/firebaseConfig';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 import {
@@ -97,7 +96,6 @@ function targetDisplayMeta(t: InviteTarget | null): string {
  * 同じアプリに登録している踊り手(users)と、お誘い(invitations)の実データを扱う(data/invitations.ts参照)。
  */
 export default function RequestScreen() {
-  const { width: SCREEN_W } = useWindowDimensions();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Request'>>();
   // 表示中のタブ / お誘い文を書いている相手(null ならダイアログを閉じる) / お誘い文 / 送信中か
   // 応答・取り消しの処理中のお誘いID(ボタンを二重に押せないようにする)
@@ -229,23 +227,8 @@ export default function RequestScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 画面上部の笠の飾りと、戻るボタン・画面名・メニューのヘッダー */}
-      <KasaGarland width={SCREEN_W} count={7} height={40} style={styles.garland} />
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <ChevronLeft size={22} color={colors.gold} />
-        </TouchableOpacity>
-        <IconWagasa size={22} color={colors.gold} style={styles.headerIcon} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>連へのお誘い</Text>
-          <Text style={styles.headerSub}>未所属の踊り手を見つけて連に招く</Text>
-        </View>
-        <AppMenu />
-      </View>
+      {/* ヘッダー(共通): 画面名と注釈・メニュー */}
+      <ScreenHeader title="連へのお誘い" note="未所属の踊り手を見つけて連に招く" garland />
 
       {/* 連そのものを探したい人向けに、連検索画面への案内を出す */}
       <TouchableOpacity
@@ -553,21 +536,6 @@ export default function RequestScreen() {
 const styles = StyleSheet.create({
   // 画面全体の背景(濃い藍色)
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-
-  // 上部の笠の飾りと、アイコン・画面名・説明文を並べるヘッダー
-  garland: { backgroundColor: colors.indigoDeep },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-  backBtn: { marginRight: spacing.sm },
-  headerIcon: { marginRight: spacing.md },
-  headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
-  headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
 
   // 「連を探す」への案内の帯(薄い金色の背景)
   renSearchLink: {

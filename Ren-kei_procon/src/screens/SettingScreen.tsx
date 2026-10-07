@@ -1,9 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft } from 'lucide-react-native';
-import AppMenu from '../components/AppMenu';
-import { HeaderSeam, KumihimoRule } from '../components/motifs';
+import ScreenHeader from '../components/ScreenHeader';
+import { KumihimoRule } from '../components/motifs';
 import { colors, spacing, typography } from '../theme';
 
 /** アプリ設定画面(未実装・プレースホルダー) */
@@ -11,16 +10,8 @@ export default function SettingScreen() {
   const navigation = useNavigation<any>();
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー: 戻るボタン・画面名・メニュー */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <ChevronLeft size={22} color={colors.gold} />
-          <Text style={styles.backText}>戻る</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>アプリ設定</Text>
-        <AppMenu />
-      </View>
-      <HeaderSeam />
+      {/* ヘッダー(共通): 戻るボタン・画面名・メニュー */}
+      <ScreenHeader title="アプリ設定" onBack={() => navigation.goBack()} />
       {/* 準備中の案内(画面中央) */}
       <View style={styles.body}>
         <KumihimoRule width={36} />
@@ -33,19 +24,6 @@ export default function SettingScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  // 画面上部のヘッダー。「戻る」・タイトル・メニューを横一列に並べ、下に区切り線を引く
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderColor: colors.indigoLine,
-  },
-  backBtn: { flexDirection: 'row', alignItems: 'center', width: 80 },
-  backText: { ...typography.caption, color: colors.gold, marginLeft: 2 },
-  headerTitle: { ...typography.headingSerif, color: colors.textPrimary },
   // 「準備中」の案内を画面の中央にまとめて表示するエリア
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   placeholder: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },

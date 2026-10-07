@@ -4,9 +4,8 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Footprints, Hand, User } from 'lucide-react-native';
-import AppMenu from '../components/AppMenu';
-import { RenKeiMark } from '../components/Brand';
-import { HeaderSeam, KumihimoRule } from '../components/motifs';
+import ScreenHeader from '../components/ScreenHeader';
+import { KumihimoRule } from '../components/motifs';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 
 /** 踊りの型(男踊り/女踊り)と、重点的に採点する部位(足/手/全体) */
@@ -46,16 +45,8 @@ export default function AnalysisScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー: アイコン・画面名・説明とメニュー */}
-      <View style={styles.header}>
-        <RenKeiMark size={36} style={styles.headerIcon} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>自主稽古・演舞解析</Text>
-          <Text style={styles.headerSub}>踊りを撮って、{lexicon.aiAdvice}を受ける</Text>
-        </View>
-        <AppMenu />
-      </View>
-      <HeaderSeam />
+      {/* ヘッダー(共通): 画面名と注釈・メニュー */}
+      <ScreenHeader title="自主稽古・演舞解析" note={`踊りを撮って、${lexicon.aiAdvice}を受ける`} garland />
 
       {/* チャレンジへの挑戦として採点するときは、どのお題かを出しておく */}
       {challengeId ? (
@@ -137,10 +128,6 @@ export default function AnalysisScreen() {
 const styles = StyleSheet.create({
   // 画面全体の背景と、アイコン・画面名・説明を並べるヘッダー
   container: { flex: 1, backgroundColor: colors.indigoDeep },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.lg, borderBottomWidth: 1, borderColor: colors.indigoLine },
-  headerIcon: { marginRight: spacing.md },
-  headerTitle: { ...typography.titleSerif, color: colors.textPrimary },
-  headerSub: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
   // チャレンジに挑戦中であることを示す帯(朱色の枠)
   challengeBanner: {
     marginHorizontal: spacing.lg,

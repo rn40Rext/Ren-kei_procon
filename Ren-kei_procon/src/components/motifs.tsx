@@ -59,16 +59,6 @@ export function Noren({
             />
           );
         })}
-        {/* 中央の紋（丸に一つ引き風） */}
-        <Circle cx={width / 2} cy={height / 2 - 1} r={6} fill="none" stroke={trim} strokeWidth={1.1} />
-        <Line
-          x1={width / 2 - 3.5}
-          y1={height / 2 - 1}
-          x2={width / 2 + 3.5}
-          y2={height / 2 - 1}
-          stroke={trim}
-          strokeWidth={1.1}
-        />
       </Svg>
     </View>
   );

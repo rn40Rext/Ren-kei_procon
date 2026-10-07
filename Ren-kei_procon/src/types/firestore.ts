@@ -111,7 +111,7 @@ export interface Announcement {
   createdAt?: FirestoreDate;
 }
 
-// docs/design/challenges.md(先輩からのチャレンジ。仕様書v0.3には無い追加機能)
+// docs/design/challenges.md(師匠からのチャレンジ。仕様書v0.3には無い追加機能)
 /** チャレンジの踊りの種類 / 難易度(保存値。表示名は repositories/challenges.ts の LABEL で引く) */
 export type ChallengeCategory = 'male' | 'female' | 'narimono';
 export type ChallengeDifficulty = 'beginner' | 'intermediate' | 'advanced';
@@ -137,7 +137,7 @@ export interface ChallengeDoc {
   move: string;
   category: ChallengeCategory;
   difficulty: ChallengeDifficulty;
-  /** 先輩が見てほしいところ */
+  /** 師匠が見てほしいところ */
   focus: string;
   advice: ChallengeAdviceItem[];
   /** お手本動画(任意)。videoPathはStorage上の場所(削除用) */

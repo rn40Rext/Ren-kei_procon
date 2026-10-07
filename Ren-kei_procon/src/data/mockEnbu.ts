@@ -192,7 +192,7 @@ export const myPosts: FeedPost[] = [
     comments: 1,
     timeAgo: '1週間前',
     duration: '01:12',
-    description: '裏拍で息を吐ききると表拍が踏みやすい、と先輩に言われた回。',
+    description: '裏拍で息を吐ききると表拍が踏みやすい、と師匠に言われた回。',
     image: awaImage('男踊り', 3),
     mine: true,
   },

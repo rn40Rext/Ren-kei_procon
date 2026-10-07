@@ -278,7 +278,7 @@ function renderHeroInfo(hero: HeroLike, festivalDays: number) {
 // ============================================================
 // Home画面
 // 上から「ヘッダー → 投稿バー → ヒーロー(直近の投稿＋本番カウントダウン)
-// → 先輩からのチャレンジ → 連の広場(交流フィード)」の順に並べ、
+// → 師匠からのチャレンジ → 連の広場(交流フィード)」の順に並べ、
 // 最後に投稿モーダルを置いている。
 // ============================================================
 /** この画面が受け取る値(画面遷移と、稽古手帳から渡される動画IDなど)の型 */
@@ -388,7 +388,7 @@ export default function HomeScreen({ navigation, route }: Props) {
     return subscribeUnreadNotificationCount(uid, setUnreadCount, () => undefined);
   }, [uid]);
 
-  // 連の管理者が出題した「先輩からのチャレンジ」(実データ)。見本より前に並べる
+  // 連の管理者が出題した「師匠からのチャレンジ」(実データ)。見本より前に並べる
   const [realChallenges, setRealChallenges] = useState<ChallengeDoc[]>([]);
   useEffect(() => {
     return subscribeChallenges(setRealChallenges, (e) => console.warn('subscribeChallenges', e));
@@ -728,10 +728,10 @@ export default function HomeScreen({ navigation, route }: Props) {
 
         <AwaDivider width={SCREEN_W} style={styles.divider} />
 
-        {/* 先輩からのチャレンジ（横スクロール） */}
+        {/* 師匠からのチャレンジ（横スクロール） */}
         <SectionHeader
-          title="先輩からのチャレンジ"
-          note="連の先輩からの「これ踊ってみよう」。タップでコツが読めます（「見本」の印はサンプルです）"
+          title="師匠からのチャレンジ"
+          note="連の師匠からの「これ踊ってみよう」。タップでコツが読めます（「見本」の印はサンプルです）"
           style={styles.sectionAfterDivider}
         />
         <ScrollView
@@ -1367,7 +1367,7 @@ const styles = StyleSheet.create({
   },
   emptyHeroBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 13 },
 
-  // 「先輩からのチャレンジ」の横スクロールと、1件分のカード
+  // 「師匠からのチャレンジ」の横スクロールと、1件分のカード
   masterScroll: { paddingLeft: spacing.lg, paddingRight: spacing.sm, paddingBottom: spacing.xs },
   masterCard: {
     width: 236,

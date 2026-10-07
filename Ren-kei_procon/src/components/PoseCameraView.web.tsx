@@ -12,6 +12,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Landmark, SKELETON_CONNECTIONS } from "../features/pose/types";
 import { LiveVideoSource, RecordedMedia } from "../features/analysis/liveTypes";
 import { MIN_VISIBILITY } from "../features/pose/normalize";
+import { getScoringBgmRecordingTracks, startScoringBgm } from "../features/analysis/scoringBgm";
 import { colors } from "../theme";
 import type { PoseCameraViewProps } from "./PoseCameraView";
 
@@ -30,9 +31,11 @@ async function playQuietly(video: HTMLVideoElement): Promise<void> {
   }
 }
 
-/** MediaRecorderで使える動画MIMEタイプをブラウザ対応状況から選ぶ(非対応ならrecordingなし) */
-function pickMimeType(): string {
-  const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+/** MediaRecorderで使える動画MIMEタイプをブラウザ対応状況から選ぶ(非対応ならrecordingなし)。withAudio: 音声(BGM)も録画に入れる */
+function pickMimeType(withAudio: boolean): string {
+  const candidates = withAudio
+    ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
+    : ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
   const MR = (globalThis as { MediaRecorder?: typeof MediaRecorder }).MediaRecorder;
   if (!MR) return "";
   return candidates.find((c) => MR.isTypeSupported(c)) ?? "";
@@ -115,14 +118,20 @@ export default function PoseCameraView({ onSource, onEnded, showSkeleton = true,
             const stream = streamRef.current;
             const MR = (globalThis as { MediaRecorder?: typeof MediaRecorder }).MediaRecorder;
             if (!stream || !MR) return;
-            const mimeType = pickMimeType();
+            // 採点中のBGMを録画の音声として一緒に録る。BGMが録画の中で映像と同じ時間軸に入るので、
+            // 閲覧時に音と映像がずれない(BGMが用意できていなければ、従来どおり映像だけ)
+            const audioTracks = getScoringBgmRecordingTracks();
+            const recStream = audioTracks.length > 0 ? new MediaStream([...stream.getVideoTracks(), ...audioTracks]) : stream;
+            const mimeType = pickMimeType(audioTracks.length > 0);
             chunksRef.current = [];
-            const rec = new MR(stream, mimeType ? { mimeType } : undefined);
+            const rec = new MR(recStream, mimeType ? { mimeType } : undefined);
             rec.ondataavailable = (e) => {
               if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
             };
             rec.start(1000);
             recorderRef.current = rec;
+            // 録画を始めたのと同じ瞬間にBGMを始める(画面の更新を待つより遅れが小さい)
+            startScoringBgm();
           },
       stopRecording: isFile
         ? undefined

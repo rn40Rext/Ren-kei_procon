@@ -46,7 +46,7 @@ export default function AnalysisScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* ヘッダー(共通): 画面名と注釈・メニュー */}
-      <ScreenHeader title="自主稽古・演舞解析" note={`踊りを撮って、${lexicon.aiAdvice}を受ける`} />
+      <ScreenHeader title="自主稽古・演舞解析" note={`踊りを撮って、${lexicon.aiAdvice}を受ける`} garland />
 
       {/* チャレンジへの挑戦として採点するときは、どのお題かを出しておく */}
       {challengeId ? (

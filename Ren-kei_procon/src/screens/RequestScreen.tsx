@@ -228,7 +228,7 @@ export default function RequestScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* ヘッダー(共通): 画面名と注釈・メニュー */}
-      <ScreenHeader title="連へのお誘い" note="未所属の踊り手を見つけて連に招く" />
+      <ScreenHeader title="連へのお誘い" note="未所属の踊り手を見つけて連に招く" garland />
 
       {/* 連そのものを探したい人向けに、連検索画面への案内を出す */}
       <TouchableOpacity

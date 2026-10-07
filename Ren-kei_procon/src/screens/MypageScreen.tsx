@@ -176,7 +176,7 @@ export default function MypageScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* ヘッダー(共通): 画面名と注釈・メニュー */}
-      <ScreenHeader title="稽古手帳" note="プロフィール等を確認する" />
+      <ScreenHeader title="稽古手帳" note="プロフィール等を確認する" garland />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* プロフィール欄: アイコン・名前・役割・自己紹介と、稽古の実績 */}

@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone, CalendarDays } from 'lucide-react-native';
+import { ClipboardList, Bell, Video, ChevronLeft, ChevronRight, Users, Megaphone, CalendarDays, Flag } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
 import { KasaGarland, NarutoLoader } from '../components/motifs';
 import { IconTaiko } from '../components/awaIcons';
@@ -139,7 +139,7 @@ export default function AdminHomeScreen() {
           </View>
         </TouchableOpacity>
 
-        {/* 管理メニュー: 投稿一覧・参加申請・メンバー・お知らせ・活動情報の各管理画面への入口 */}
+        {/* 管理メニュー: 投稿一覧・参加申請・メンバー・お知らせ・活動情報・チャレンジの各管理画面への入口 */}
         <Text style={styles.sectionLabel}>管理メニュー</Text>
         <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ManagePosts', { renId: selectedRen.renId })} activeOpacity={0.85}>
           <Video size={19} color={colors.gold} />
@@ -180,6 +180,15 @@ export default function AdminHomeScreen() {
         >
           <CalendarDays size={19} color={colors.gold} />
           <Text style={styles.menuItemText}>活動情報・連の基本情報</Text>
+          <ChevronRight size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => navigation.navigate('ManageChallenges', { renId: selectedRen.renId })}
+          activeOpacity={0.85}
+        >
+          <Flag size={19} color={colors.gold} />
+          <Text style={styles.menuItemText}>チャレンジの出題</Text>
           <ChevronRight size={18} color={colors.textMuted} />
         </TouchableOpacity>
         <View style={{ height: spacing.xl }} />

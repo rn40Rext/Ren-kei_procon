@@ -15,6 +15,27 @@ export const STANCE_GRACE_MS = 300;
 export const SCORING_DURATIONS_SEC = [10, 20] as const;
 export type ScoringDurationSec = (typeof SCORING_DURATIONS_SEC)[number];
 
+/**
+ * 構えの 3→2→1 が終わってから、録画と AI 判定を始めるまでの待ち時間[秒]。
+ * カウントダウン直後に始めると踊り出しが間に合わないため、合図を出して少し待つ
+ * (先生の指摘、2026-10-04)。当日でも撮影画面で選び直せるよう、選択肢として持つ。
+ */
+export const START_DELAY_OPTIONS_SEC = [0.5, 1, 1.5, 2] as const;
+export const DEFAULT_START_DELAY_SEC = 1;
+export const MIN_START_DELAY_SEC = 0.5;
+export const MAX_START_DELAY_SEC = 2;
+
+/** 待ち時間を 0.5〜2 秒に収める。数値でなければ既定値(1 秒)にする */
+export function clampStartDelaySec(sec: unknown): number {
+  if (typeof sec !== "number" || !Number.isFinite(sec)) return DEFAULT_START_DELAY_SEC;
+  return Math.min(MAX_START_DELAY_SEC, Math.max(MIN_START_DELAY_SEC, sec));
+}
+
+/** 構えが決まった時刻(stanceDoneAtMs)から待ち時間が過ぎたか */
+export function startDelayElapsed(stanceDoneAtMs: number, nowMs: number, delaySec: number): boolean {
+  return nowMs - stanceDoneAtMs >= clampStartDelaySec(delaySec) * 1000;
+}
+
 /** 構えで手をどこまで上げるか。0 = 頭(鼻)と同じ高さ */
 const STANCE_HAND_MIN_HEIGHT = 0;
 

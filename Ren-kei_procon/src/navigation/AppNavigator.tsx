@@ -35,6 +35,7 @@ import ManageJoinRequestsScreen from "../screens/ManageJoinRequestsScreen";
 import MemberManagementScreen from "../screens/MemberManagementScreen";
 import ManageAnnouncementsScreen from "../screens/ManageAnnouncementsScreen";
 import ManageActivitiesScreen from "../screens/ManageActivitiesScreen";
+import ManageChallengesScreen from "../screens/ManageChallengesScreen";
 import ManagePostsScreen from "../screens/ManagePostsScreen";
 import AdviceComposeScreen from "../screens/AdviceComposeScreen";
 import StyleResultScreen from "../screens/StyleResultScreen";
@@ -49,8 +50,8 @@ export type RootStackParamList = {
   Home: { shareVideoId?: string } | undefined;
   // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。id: サンプル演舞 / postId: 実データ投稿
   VideoDetail: { id?: string; postId?: string };
-  // 先輩からのチャレンジの詳細
-  Challenge: { id?: string };
+  // 先輩からのチャレンジの詳細。id: 見本のお題 / challengeId: 連の管理者が出題した実データ(challenges)
+  Challenge: { id?: string; challengeId?: string };
   Mypage: undefined;
   Scoring: undefined;
   VideoList: undefined;
@@ -67,7 +68,7 @@ export type RootStackParamList = {
   Camera: { danceType: "male" | "female"; scorePart: "feet" | "hands" | "whole"; baseBpm?: number };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
   Result: { analysisId: string; videoId: string };
-  Request: { inviteName?: string; inviteMeta?: string } | undefined;
+  Request: undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   // 連スタイル類似度の結果（AI機能②）。表示可否は
   // src/features/style/featureFlags.ts で制御する
@@ -78,6 +79,8 @@ export type RootStackParamList = {
   MemberManagement: { renId: string };
   ManageAnnouncements: { renId: string };
   ManageActivities: { renId: string };
+  // 先輩からのチャレンジの出題・出題済みの一覧(連の管理者向け。docs/design/challenges.md)
+  ManageChallenges: { renId: string };
   ManagePosts: { renId: string };
   AdviceCompose: { postId: string; renId: string; postTitle: string; authorName: string; videoUrl: string };
 };
@@ -139,6 +142,7 @@ export default function AppNavigator() {
           <Stack.Screen name="MemberManagement" component={MemberManagementScreen} />
           <Stack.Screen name="ManageAnnouncements" component={ManageAnnouncementsScreen} />
           <Stack.Screen name="ManageActivities" component={ManageActivitiesScreen} />
+          <Stack.Screen name="ManageChallenges" component={ManageChallengesScreen} />
           <Stack.Screen name="ManagePosts" component={ManagePostsScreen} />
           <Stack.Screen name="AdviceCompose" component={AdviceComposeScreen} />
           <Stack.Screen name="StyleResult" component={StyleResultScreen} />

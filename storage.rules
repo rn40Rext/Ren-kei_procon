@@ -52,6 +52,17 @@ service firebase.storage {
       allow delete: if false;
     }
 
+    // チャレンジ(先輩からのお題)のお手本動画。アップロードした本人のパスにだけ
+    // 書き込め、ログインユーザー全員が閲覧できる(docs/design/challenges.md)。
+    // 「管理者だけ」の判定はStorage Rulesから行えない(ren/{renId}/iconと同じ事情)ため、
+    // 出題そのもの(challengesドキュメント)をfirestore.rulesで管理者に限定している。
+    match /users/{uid}/challengeVideos/{fileName} {
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+                    && request.resource.size < 200 * 1024 * 1024;
+    }
+
     // 上記いずれにも一致しないパスはデフォルト拒否(#34以前は包括的に
     // 許可しており、他の全ての制限付きルールを事実上無効化していた)。
     match /{allPaths=**} {

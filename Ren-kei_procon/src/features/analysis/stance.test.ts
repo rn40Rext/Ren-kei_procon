@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { STANCE_GRACE_MS, STANCE_HOLD_MS, StanceGate, isStance } from "./stance";
+import {
+  DEFAULT_START_DELAY_SEC,
+  MAX_START_DELAY_SEC,
+  MIN_START_DELAY_SEC,
+  STANCE_GRACE_MS,
+  STANCE_HOLD_MS,
+  START_DELAY_OPTIONS_SEC,
+  StanceGate,
+  clampStartDelaySec,
+  isStance,
+  startDelayElapsed,
+} from "./stance";
 import { MetricValues } from "../rules/types";
 
 const HANDS_UP: MetricValues = { "normalizedHandHeight:left": 0.2, "normalizedHandHeight:right": 0.15 };
@@ -39,4 +50,26 @@ test("短いゆらぎではリセットせず、構えを解くとやり直し",
   assert.ok(g.update(true, 1000 + STANCE_GRACE_MS) > 0.3, "ゆらぎでリセットされた");
   assert.equal(g.update(false, 2000 + STANCE_GRACE_MS + 1), 0);
   assert.equal(g.update(true, 5000), 0);
+});
+
+test("開始の待ち時間は 0.5〜2 秒に収め、数値でなければ既定値(1 秒)にする", () => {
+  assert.equal(clampStartDelaySec(1.5), 1.5);
+  assert.equal(clampStartDelaySec(0.1), MIN_START_DELAY_SEC);
+  assert.equal(clampStartDelaySec(5), MAX_START_DELAY_SEC);
+  assert.equal(clampStartDelaySec(NaN), DEFAULT_START_DELAY_SEC);
+  assert.equal(clampStartDelaySec("1.5"), DEFAULT_START_DELAY_SEC);
+  assert.equal(DEFAULT_START_DELAY_SEC, 1);
+  for (const sec of START_DELAY_OPTIONS_SEC) assert.equal(clampStartDelaySec(sec), sec);
+});
+
+test("3→2→1 の後、待ち時間が過ぎるまでは開始しない", () => {
+  const doneAt = 3000;
+  assert.equal(startDelayElapsed(doneAt, doneAt + 999, 1), false);
+  assert.equal(startDelayElapsed(doneAt, doneAt + 1000, 1), true);
+  assert.equal(startDelayElapsed(doneAt, doneAt + 1499, 1.5), false);
+  assert.equal(startDelayElapsed(doneAt, doneAt + 1500, 1.5), true);
+  // 範囲外の値は 0.5〜2 秒に寄せて扱う
+  assert.equal(startDelayElapsed(doneAt, doneAt + 100, 0), false);
+  assert.equal(startDelayElapsed(doneAt, doneAt + 500, 0), true);
+  assert.equal(startDelayElapsed(doneAt, doneAt + 2000, 10), true);
 });

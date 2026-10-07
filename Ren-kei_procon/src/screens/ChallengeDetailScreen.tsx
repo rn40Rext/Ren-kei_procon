@@ -205,12 +205,12 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
 
         {/* 見どころ・課題 */}
         <Panel style={styles.focusPanel}>
-          <Text style={styles.focusLabel}>師匠が見てほしいところ</Text>
+          <Text style={styles.focusLabel}>詳細</Text>
           <Text style={styles.focusText}>{ch.focus}</Text>
         </Panel>
 
-        {/* 師匠からのアドバイス */}
-        <SectionHeader title="師匠からのアドバイス" />
+        {/* 意識してほしいところ(コツの一覧) */}
+        <SectionHeader title="意識してほしいところ" />
         <View style={styles.adviceList}>
           {ch.advice.map((a, i) => (
             <WashiCard key={a.id} eyebrow={`コツ ${i + 1}`} style={styles.adviceCard}>
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   scoutBtnText: { ...typography.caption, color: colors.gold, fontWeight: '700' },
 
-  // 「師匠が見てほしいところ」の枠
+  // 「詳細」の枠
   focusPanel: { marginHorizontal: spacing.lg, marginTop: spacing.lg, padding: spacing.md },
   focusLabel: { ...typography.sectionLabel, color: colors.gold, marginBottom: spacing.sm },
   focusText: { ...typography.body, color: colors.textSecondary },

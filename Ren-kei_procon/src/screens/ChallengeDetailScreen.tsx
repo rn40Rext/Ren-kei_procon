@@ -12,7 +12,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, WashiCard, Panel, SectionHeader } from '../components/ui';
-import { RenMon, HeaderSeam, NarutoLoader } from '../components/motifs';
+import { HeaderSeam, NarutoLoader } from '../components/motifs';
+import UserAvatar from '../components/UserAvatar';
+import { useUserIcons } from '../hooks/useUserIcons';
 import { IconGeta, categoryIcon } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
 import RenkeiVideo from '../components/RenkeiVideo';
@@ -60,6 +62,9 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
     () => (challenge ? [challenge.renName, challenge.posterRole].filter(Boolean).join(' ') : ''),
     [challenge],
   );
+
+  // 出題者のプロフィールアイコン(uid → 画像URL。無ければ頭文字を出す)
+  const userIcons = useUserIcons([challenge?.createdBy]);
 
   // 読み込み中・見つからないとき
   if (!challenge) {
@@ -120,9 +125,7 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
           <Text style={styles.title}>{challenge.title}</Text>
 
           <View style={styles.posterRow}>
-            <RenMon size={34} color={colors.gold}>
-              <Text style={styles.posterInitial}>{challenge.posterName.slice(0, 1)}</Text>
-            </RenMon>
+            <UserAvatar size={34} name={challenge.posterName} iconUrl={userIcons[challenge.createdBy]} charStyle={styles.posterInitial} />
             <View style={{ flex: 1, marginLeft: spacing.md }}>
               <Text style={styles.posterName}>{challenge.posterName}</Text>
               <Text style={styles.posterRole}>{posterRole}</Text>

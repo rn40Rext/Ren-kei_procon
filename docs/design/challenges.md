@@ -74,14 +74,16 @@ Storage Rules からは「連の管理者かどうか」を判定できないた
 
 ## 7. 挑戦の投稿（2026-10-07 追加）
 
-「自分の演舞で挑戦する」から採点した演舞を、**そのお題への挑戦として投稿できる**ようにしました。
+「自分の演舞で挑戦する」から、演舞を**そのお題への挑戦として投稿できる**ようにしました。
+
+**2026-10-12 変更（ユーザー判断）: 挑戦は AI 採点を通さず、「演舞を投稿する」の「今すぐ撮る」と同じく、その場で撮って（またはライブラリから選んで）投稿する。** 専用画面 `ChallengeEntryScreen`（`ChallengeEntry`、パラメータ `challengeId`・`challengeTitle`）で、動画・題名・ひとこと・タグを入力して投稿する。投稿の仕組み（`uploadVideoAndPublish` → `attachPostToChallenge`）は下表のままで、`score` は付かない（一覧では「未採点」と表示）。見本のお題（`challengeId` なし）の「挑戦する」は従来どおり採点画面へ。なお採点経由で `challengeId` を持ち回る処理（`Scoring`・`Camera`・`Result` の `challengeId`/`challengeTitle`）は残っているが、チャレンジ詳細からは使われなくなった。
 
 | 論点 | 決定 | 理由 |
 | --- | --- | --- |
 | 表示先 | **お題の詳細の「挑戦した人の演舞」にだけ出す。交流広場（ホーム）には出さない** | 2026-10-07 ユーザー判断 |
 | 保存方法 | 通常の投稿（`posts`）として publishPost で作り、作成直後に投稿者本人が `posts/{postId}.challengeId` を書き足す | Cloud Functions と Rules を変えずに済む（Rules は投稿者本人による `userId`・`likeCount`・`commentCount` 以外の更新を許可している） |
 | 交流広場からの除外 | ホーム画面で `challengeId` の付いた投稿を表示しない | 連管理者の投稿一覧（`ManagePostsScreen`）には出す（指導の対象として見られるように） |
-| お題の引き継ぎ | チャレンジ詳細 → 採点（`Scoring`）→ 撮影（`Camera`）→ 解析結果（`Result`）の画面パラメータ `challengeId`・`challengeTitle` で渡す | 見本のお題から挑戦した場合は渡さず、従来どおり交流広場への投稿になる |
+| お題の引き継ぎ | 現在: チャレンジ詳細 → 挑戦の投稿（`ChallengeEntry`）へ `challengeId`・`challengeTitle` を渡す。以前の経路: チャレンジ詳細 → 採点（`Scoring`）→ 撮影（`Camera`）→ 解析結果（`Result`）の画面パラメータ `challengeId`・`challengeTitle` で渡す | 見本のお題から挑戦した場合は渡さず、従来どおり交流広場への投稿になる |
 
 - 「挑戦した人の演舞」は `where('challengeId', '==', id)` で取り、並べ替えは手元で行う（複合インデックスを増やさないため）
 - **既知の制約**: 投稿の作成と `challengeId` の書き足しが別の書き込みのため、その間（1 秒未満）だけホームに表示されることがある。また書き足しに失敗すると交流広場の投稿のまま残る（画面に案内を出す）。publishPost に `challengeId` を受け取らせれば 1 回で書けるが、Functions のデプロイが必要なため見送った

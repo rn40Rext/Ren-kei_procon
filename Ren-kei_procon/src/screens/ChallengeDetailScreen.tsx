@@ -1,6 +1,6 @@
 /**
  * 「師匠からのチャレンジ」の詳細。お題の演舞・出題者・コツを見せて、
- * 自分の演舞で挑戦(採点画面へ)し、採点した演舞をこのお題への挑戦として投稿できる。
+ * 自分の演舞で挑戦(採点なしで撮って投稿する画面へ)し、その演舞をこのお題への挑戦として投稿できる。
  * 実データのお題には、挑戦として投稿された演舞(posts.challengeId)を「挑戦した人の演舞」に並べる。
  * challengeId: 連の管理者が出題した実データ(challenges。docs/design/challenges.md)。
  * id: 見本(サンプル)データ。挑戦人数・勧誘ボタンは見本にだけ出す。
@@ -236,8 +236,10 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
           style={styles.challengeBtn}
           activeOpacity={0.9}
           onPress={() =>
-            // 実データのお題なら、採点画面〜解析結果までお題を引き継ぎ、結果をこのお題に投稿できるようにする
-            navigation.navigate('Scoring', challengeId ? { challengeId, challengeTitle: ch.title } : undefined)
+            // 実データのお題なら、採点なしで撮って(選んで)このお題に投稿する画面へ。見本のお題は従来どおり採点画面へ
+            challengeId
+              ? navigation.navigate('ChallengeEntry', { challengeId, challengeTitle: ch.title })
+              : navigation.navigate('Scoring')
           }
         >
           <IconGeta size={17} color={colors.textOnGold} />

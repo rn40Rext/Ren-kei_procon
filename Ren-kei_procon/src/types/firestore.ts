@@ -172,6 +172,7 @@ export type NotificationType =
   | 'member_removed'
   | 'role_changed'
   | 'member_joined'
+  | 'invitation_received'
   | 'invitation_result'
   | 'chat_message';
 

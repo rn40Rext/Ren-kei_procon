@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Alert } from '../utils/alert';
-import { useNavigation } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, Send, UserPlus, Check, Trash2, MessageCircle } from 'lucide-react-native';
 import { colors, spacing, radius, typography } from '../theme';
@@ -97,9 +97,14 @@ function targetDisplayMeta(t: InviteTarget | null): string {
  */
 export default function RequestScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Request'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'Request'>>();
   // 表示中のタブ / お誘い文を書いている相手(null ならダイアログを閉じる) / お誘い文 / 送信中か
   // 応答・取り消しの処理中のお誘いID(ボタンを二重に押せないようにする)
-  const [tab, setTab] = useState<Tab>('scout');
+  const [tab, setTab] = useState<Tab>(route.params?.tab === 'received' ? 'received' : 'scout');
+  // 通知から来たとき(画面が開いたままでも)、「届いた」タブへ切り替える
+  useEffect(() => {
+    if (route.params?.tab === 'received') setTab('received');
+  }, [route.params?.tab]);
   const [target, setTarget] = useState<InviteTarget | null>(null);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);

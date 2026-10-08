@@ -282,6 +282,7 @@
 | `member_removed` | メンバーが除名された | 除名された本人 | renId | `removeMember` |
 | `role_changed` | メンバーの役職(member⇄admin)が変わった | 役職が変わった本人 | renId | `updateMemberRole` |
 | `member_joined` | 参加リクエストが承認され新メンバーが加入した | その連のアクティブなメンバー全員(新メンバー本人・承認した管理者を除く) | renId | `updateJoinRequestStatus`(承認時) |
+| `invitation_received` | 連へのお誘い(`invitations`)が作られた(2026-10-08 追加。それまでは、お誘いを受け取った側に通知が作られていなかった) | お誘いの宛先(`toUserId`) | invitationId | `onInvitationWrite`トリガ(作成時) |
 | `invitation_result` | 連へのお誘い(`invitations`)に応答(承諾/辞退)があった | お誘いの送信者(`fromUserId`) | invitationId | `onInvitationWrite`トリガ |
 | `chat_message` | 1対1チャットにメッセージが届いた | チャット相手(`chatId`を`_`で分割し送信者以外の uid) | chatId | `onChatMessageWrite`トリガ |
 

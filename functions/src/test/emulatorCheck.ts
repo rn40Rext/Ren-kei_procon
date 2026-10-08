@@ -559,6 +559,10 @@ async function main(): Promise<void> {
     status: "pending",
     createdAt: new Date(),
   });
+  check(
+    (await waitForNotification("memberD", "invitation_received")) !== null,
+    "お誘いが作られたとき、宛先に通知される(トリガ)",
+  );
   await db.doc("invitations/invD").update({
     status: "accepted",
     updatedAt: new Date(),

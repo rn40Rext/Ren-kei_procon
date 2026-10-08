@@ -16,6 +16,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Home: "",
       VideoDetail: "video",
       Challenge: "challenge",
+      ChallengeEntry: "challenge/entry",
       Mypage: "mypage",
       Scoring: "scoring",
       VideoList: "videos",

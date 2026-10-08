@@ -1,13 +1,14 @@
 /**
  * 「師匠からのチャレンジ」の詳細。連の管理者が出題したお題(challenges。docs/design/challenges.md)の
- * お手本動画・出題者・コツを見せて、自分の演舞で挑戦(採点画面へ)し、
- * 採点した演舞をこのお題への挑戦として投稿できる。
+ * お手本動画・出題者・コツを見せて、「自分の演舞で挑戦する」(AI採点へ。結果の画面から、
+ * このお題への挑戦として投稿できる)と、「AI採点なしで挑戦する」(採点せずに撮って・選んで、
+ * このお題への挑戦として投稿する)で挑戦できる。
  * 挑戦として投稿された演舞(posts.challengeId)は「挑戦した人の演舞」に並べる。
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Film } from 'lucide-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, radius, typography } from '../theme';
@@ -159,6 +160,15 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
           <IconGeta size={17} color={colors.textOnGold} />
           <Text style={styles.challengeBtnText}>　自分の演舞で挑戦する</Text>
         </TouchableOpacity>
+        {/* AIの採点をせずに挑戦する。撮って(選んで)このお題に投稿する画面へ */}
+        <TouchableOpacity
+          style={[styles.challengeBtn, styles.challengeBtnSub]}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('ChallengeEntry', { challengeId, challengeTitle: challenge.title })}
+        >
+          <Film size={17} color={colors.gold} />
+          <Text style={[styles.challengeBtnText, styles.challengeBtnSubText]}>　AI採点なしで挑戦する</Text>
+        </TouchableOpacity>
 
         {/* 挑戦した人の演舞。タップで投稿詳細へ */}
         <SectionHeader title={`挑戦した人の演舞（${entries.length}）`} />
@@ -249,6 +259,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gold,
   },
   challengeBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
+  // 「AI採点なしで挑戦する」(同じ大きさで、枠線だけの控えめな見た目)
+  challengeBtnSub: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.gold },
+  challengeBtnSubText: { color: colors.gold },
 
   // 「挑戦した人の演舞」の横スクロールと、1人分のカード(動画のサムネイル・名前・極め度)と0件の案内
   tryScroll: { paddingHorizontal: spacing.lg },

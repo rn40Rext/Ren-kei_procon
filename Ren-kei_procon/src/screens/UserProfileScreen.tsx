@@ -3,13 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-na
 import { MessageCircle, UserPlus, ChevronLeft } from 'lucide-react-native';
 import { auth } from '../config/firebaseConfig';
 import { colors, spacing, radius, typography } from '../theme';
-import { RenMon } from '../components/motifs';
+import UserAvatar from '../components/UserAvatar';
+import { useUserIcons } from '../hooks/useUserIcons';
 
 // 他のユーザーのプロフィール画面。名前とアイコンを表示し、自分自身のページでなければ
 // 「メッセージを送る」「連にお誘いする」の2つのボタンを出す。
 export default function UserProfileScreen({ route, navigation }: any) {
   // 前の画面から渡される、表示対象ユーザーのIDと表示名
   const { userId, userName } = route.params;
+  const userIcons = useUserIcons([userId]);
   const currentUser = auth.currentUser;
   // 表示中のプロフィールが自分自身のものかどうか。自分自身には
   // メッセージ・お誘いのボタンを出さないようにするために使う
@@ -41,11 +43,9 @@ export default function UserProfileScreen({ route, navigation }: any) {
       </TouchableOpacity>
 
       <View style={styles.profileCard}>
-        {/* アイコンの代わりに、表示名の先頭1文字を丸い枠の中に表示する。
-            表示名が空のときは代わりに「阿」の字を表示する */}
-        <RenMon size={80} color={colors.gold}>
-          <Text style={styles.avatarChar}>{(userName || '阿').slice(0, 1)}</Text>
-        </RenMon>
+        {/* プロフィールのアイコンを丸い枠の中に表示する。アイコンが無いときは表示名の先頭1文字
+            (表示名が空のときは「阿」の字)を表示する */}
+        <UserAvatar size={80} name={userName || '阿'} iconUrl={userIcons[userId]} charStyle={styles.avatarChar} />
         <Text style={styles.name}>{userName}</Text>
 
         {isSelf ? (
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     borderColor: colors.indigoLine,
     alignItems: 'center',
   },
-  // 丸いアイコン枠(RenMon)の中に表示する、名前の頭文字
+  // アイコン画像が無いときに、丸い枠の中に表示する名前の頭文字
   avatarChar: { color: colors.gold, fontSize: 30, fontFamily: typography.titleSerif.fontFamily, fontWeight: '700' },
   // 名前(明朝体)と所属連(金色の小さな文字)
   name: { ...typography.titleSerif, color: colors.textPrimary, marginTop: spacing.md },

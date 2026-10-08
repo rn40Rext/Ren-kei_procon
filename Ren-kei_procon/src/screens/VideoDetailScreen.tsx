@@ -18,7 +18,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { colors, spacing, radius, typography, lexicon } from '../theme';
 import { Badge, MetricRow, Panel } from '../components/ui';
-import { RenMon, NarutoLoader, SeigaihaBand, AsanohaBackground } from '../components/motifs';
+import { NarutoLoader, SeigaihaBand, AsanohaBackground } from '../components/motifs';
 import RenkeiVideo from '../components/RenkeiVideo';
 import AppMenu from '../components/AppMenu';
 import { useAdminRens } from '../hooks/useAdminRens';
@@ -35,6 +35,8 @@ import type { Post as PostDoc, PostComment as CommentDoc } from '../types/firest
 import { formatAiScoreShort } from '../features/analysis/format';
 import { fetchRenName } from '../repositories/renProfile';
 import { instructorLabel } from '../utils/renLabel';
+import { useUserIcons } from '../hooks/useUserIcons';
+import UserAvatar from '../components/UserAvatar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoDetail'>;
 type VideoDetailNav = Props['navigation'];
@@ -185,6 +187,9 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: Vi
     };
   }, [comments, renNames]);
 
+  // 投稿者とコメントした人のプロフィールアイコン(uid → 画像URL。無ければ頭文字を出す)
+  const userIcons = useUserIcons([post?.userId, ...comments.map((c) => c.userId)]);
+
   // 表示中のタブに合うコメントだけを出す(師匠の教え=指導者コメント、門下生の声=通常のコメント)
   const shown = comments.filter((c) => (tab === 'teaching' ? c.type === 'instructor' : c.type === 'normal'));
 
@@ -259,9 +264,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: Vi
             <Text style={styles.enbuTitle}>{post.title}</Text>
 
             <View style={styles.performerRow}>
-              <RenMon size={32} color={colors.gold}>
-                <Text style={styles.performerInitial}>{post.authorName.slice(0, 1)}</Text>
-              </RenMon>
+              <UserAvatar size={32} name={post.authorName} iconUrl={userIcons[post.userId]} charStyle={styles.performerInitial} />
               <View style={styles.performerText}>
                 <Text style={styles.performerName}>{post.authorName}</Text>
                 <Text style={styles.performerRen}>交流広場の投稿</Text>
@@ -338,7 +341,7 @@ function RealPostDetail({ postId, navigation }: { postId: string; navigation: Vi
                 <View key={c.id} style={styles.comment}>
                   <View style={styles.commentHead}>
                     <View style={styles.avatar}>
-                      <Text style={styles.avatarText}>{c.userName.slice(0, 1)}</Text>
+                      <UserAvatar variant="plain" size={30} name={c.userName} iconUrl={userIcons[c.userId]} charStyle={styles.avatarText} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.commentName}>{c.userName}</Text>
@@ -496,15 +499,8 @@ const styles = StyleSheet.create({
   },
   // コメントの見出し行(頭文字の丸・名前・種類)・本文
   commentHead: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    backgroundColor: colors.indigoRaised,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
+  // コメントした人のアイコンの右の余白(丸の見た目は UserAvatar が作る)
+  avatar: { marginRight: spacing.sm },
   avatarText: { ...typography.bodyStrong, color: colors.gold },
   commentName: { ...typography.bodyStrong, color: colors.textPrimary },
   commentRen: { ...typography.caption, color: colors.textMuted, marginTop: 1 },

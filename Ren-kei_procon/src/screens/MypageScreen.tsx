@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Image,
 } from 'react-native';
 import { Alert } from '../utils/alert';
 import { useNavigation } from '@react-navigation/native';
@@ -20,9 +19,9 @@ import { saveUserProfile } from '../repositories/users';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import ScreenHeader from '../components/ScreenHeader';
+import UserAvatar from '../components/UserAvatar';
 import { useAuth } from '../hooks/useAuth';
 import { AnalysisResult, subscribeAnalysisResultsByUser } from '../repositories/analysis';
-import { RenMon } from '../components/motifs';
 import { colors, spacing, radius, typography } from '../theme';
 
 /** 踊りの種類(男踊り/女踊り/未設定) と、ユーザーの役割 */
@@ -187,13 +186,7 @@ export default function MypageScreen() {
             onPress={editing ? pickIcon : startEditing}
             activeOpacity={0.85}
           >
-            <RenMon size={78} color={colors.gold}>
-              {shownIcon ? (
-                <Image source={{ uri: shownIcon }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarChar}>{(nickname || '阿').slice(0, 1)}</Text>
-              )}
-            </RenMon>
+            <UserAvatar size={78} name={nickname || '阿'} iconUrl={shownIcon} charStyle={styles.avatarChar} />
             {/* 編集中はアイコンの右下にカメラのバッジを出す */}
             {editing ? (
               <View style={styles.avatarEditBadge}>
@@ -357,7 +350,6 @@ const styles = StyleSheet.create({
   },
   // アイコン(紋の中に丸く表示)と、編集中に右下へ出すカメラのバッジ
   avatarWrap: { marginBottom: spacing.md },
-  avatarImage: { width: 60, height: 60, borderRadius: radius.pill },
   avatarChar: { color: colors.gold, fontSize: 30, fontFamily: typography.titleSerif.fontFamily, fontWeight: '700' },
   avatarEditBadge: {
     position: 'absolute',

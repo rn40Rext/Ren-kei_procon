@@ -136,7 +136,8 @@ export default function ResultScreen() {
         videoUrl: video.downloadUrl,
         title: shareTitle,
         description: shareDescription || undefined,
-        tags: shareTags,
+        // チャレンジへの挑戦の投稿には、タグを付けない
+        tags: challengeId ? [] : shareTags,
         videoId,
       });
       // 挑戦の投稿には印(challengeId)を付け、交流広場には出さずお題の詳細にだけ出す
@@ -336,18 +337,23 @@ export default function ResultScreen() {
               multiline
               maxLength={1000}
             />
-            <Text style={styles.shareModalLabel}>調子・型のしるし（任意）</Text>
-            <View style={styles.shareModalTagWrap}>
-              {POST_TAG_OPTIONS.map((tag) => (
-                <Chip
-                  key={tag}
-                  label={tag}
-                  active={shareTags.includes(tag)}
-                  onPress={() => toggleShareTag(tag)}
-                  style={styles.shareModalTag}
-                />
-              ))}
-            </View>
+            {/* タグ。チャレンジへの挑戦の投稿では選べない(付けない) */}
+            {challengeId ? null : (
+              <>
+                <Text style={styles.shareModalLabel}>調子・型のしるし（任意）</Text>
+                <View style={styles.shareModalTagWrap}>
+                  {POST_TAG_OPTIONS.map((tag) => (
+                    <Chip
+                      key={tag}
+                      label={tag}
+                      active={shareTags.includes(tag)}
+                      onPress={() => toggleShareTag(tag)}
+                      style={styles.shareModalTag}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
             {shareError ? <Text style={styles.shareModalError}>{shareError}</Text> : null}
 
             <TouchableOpacity

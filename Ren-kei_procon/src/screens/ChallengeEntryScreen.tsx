@@ -2,7 +2,7 @@
  * 師匠からのチャレンジへの「挑戦を投稿」。チャレンジ詳細の「自分の演舞で挑戦する」から開く。
  * AI採点は通さず、ホームの「演舞を投稿する」の「今すぐ撮る」と同じように、
  * その場で撮影(Webはアプリ内の録画、ネイティブは端末のカメラ)するか、ライブラリから動画を選んで投稿する。
- * 投稿には challengeId を付け、交流広場には出さず、お題の「挑戦した人の演舞」にだけ出す
+ * 投稿には challengeId を付け、交流広場には出さず、お題の「挑戦した人の演舞」にだけ出す。タグは付けない
  * (docs/design/challenges.md)。
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -27,20 +27,18 @@ import { colors, radius, spacing, typography } from '../theme';
 import ScreenHeader from '../components/ScreenHeader';
 import VideoThumbnail from '../components/VideoThumbnail';
 import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
-import { Chip } from '../components/ui';
 import { IconEnbuPlay } from '../components/awaIcons';
-import { attachPostToChallenge, POST_TAG_OPTIONS, uploadVideoAndPublish } from '../repositories/posts';
+import { attachPostToChallenge, uploadVideoAndPublish } from '../repositories/posts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChallengeEntry'>;
 
 export default function ChallengeEntryScreen({ navigation, route }: Props) {
   const { challengeId, challengeTitle } = route.params;
-  // 選んだ(撮った)動画 / アプリ内録画を開いているか / 題名・ひとこと・タグ / 投稿中か
+  // 選んだ(撮った)動画 / アプリ内録画を開いているか / 題名・ひとこと / 投稿中か
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [recording, setRecording] = useState(false);
   const [title, setTitle] = useState(`「${challengeTitle}」に挑戦`);
   const [description, setDescription] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   // アプリ内録画で作った blob: URL は、差し替え・画面を離れるときに解放する
@@ -93,14 +91,12 @@ export default function ChallengeEntryScreen({ navigation, route }: Props) {
     setRecording(false);
   };
 
-  const toggleTag = (t: string) => setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-
   /** 動画を投稿し、このお題への挑戦として印(challengeId)を付ける */
   const submit = async () => {
     if (!title.trim() || !videoUri || submitting) return;
     setSubmitting(true);
     try {
-      const { postId } = await uploadVideoAndPublish({ uri: videoUri, title, description, tags });
+      const { postId } = await uploadVideoAndPublish({ uri: videoUri, title, description, tags: [] });
       try {
         await attachPostToChallenge(postId, challengeId);
       } catch (e) {
@@ -181,13 +177,6 @@ export default function ChallengeEntryScreen({ navigation, route }: Props) {
             multiline
             maxLength={1000}
           />
-          <Text style={styles.label}>調子・型のしるし</Text>
-          <View style={styles.tagWrap}>
-            {POST_TAG_OPTIONS.map((t) => (
-              <Chip key={t} label={t} active={tags.includes(t)} onPress={() => toggleTag(t)} compact style={{ marginBottom: spacing.sm }} />
-            ))}
-          </View>
-
           <TouchableOpacity
             style={[styles.submit, (!title.trim() || !videoUri || submitting) && styles.submitDisabled]}
             onPress={submit}
@@ -261,7 +250,6 @@ const styles = StyleSheet.create({
     ...typography.body,
   },
   textarea: { minHeight: 64, textAlignVertical: 'top' },
-  tagWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   submit: {
     marginTop: spacing.lg,
     backgroundColor: colors.gold,

@@ -35,6 +35,8 @@ import {
   categoryIcon,
 } from '../components/awaIcons';
 import AppMenu from '../components/AppMenu';
+import UserAvatar from '../components/UserAvatar';
+import { useUserIcons } from '../hooks/useUserIcons';
 import RenkeiVideo from '../components/RenkeiVideo';
 import VideoThumbnail from '../components/VideoThumbnail';
 import InPageVideoRecorder, { RecordedVideo } from '../components/InPageVideoRecorder';
@@ -410,6 +412,8 @@ export default function HomeScreen({ navigation, route }: Props) {
   // フィード一覧(みんなの演舞)には、ヒーローに出している自分の最新投稿も含めて全件出す。
   // 以前は重複を避けて除いていたが、見本を無くしたため投稿が1件だけだと一覧が空に見えていた
   const feedRealPosts = realPosts;
+  // フィードの投稿者のプロフィールアイコン(uid → 画像URL。無ければ頭文字を出す)
+  const userIcons = useUserIcons(feedRealPosts.map((p) => p.userId));
 
   // フィード上で直接「拍手」できるように、表示中の投稿の自分のいいね状態を持つ
   // （数そのものはsubscribePostsのライブ購読が反映するので、ここではliked表示だけ管理する）。
@@ -927,9 +931,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                   <View style={styles.feedBody}>
                     <Text style={styles.feedCardTitle} numberOfLines={2}>{p.title}</Text>
                     <View style={styles.feedAuthorRow}>
-                      <RenMon size={18} color={colors.gold}>
-                        <Text style={styles.feedAvatarChar}>{p.authorName.slice(0, 1)}</Text>
-                      </RenMon>
+                      <UserAvatar size={18} name={p.authorName} iconUrl={userIcons[p.userId]} charStyle={styles.feedAvatarChar} />
                       <Text style={styles.feedMeta} numberOfLines={1}>
                         {p.authorName}{p.userId && p.userId === uid ? '（あなた）' : ''}
                       </Text>

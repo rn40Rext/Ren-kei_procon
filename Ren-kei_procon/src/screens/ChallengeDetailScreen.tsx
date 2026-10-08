@@ -1,6 +1,7 @@
 /**
  * 「師匠からのチャレンジ」の詳細。お題の演舞・出題者・コツを見せて、
- * 自分の演舞で挑戦(採点なしで撮って投稿する画面へ)し、その演舞をこのお題への挑戦として投稿できる。
+ * 「自分の演舞で挑戦する」(AI採点へ。結果の画面から、このお題への挑戦として投稿できる)と、
+ * 「AI採点なしで挑戦する」(採点せずに撮って・選んで、このお題への挑戦として投稿する)で挑戦できる。
  * 実データのお題には、挑戦として投稿された演舞(posts.challengeId)を「挑戦した人の演舞」に並べる。
  * challengeId: 連の管理者が出題した実データ(challenges。docs/design/challenges.md)。
  * id: 見本(サンプル)データ。挑戦人数・勧誘ボタンは見本にだけ出す。
@@ -17,7 +18,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Alert } from '../utils/alert';
-import { ChevronLeft, UserPlus } from 'lucide-react-native';
+import { ChevronLeft, Film, UserPlus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -236,15 +237,24 @@ export default function ChallengeDetailScreen({ navigation, route }: Props) {
           style={styles.challengeBtn}
           activeOpacity={0.9}
           onPress={() =>
-            // 実データのお題なら、採点なしで撮って(選んで)このお題に投稿する画面へ。見本のお題は従来どおり採点画面へ
-            challengeId
-              ? navigation.navigate('ChallengeEntry', { challengeId, challengeTitle: ch.title })
-              : navigation.navigate('Scoring')
+            // 実データのお題なら、採点画面〜解析結果までお題を引き継ぎ、結果をこのお題に投稿できるようにする
+            navigation.navigate('Scoring', challengeId ? { challengeId, challengeTitle: ch.title } : undefined)
           }
         >
           <IconGeta size={17} color={colors.textOnGold} />
           <Text style={styles.challengeBtnText}>　自分の演舞で挑戦する</Text>
         </TouchableOpacity>
+        {/* AIの採点をせずに挑戦する(実データのお題のみ)。撮って(選んで)このお題に投稿する画面へ */}
+        {challengeId ? (
+          <TouchableOpacity
+            style={[styles.challengeBtn, styles.challengeBtnSub]}
+            activeOpacity={0.9}
+            onPress={() => navigation.navigate('ChallengeEntry', { challengeId, challengeTitle: ch.title })}
+          >
+            <Film size={17} color={colors.gold} />
+            <Text style={[styles.challengeBtnText, styles.challengeBtnSubText]}>　AI採点なしで挑戦する</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* 挑戦した人の演舞(実データのお題のみ)。タップで投稿詳細へ */}
         {challengeId ? (
@@ -374,6 +384,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.gold,
   },
   challengeBtnText: { ...typography.button, color: colors.textOnGold, fontSize: 14 },
+  // 「AI採点なしで挑戦する」(同じ大きさで、枠線だけの控えめな見た目)
+  challengeBtnSub: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.gold },
+  challengeBtnSubText: { color: colors.gold },
 
   // 「挑戦した人の演舞」の横スクロールと、1人分のカード(動画のサムネイル・名前・極め度)と0件の案内
   tryScroll: { paddingHorizontal: spacing.lg },

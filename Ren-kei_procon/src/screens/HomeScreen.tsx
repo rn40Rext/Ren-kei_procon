@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ImageBackground,
   TouchableOpacity,
   SafeAreaView,
   Modal,
@@ -54,7 +53,6 @@ import {
 } from '../repositories/posts';
 import { fetchVideo, videoDownloadUrl } from '../repositories/videos';
 import type { Post as PostDoc } from '../types/firestore';
-import { challenges } from '../data/mockChallenges';
 import {
   CHALLENGE_CATEGORY_LABEL,
   CHALLENGE_DIFFICULTY_LABEL,
@@ -62,9 +60,6 @@ import {
 } from '../repositories/challenges';
 import type { ChallengeDoc } from '../types/firestore';
 import { formatAiScore } from '../features/analysis/format';
-
-
-
 
 /* ------------------------------------------------------------------ */
 /* 華やか演出：再生ボタンの波紋 / 動く火の粉 / 押下演出 */
@@ -205,7 +200,6 @@ function HeroFade({ height = 84 }: { height?: number }) {
     />
   );
 }
-
 
 /** 阿波おどり本番（毎年 8/11〜15）まであと何日か。過ぎていれば翌年を数える。 */
 function daysToFestival(): number {
@@ -739,9 +733,13 @@ export default function HomeScreen({ navigation, route }: Props) {
         {/* 師匠からのチャレンジ（横スクロール） */}
         <SectionHeader
           title="師匠からのチャレンジ"
-          note="連の師匠からの「これ踊ってみよう」。タップでコツが読めます（「見本」の印はサンプルです）"
+          note="連の師匠からの「これ踊ってみよう」。タップでコツが読めます"
           style={styles.sectionAfterDivider}
         />
+        {/* まだ出題が無いときは案内だけ出す */}
+        {realChallenges.length === 0 ? (
+          <Text style={styles.noChallengeText}>まだお題はありません。連の管理者が「連の管理」から出題できます。</Text>
+        ) : null}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -792,54 +790,6 @@ export default function HomeScreen({ navigation, route }: Props) {
                     <Text style={styles.chPosterText} numberOfLines={1}>
                       　{c.posterName}／{[c.renName, c.posterRole].filter(Boolean).join(' ')}
                     </Text>
-                  </View>
-                  <View style={styles.playSmallBtn}>
-                    <IconMakimono size={12} color={colors.gold} />
-                    <Text style={styles.playSmallText}>コツを見る・挑戦する</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-          {/* 見本(サンプル)のお題 */}
-          {challenges.map((c) => {
-            const CatIcon = categoryIcon(c.category);
-            return (
-              <TouchableOpacity
-                key={c.id}
-                style={styles.masterCard}
-                activeOpacity={0.9}
-                onPress={() => navigation.navigate('Challenge', { id: c.id })}
-              >
-                <ImageBackground source={{ uri: c.image }} style={styles.masterThumb}>
-                  <View style={styles.masterThumbScrim}>
-                    <View style={styles.chChipRow}>
-                      <View style={styles.chBadge}>
-                        <Text style={styles.chBadgeText}>チャレンジ</Text>
-                      </View>
-                      <View style={styles.catChip}>
-                        <CatIcon size={11} color={colors.goldBright} />
-                        <Text style={styles.catChipText}>{c.difficulty}</Text>
-                      </View>
-                      <View style={styles.catChip}>
-                        <Text style={[styles.catChipText, { marginLeft: 0 }]}>見本</Text>
-                      </View>
-                    </View>
-                  </View>
-                </ImageBackground>
-                {/* 写真の下端に添える飾り(点と線) */}
-                <View style={styles.masterAccent} pointerEvents="none">
-                  <View style={styles.masterAccentDot} />
-                  <View style={styles.masterAccentLine} />
-                </View>
-                {/* お題の題名・出題者・「コツを見る・挑戦する」 */}
-                <View style={styles.masterBody}>
-                  <Text style={styles.masterName} numberOfLines={2}>{c.title}</Text>
-                  <View style={styles.chPoster}>
-                    <RenMon size={16} color={colors.gold}>
-                      <Text style={styles.chPosterInitial}>{c.poster.slice(0, 1)}</Text>
-                    </RenMon>
-                    <Text style={styles.chPosterText} numberOfLines={1}>　{c.poster}／{c.posterRole}</Text>
                   </View>
                   <View style={styles.playSmallBtn}>
                     <IconMakimono size={12} color={colors.gold} />
@@ -1157,28 +1107,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,239,170,0.10)',
   },
   // チャレンジカードの写真下端に添える飾り(点と線)
-  masterAccent: {
-    position: 'absolute',
-    top: 112,
-    left: spacing.md,
-    right: spacing.md,
-    height: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  masterAccentDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.goldBright,
-  },
-  masterAccentLine: {
-    flex: 1,
-    height: 1,
-    marginLeft: 5,
-    backgroundColor: colors.gold,
-    opacity: 0.55,
-  },
   // フィード見出しの上の飾り線(左右に星)
   feedStageTop: {
     flexDirection: 'row',
@@ -1384,6 +1312,8 @@ const styles = StyleSheet.create({
   },
   masterThumb: { width: '100%', height: 128, justifyContent: 'flex-start' },
   masterThumbScrim: { padding: spacing.sm },
+  // お題が1件も無いときの案内文
+  noChallengeText: { ...typography.caption, color: colors.textMuted, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   // 実データのお題は写真が無いので、無地の枠の中央に踊りの種類のアイコンを置く
   masterThumbPlain: { backgroundColor: colors.indigoRaised, overflow: 'hidden' },
   // お手本動画のサムネイル(VideoThumbnail)を枠いっぱいに重ねる

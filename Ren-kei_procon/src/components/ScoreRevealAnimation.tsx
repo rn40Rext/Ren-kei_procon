@@ -12,6 +12,8 @@ import { colors, spacing, typography } from '../theme';
 
 /** 数字のまわりに咲かせる飾り(渦)を置く角度。5つを等間隔に配置する */
 const SPARKLE_ANGLES = [0, 72, 144, 216, 288];
+/** 飾り(渦)1つの大きさ */
+const SPARKLE_SIZE = 14;
 
 /** message が指定されなかったときの一言。点数で断定せず、続ける気持ちを応援する文にする */
 function defaultMessage(score: number): string {
@@ -36,6 +38,8 @@ export type ScoreRevealAnimationProps = {
 export function ScoreRevealAnimation({ score, message, size = 132, onFinish, style }: ScoreRevealAnimationProps) {
   const clamped = Math.max(0, Math.min(100, score));
   const sparkleRadius = size * 0.56;
+  // 飾りは紋の外周より外に出るので、その分の余白を確保して上下の文字(「極め度」の見出しなど)と重ならないようにする
+  const sparkleOverflow = Math.max(0, Math.ceil(sparkleRadius + SPARKLE_SIZE / 2 - size / 2)) + 2;
 
   // 演出の各段階で動かす値(紋の大きさ・濃さ、数え上げる数字、飾りと一言の濃さ)
   const ringScale = React.useRef(new Animated.Value(0.6)).current;
@@ -95,7 +99,7 @@ export function ScoreRevealAnimation({ score, message, size = 132, onFinish, sty
 
   return (
     <View style={[{ alignItems: 'center' }, style]}>
-      <Animated.View style={{ transform: [{ scale: ringScale }], opacity: ringOpacity }}>
+      <Animated.View style={{ padding: sparkleOverflow, transform: [{ scale: ringScale }], opacity: ringOpacity }}>
         <RenMon size={size} color={colors.gold}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
             <Text style={[typography.displaySerif, { fontSize: size * 0.33, color: colors.goldBright }]}>
@@ -114,15 +118,15 @@ export function ScoreRevealAnimation({ score, message, size = 132, onFinish, sty
               position: 'absolute',
               top: '50%',
               left: '50%',
-              width: 14,
-              height: 14,
-              marginLeft: -7,
-              marginTop: -7,
+              width: SPARKLE_SIZE,
+              height: SPARKLE_SIZE,
+              marginLeft: -SPARKLE_SIZE / 2,
+              marginTop: -SPARKLE_SIZE / 2,
               opacity: sparkleOpacity,
               transform: [{ rotate: `${deg}deg` }, { translateY: -sparkleRadius }, { scale: sparkleScale }],
             }}
           >
-            <NarutoSpiral size={14} color={colors.goldBright} />
+            <NarutoSpiral size={SPARKLE_SIZE} color={colors.goldBright} />
           </Animated.View>
         ))}
       </Animated.View>

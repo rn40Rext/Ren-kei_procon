@@ -51,9 +51,9 @@ export type RootStackParamList = {
   Home: { shareVideoId?: string } | undefined;
   // 交流広場と統合したHomeの投稿詳細（旧演舞詳細）。postId: 交流広場の投稿(posts)
   VideoDetail: { postId: string };
-  // 師匠からのチャレンジの詳細。id: 見本のお題 / challengeId: 連の管理者が出題した実データ(challenges)
-  Challenge: { id?: string; challengeId?: string };
-  // 師匠からのチャレンジへの挑戦を、採点なしで撮って(選んで)投稿する画面。チャレンジ詳細の「自分の演舞で挑戦する」から
+  // 師匠からのチャレンジの詳細。challengeId: 連の管理者が出題したお題(challenges)
+  Challenge: { challengeId: string };
+  // 師匠からのチャレンジへの挑戦を、AI採点なしで撮って(選んで)投稿する画面。チャレンジ詳細の「AI採点なしで挑戦する」から
   ChallengeEntry: { challengeId: string; challengeTitle: string };
   Mypage: undefined;
   // challengeId/challengeTitle: 師匠からのチャレンジの「自分の演舞で挑戦する」から来たとき。

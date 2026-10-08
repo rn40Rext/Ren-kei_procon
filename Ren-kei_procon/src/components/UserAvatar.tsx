@@ -1,7 +1,8 @@
 /**
  * 投稿者・コメントした人などの丸いアイコン。
  * アイコン画像(iconUrl)があればそれを、無ければ名前の頭文字を出す。
- *  - variant 'mon':   連紋の枠(RenMon)の中に出す(投稿者の表示など)
+ *  - variant 'mon':   頭文字のときは連紋の枠(RenMon)の中に出す(投稿者の表示など)。
+ *                     アイコン画像があるときは、枠を付けず丸い画像だけにする
  *  - variant 'plain': 枠なしの丸(コメント欄など)
  */
 import React from 'react';
@@ -39,19 +40,23 @@ export default function UserAvatar({
     );
   }
 
-  // 連紋の内側の輪(直径が枠の約77%)に収まる大きさにする
-  const inner = Math.round(size * 0.68);
-  return (
-    <RenMon size={size} color={colors.gold}>
-      {iconUrl ? (
+  // アイコン画像があるときは枠(丸と十字の紋)を出さず、画像だけを丸く出す。
+  // 紋の外径(枠の約93%)に合わせた大きさにして、頭文字のときと並べても大きさが揃うようにする
+  if (iconUrl) {
+    const d = Math.round(size * 0.93);
+    return (
+      <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
         <Image
           source={{ uri: iconUrl }}
-          style={{ width: inner, height: inner, borderRadius: radius.pill }}
+          style={{ width: d, height: d, borderRadius: radius.pill }}
           accessibilityLabel={`${name}のアイコン`}
         />
-      ) : (
-        initial
-      )}
+      </View>
+    );
+  }
+  return (
+    <RenMon size={size} color={colors.gold}>
+      {initial}
     </RenMon>
   );
 }

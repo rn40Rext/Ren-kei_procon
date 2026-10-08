@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-  Image,
   Modal,
   TextInput,
   KeyboardAvoidingView,
@@ -20,7 +19,8 @@ import { X, Send, UserPlus, Check, Trash2, MessageCircle } from 'lucide-react-na
 import { colors, spacing, radius, typography } from '../theme';
 import { Badge, Chip } from '../components/ui';
 import ScreenHeader from '../components/ScreenHeader';
-import { RenMon, NarutoLoader } from '../components/motifs';
+import UserAvatar from '../components/UserAvatar';
+import { NarutoLoader } from '../components/motifs';
 import { IconUchiwa, categoryIcon } from '../components/awaIcons';
 import { auth } from '../config/firebaseConfig';
 import type { RootStackParamList } from '../navigation/AppNavigator';
@@ -315,13 +315,7 @@ export default function RequestScreen() {
                   return (
                     // 実在ユーザー1人分のカード: アイコン・名前・踊りの種類・自己紹介と、「連に招く」「話す」ボタン
                     <View key={d.id} style={styles.realCard}>
-                      <RenMon size={52} color={colors.gold}>
-                        {d.icon ? (
-                          <Image source={{ uri: d.icon }} style={styles.realAvatarImg} />
-                        ) : (
-                          <Text style={styles.realAvatarChar}>{d.name.slice(0, 1)}</Text>
-                        )}
-                      </RenMon>
+                      <UserAvatar size={52} name={d.name} iconUrl={d.icon} charStyle={styles.realAvatarChar} />
                       <View style={styles.realCardBody}>
                         <Text style={styles.dancerName}>{d.name}</Text>
                         {CatIcon ? (
@@ -597,7 +591,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   // 紋の中に入れるアイコン画像(画像がなければ名前の1文字目)
-  realAvatarImg: { width: 42, height: 42, borderRadius: radius.pill },
   realAvatarChar: { ...typography.bodyStrong, color: colors.gold, fontSize: 18 },
   realCardBody: { flex: 1, marginLeft: spacing.md },
 

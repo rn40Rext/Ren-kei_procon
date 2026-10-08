@@ -413,7 +413,7 @@ export default function HomeScreen({ navigation, route }: Props) {
   // 以前は重複を避けて除いていたが、見本を無くしたため投稿が1件だけだと一覧が空に見えていた
   const feedRealPosts = realPosts;
   // フィードの投稿者のプロフィールアイコン(uid → 画像URL。無ければ頭文字を出す)
-  const userIcons = useUserIcons(feedRealPosts.map((p) => p.userId));
+  const userIcons = useUserIcons([...feedRealPosts.map((p) => p.userId), ...realChallenges.map((c) => c.createdBy)]);
 
   // フィード上で直接「拍手」できるように、表示中の投稿の自分のいいね状態を持つ
   // （数そのものはsubscribePostsのライブ購読が反映するので、ここではliked表示だけ管理する）。
@@ -788,9 +788,7 @@ export default function HomeScreen({ navigation, route }: Props) {
                 <View style={styles.masterBody}>
                   <Text style={styles.masterName} numberOfLines={2}>{c.title}</Text>
                   <View style={styles.chPoster}>
-                    <RenMon size={16} color={colors.gold}>
-                      <Text style={styles.chPosterInitial}>{c.posterName.slice(0, 1)}</Text>
-                    </RenMon>
+                    <UserAvatar size={16} name={c.posterName} iconUrl={userIcons[c.createdBy]} charStyle={styles.chPosterInitial} />
                     <Text style={styles.chPosterText} numberOfLines={1}>
                       　{c.posterName}／{[c.renName, c.posterRole].filter(Boolean).join(' ')}
                     </Text>

@@ -18,6 +18,7 @@ import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import VideoDetailScreen from "../screens/VideoDetailScreen";
 import ChallengeDetailScreen from "../screens/ChallengeDetailScreen";
+import ChallengeEntryScreen from "../screens/ChallengeEntryScreen";
 import MypageScreen from "../screens/MypageScreen";
 import ScoringScreen from "../screens/ScoringScreen";
 import GroupScreen from "../screens/GroupScreen";
@@ -52,6 +53,8 @@ export type RootStackParamList = {
   VideoDetail: { postId: string };
   // 師匠からのチャレンジの詳細。challengeId: 連の管理者が出題したお題(challenges)
   Challenge: { challengeId: string };
+  // 師匠からのチャレンジへの挑戦を、AI採点なしで撮って(選んで)投稿する画面。チャレンジ詳細の「AI採点なしで挑戦する」から
+  ChallengeEntry: { challengeId: string; challengeTitle: string };
   Mypage: undefined;
   // challengeId/challengeTitle: 師匠からのチャレンジの「自分の演舞で挑戦する」から来たとき。
   // 撮影(Camera)→解析結果(Result)まで引き継ぎ、結果をそのお題への挑戦として投稿する
@@ -131,6 +134,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="VideoDetail" component={VideoDetailScreen} />
           <Stack.Screen name="Challenge" component={ChallengeDetailScreen} />
+          <Stack.Screen name="ChallengeEntry" component={ChallengeEntryScreen} />
           <Stack.Screen name="Scoring" component={ScoringScreen} />
           <Stack.Screen name="Mypage" component={MypageScreen} />
 

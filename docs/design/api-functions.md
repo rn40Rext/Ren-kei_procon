@@ -568,6 +568,7 @@ PR #99 のレビューで、`metrics[ruleId].greatCount/goodCount/attempts` を�
 | `onDocumentCreated('posts/{postId}/comments/{id}')` | コメント | 投稿者へ通知（`type: 'comment'`。`type:'instructor'`のみ） |
 | `onDocumentDeleted('videos/{videoId}')` | 動画削除 | Storage の実体も削除（仕様書 14.3） |
 | `onDocumentWritten('renStyleReferences/{id}')` | 参照 Embedding | `renStyleProfiles` の代表 Embedding を再計算（**実装済み**） |
+| `onDocumentWritten('invitations/{id}')` | お誘いの作成 | 宛先へ通知（`type: 'invitation_received'`。**2026-10-08 追加**。通知の中身の判断は純粋関数 `invitationNotificationFor` で、単体テストあり） |
 | `onDocumentWritten('invitations/{id}')` | お誘いへの応答 | 送信者へ通知（`type: 'invitation_result'`。**実装済み・2026-09-26・[#114](../../issues/114)**） |
 | `onDocumentCreated('chats/{chatId}/messages/{id}')` | チャットメッセージ | 相手へ通知（`type: 'chat_message'`。**実装済み・2026-09-26・[#114](../../issues/114)**） |
 

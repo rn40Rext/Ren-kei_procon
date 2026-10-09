@@ -79,7 +79,8 @@ export type RootStackParamList = {
   };
   // U-03 解析結果。FN-01 が確定した analysisResults を表示する
   Result: { analysisId: string; videoId: string; challengeId?: string; challengeTitle?: string };
-  Request: undefined;
+  // tab: 通知(お誘いが届いた)から来たとき、「届いた」タブを開く
+  Request: { tab?: 'received' } | undefined;
   UserProfile: { userId: string; userName: string }; // 💡 追加
   // 連スタイル類似度の結果（AI機能②）。表示可否は
   // src/features/style/featureFlags.ts で制御する

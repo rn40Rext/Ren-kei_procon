@@ -39,6 +39,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   member_removed: UserMinus,
   role_changed: Shield,
   member_joined: Users,
+  invitation_received: Mail,
   invitation_result: Mail,
   chat_message: MessageCircle,
 };
@@ -161,6 +162,12 @@ export default function NotificationsScreen() {
         if (n.type === 'member_removed') {
           // 除名された連の詳細はもう見られないため、マイ連一覧へ留める。
           navigation.navigate('Group');
+          return;
+        }
+
+        // お誘いが届いた→リクエスト画面の「届いた」タブ
+        if (n.type === 'invitation_received') {
+          navigation.navigate('Request', { tab: 'received' });
           return;
         }
 

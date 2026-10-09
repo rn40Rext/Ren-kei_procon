@@ -33,7 +33,7 @@ import { colors, spacing, radius, typography } from "../theme";
 import { NarutoLoader } from "../components/motifs";
 import { StancePoseGuide } from "../components/StancePoseGuide";
 import { USING_FIREBASE_EMULATOR } from "../config/firebaseConfig";
-import { disposeScoringBgm, prepareScoringBgm, startScoringBgm, stopScoringBgm } from "../features/analysis/scoringBgm";
+import { disposeScoringBgm, preloadScoringBgm, prepareScoringBgm, startScoringBgm, stopScoringBgm } from "../features/analysis/scoringBgm";
 
 /** この画面で使う画面遷移と、前の画面から受け取る値(踊りの型・重点部位・基準のテンポ)の型 */
 type CameraRoute = RouteProp<RootStackParamList, "Camera">;
@@ -196,9 +196,13 @@ export default function CameraScreen() {
     else stopScoringBgm();
   }, [analyzing]);
 
-  // 画面を離れるときは確実に止めて、後片付けする
+  // 画面を開いたとき、BGMの音源の取得・デコードを先に始める(「判定を開始」を押す前に準備を終えておく)。
+  // 画面を離れるときは確実に止めて、後片付けする。連続採点で、新しい画面の準備が古い画面の後片付けより
+  // 先に済んでも新しい採点の音を消さないよう、自分で準備した分(札)だけを片付ける
+  const bgmTokenRef = useRef<symbol | null>(null);
   useEffect(() => {
-    return () => disposeScoringBgm();
+    preloadScoringBgm();
+    return () => disposeScoringBgm(bgmTokenRef.current);
   }, []);
 
   /** 判定を始めてから保存に入るまで(構え待ち + 開始の合図 + 採点中) */
@@ -403,7 +407,7 @@ export default function CameraScreen() {
                 onPress={() => {
                   // モバイルブラウザの自動再生制限を回避するため、ボタン押下(ユーザー操作)の
                   // 中で、BGMを鳴らす準備(音声の有効化・音源の読み込み)をしておく。実際の採点開始とBGM再生はこの後始まる
-                  prepareScoringBgm();
+                  bgmTokenRef.current = prepareScoringBgm();
                   start(durationSec, startDelaySec);
                 }}
               >
